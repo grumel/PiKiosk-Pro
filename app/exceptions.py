@@ -26,3 +26,22 @@ class BrowserError(PiKioskError):
 
 class NetworkError(PiKioskError):
     """Fehler bei Netzwerkoperationen."""
+
+
+class AuthenticationError(PiKioskError):
+    """Fehler bei Anmeldung oder Benutzerverwaltung."""
+
+
+class WifiError(NetworkError):
+    """Fehler beim Verbinden mit einem WLAN.
+
+    Attributes:
+        reason:
+            Maschinenlesbarer Fehlergrund fuer die Uebersetzung in
+            der Oberflaeche: wrong_password, not_found, timeout,
+            no_ip oder generic.
+    """
+
+    def __init__(self, message: str, reason: str = "generic") -> None:
+        super().__init__(message)
+        self.reason = reason
