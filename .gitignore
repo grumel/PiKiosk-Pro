@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Laufzeitdaten
+config/config.json
+logs/*.log
+logs/*.log.*
+backup/*.json
+backup/*.zip
+
+# Werkzeuge
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Umgebung
+.env
+
+# Editoren
+.vscode/
+.idea/
+*.swp
