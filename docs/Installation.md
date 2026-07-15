@@ -29,8 +29,11 @@ Der Installer führt folgende Schritte aus:
 2. Kopieren des Projekts nach `/opt/pikiosk-pro`
 3. Erstellen der Python-Umgebung und Installation der Abhängigkeiten
 4. Installation und Aktivierung des systemd-Dienstes `pikiosk.service`
-5. Aktivierung des Desktop-Autologins über `raspi-config`
-6. Start des Dienstes
+5. Installation der sudo-Regel für die Hostnameänderung
+   (`/etc/sudoers.d/pikiosk`, erlaubt ausschließlich das Helferskript
+   `scripts/hostname_apply.py`)
+6. Aktivierung des Desktop-Autologins über `raspi-config`
+7. Start des Dienstes
 
 Alle Schritte werden in `logs/install.log` protokolliert.
 
@@ -40,9 +43,10 @@ Alle Schritte werden in `logs/install.log` protokolliert.
 sudo reboot
 ```
 
-Nach dem Neustart startet PiKiosk Pro automatisch. Solange die
-Ersteinrichtung nicht abgeschlossen ist, zeigt der Browser die lokale
-Statusseite unter `http://127.0.0.1:8080/` an.
+Nach dem Neustart startet PiKiosk Pro automatisch. Beim ersten Start
+zeigt der Browser den Setup-Wizard an, der Hostname, WLAN,
+Administratorkonto und Kiosk-URL einrichtet. Nach Abschluss der
+Einrichtung startet der Kiosk direkt mit der konfigurierten Webseite.
 
 ## Dienststeuerung
 

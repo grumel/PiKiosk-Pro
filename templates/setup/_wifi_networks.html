@@ -1,0 +1,31 @@
+{# Copyright (c) 2026 Holger John - Lizenz: MIT License (siehe LICENSE) #}
+{# Wizard Seite 3, Teilfragment: gefundene WLAN-Netzwerke. #}
+{% if error %}
+<div class="alert alert-danger" role="alert">{{ error }}</div>
+{% elif not networks %}
+<div class="alert alert-secondary" role="alert">{{ texts['wifi_no_networks'] }}</div>
+{% else %}
+<form hx-post="{{ url_for('setup.wifi_connect') }}" hx-target="#step-content">
+    <div class="list-group mb-3">
+        {% for network in networks %}
+        <label class="list-group-item d-flex align-items-center gap-3">
+            <input class="form-check-input flex-shrink-0" type="radio"
+                   name="ssid" value="{{ network['ssid'] }}"
+                   {% if loop.first %}checked{% endif %}>
+            <span class="flex-grow-1">{{ network['ssid'] }}</span>
+            <span class="text-body-secondary small">{{ network['security'] }}</span>
+            <span class="text-body-secondary small">{{ network['frequency'] }}</span>
+            <span class="badge text-bg-secondary">{{ network['signal'] }} %</span>
+        </label>
+        {% endfor %}
+    </div>
+    <div class="mb-3">
+        <label class="form-label" for="wifi-password">{{ texts['label_password'] }}</label>
+        <input class="form-control form-control-lg" type="password"
+               id="wifi-password" name="password" autocomplete="off">
+    </div>
+    <button type="submit" class="btn btn-primary px-4">
+        {{ texts['btn_connect'] }}
+    </button>
+</form>
+{% endif %}

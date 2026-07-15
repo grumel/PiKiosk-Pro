@@ -1,0 +1,25 @@
+{# Copyright (c) 2026 Holger John - Lizenz: MIT License (siehe LICENSE) #}
+{# Wizard Seite 1: Willkommen mit Geraeteinformationen. #}
+<h2 class="fs-4 mb-3">{{ texts['welcome_heading'] }}</h2>
+<p class="text-body-secondary">{{ texts['welcome_text'] }}</p>
+<ul class="list-group list-group-flush mb-4">
+    <li class="list-group-item d-flex justify-content-between">
+        <span>{{ texts['label_version'] }}</span>
+        <span class="fw-semibold">{{ app_version }}</span>
+    </li>
+    <li class="list-group-item d-flex justify-content-between">
+        <span>{{ texts['label_license'] }}</span>
+        <span class="fw-semibold">MIT License</span>
+    </li>
+    <li class="list-group-item d-flex justify-content-between">
+        <span>{{ texts['label_device'] }}</span>
+        <span class="fw-semibold">{{ device if device else '-' }}</span>
+    </li>
+</ul>
+<div class="d-flex justify-content-end">
+    <button type="button" class="btn btn-primary px-4"
+            hx-get="{{ url_for('setup.step', name='hostname') }}"
+            hx-target="#step-content">
+        {{ texts['btn_next'] }}
+    </button>
+</div>

@@ -30,7 +30,7 @@ keine globalen Variablen.
  Raspberry Pi OS
 ```
 
-## Module (Version 0.1.0)
+## Module (Version 0.2.0)
 
 | Modul                              | Aufgabe                                        |
 | ---------------------------------- | ---------------------------------------------- |
@@ -43,9 +43,15 @@ keine globalen Variablen.
 | `app/routes.py`                    | Statusseite und Health-Endpunkt                |
 | `app/services/config_service.py`   | Konfigurationsverwaltung (JSON)                |
 | `app/services/browser_service.py`  | Chromium-Steuerung über subprocess und CDP     |
-| `app/utils/validators.py`          | Hostname-, URL- und Konfigurationsvalidierung  |
-| `app/utils/network.py`             | DevTools-Client für den Seiten-Reload          |
-| `app/utils/helpers.py`             | Sprachdateien, lokale IP-Ermittlung            |
+| `app/controllers/setup_controller.py` | Setup-Wizard (Ersteinrichtung)             |
+| `app/services/network_service.py`  | WLAN-Verwaltung über NetworkManager (nmcli)    |
+| `app/services/hostname_service.py` | Hostnameverwaltung mit Root-Helferskript       |
+| `app/services/auth_service.py`     | Benutzer- und Passwortverwaltung (bcrypt)      |
+| `app/models/user_model.py`         | Benutzertabelle in SQLite                      |
+| `app/utils/validators.py`          | Hostname-, URL-, Passwort- und Konfigvalidierung |
+| `app/utils/network.py`             | DevTools-Client, URL-Statusprüfung             |
+| `app/utils/helpers.py`             | Sprachdateien, IP, Gerätemodell, Secret-Key    |
+| `scripts/hostname_apply.py`        | Root-Helfer für /etc/hostname und hostnamectl  |
 
 ## Bootprozess
 
@@ -77,9 +83,29 @@ Konsole (stderr) und damit im systemd-Journal.
 | `logs/install.log` | Installationsskript             |
 | `logs/update.log`  | Aktualisierungsskript           |
 
+## Setup-Wizard
+
+Der Wizard läuft ausschließlich beim ersten Start (`first_start=true`).
+Ein zentraler Before-Request-Hook leitet bis zum Abschluss der
+Einrichtung alle Anfragen auf `/setup` um; danach ist der Wizard
+gesperrt. Die Schritte werden als HTMX-Fragmente nachgeladen, alle
+Eingaben werden serverseitig validiert (Hostname, Passwortregeln,
+URL-Erreichbarkeit). Der Wizard-Zustand liegt in der Flask-Session,
+Passwörter dort nur als bcrypt-Hash. Alle POST-Anfragen sind per
+CSRF-Token geschützt.
+
+## Datenhaltung
+
+| Daten          | Ablage                       |
+| -------------- | ---------------------------- |
+| Konfiguration  | `config/config.json` (JSON)  |
+| Benutzer       | `config/users.db` (SQLite)   |
+| Sitzungsschlüssel | `config/secret_key`       |
+| Logs           | `logs/*.log` (Dateien)       |
+
 ## Ausblick
 
-Die Struktur ist auf die kommenden Versionen vorbereitet: Setup-Wizard
-(v0.2), Dashboard (v0.3), Watchdog (v0.4), Backup/Restore (v0.5),
+Die Struktur ist auf die kommenden Versionen vorbereitet: Dashboard
+mit Login (v0.3), Watchdog (v0.4), Backup/Restore (v0.5),
 Updatesystem (v0.6), REST API (v0.7) sowie Mehrsprachigkeit und
 Themes (v0.8).

@@ -13,8 +13,11 @@ from dataclasses import dataclass
 from flask import Flask
 
 from app.logger import KioskLogger
+from app.services.auth_service import AuthService
 from app.services.browser_service import BrowserService
 from app.services.config_service import ConfigService
+from app.services.hostname_service import HostnameService
+from app.services.network_service import NetworkService
 
 EXTENSION_KEY: str = "pikiosk"
 
@@ -32,11 +35,23 @@ class ServiceRegistry:
 
         browser_service:
             Dienst fuer die Browsersteuerung.
+
+        network_service:
+            Dienst fuer die WLAN-Verwaltung ueber NetworkManager.
+
+        hostname_service:
+            Dienst fuer die Hostnameverwaltung.
+
+        auth_service:
+            Dienst fuer Benutzer- und Passwortverwaltung.
     """
 
     logger: KioskLogger
     config_service: ConfigService
     browser_service: BrowserService
+    network_service: NetworkService
+    hostname_service: HostnameService
+    auth_service: AuthService
 
 
 def register_services(app: Flask, registry: ServiceRegistry) -> None:

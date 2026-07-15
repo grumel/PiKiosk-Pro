@@ -1,0 +1,21 @@
+{# Copyright (c) 2026 Holger John - Lizenz: MIT License (siehe LICENSE) #}
+{# Wizard Abschluss: Installationsergebnis. #}
+<h2 class="fs-4 mb-3">{{ texts['install_heading'] }}</h2>
+{% if success %}
+<div class="alert alert-success" role="alert">{{ texts['install_done'] }}</div>
+<p class="text-body-secondary">{{ texts['install_redirect_notice'] }}</p>
+<script>
+    setTimeout(function () {
+        window.location.href = {{ redirect_url | tojson }};
+    }, 5000);
+</script>
+{% else %}
+<div class="alert alert-danger" role="alert">
+    {{ texts['install_failed'] }}<br>{{ error }}
+</div>
+<button type="button" class="btn btn-primary px-4"
+        hx-get="{{ url_for('setup.step', name='summary') }}"
+        hx-target="#step-content">
+    {{ texts['btn_back'] }}
+</button>
+{% endif %}
