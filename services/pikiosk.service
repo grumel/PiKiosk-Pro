@@ -1,0 +1,25 @@
+# Copyright (c) 2026 Holger John
+# Lizenz: MIT License (siehe LICENSE)
+#
+# PiKiosk Pro - systemd-Dienst.
+# Startet den Webserver und den Kioskbrowser nach dem Boot.
+# Die Platzhalter __KIOSK_USER__ und __INSTALL_DIR__ werden von
+# install.sh beim Installieren ersetzt.
+
+[Unit]
+Description=PiKiosk Pro Kiosk-System
+After=graphical.target network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=__KIOSK_USER__
+WorkingDirectory=__INSTALL_DIR__
+Environment=DISPLAY=:0
+Environment=XAUTHORITY=/home/__KIOSK_USER__/.Xauthority
+ExecStart=__INSTALL_DIR__/.venv/bin/python -m app.app
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=graphical.target
