@@ -1,0 +1,235 @@
+# Copyright (c) 2026 Holger John
+# Lizenz: MIT License (siehe LICENSE)
+"""PiKiosk Pro - DevTools-Netzwerkclient.
+
+Minimaler Client fuer das Chrome-DevTools-Protokoll (CDP).
+Er wird verwendet, um die aktive Kioskseite in Chromium neu zu
+laden, ohne den Browserprozess zu beenden. Die WebSocket-
+Kommunikation ist bewusst mit Bordmitteln der Standardbibliothek
+implementiert, um keine zusaetzlichen Abhaengigkeiten einzufuehren.
+"""
+
+import base64
+import http.client
+import json
+import os
+import socket
+from typing import Any
+from urllib.parse import urlsplit
+
+from app.exceptions import NetworkError
+
+WEBSOCKET_ACCEPT_STATUS: str = "101"
+TEXT_FRAME_OPCODE: int = 0x81
+MASK_BIT: int = 0x80
+
+
+def encode_text_frame(payload: bytes) -> bytes:
+    """Kodiert eine Nachricht als maskiertes WebSocket-Textframe.
+
+    Args:
+        payload:
+            Zu sendende Nutzdaten.
+
+    Returns:
+        Das vollstaendige WebSocket-Frame.
+    """
+    header = bytearray([TEXT_FRAME_OPCODE])
+    length = len(payload)
+    if length < 126:
+        header.append(MASK_BIT | length)
+    elif length < 65536:
+        header.append(MASK_BIT | 126)
+        header.extend(length.to_bytes(2, "big"))
+    else:
+        header.append(MASK_BIT | 127)
+        header.extend(length.to_bytes(8, "big"))
+    mask_key = os.urandom(4)
+    masked = bytes(byte ^ mask_key[index % 4] for index, byte in enumerate(payload))
+    return bytes(header) + mask_key + masked
+
+
+class DevToolsClient:
+    """Client fuer das Chrome-DevTools-Protokoll.
+
+    Args:
+        host:
+            Host des DevTools-Endpunkts.
+
+        port:
+            Port des DevTools-Endpunkts.
+
+        timeout:
+            Timeout in Sekunden fuer alle Netzwerkoperationen.
+    """
+
+    def __init__(self, host: str, port: int, timeout: float = 5.0) -> None:
+        self._host = host
+        self._port = port
+        self._timeout = timeout
+
+    def reload_page(self) -> None:
+        """Laedt die erste geoeffnete Browserseite neu.
+
+        Raises:
+            NetworkError
+        """
+        targets = self._fetch_targets()
+        websocket_url = self._first_page_websocket_url(targets)
+        command = json.dumps(
+            {"id": 1, "method": "Page.reload", "params": {"ignoreCache": False}}
+        )
+        self._send_command(websocket_url, command.encode("utf-8"))
+
+    def _fetch_targets(self) -> list[dict[str, Any]]:
+        """Fragt alle DevTools-Ziele ueber HTTP ab.
+
+        Returns:
+            Liste der DevTools-Ziele.
+
+        Raises:
+            NetworkError
+        """
+        connection = http.client.HTTPConnection(
+            self._host, self._port, timeout=self._timeout
+        )
+        try:
+            connection.request("GET", "/json/list")
+            response = connection.getresponse()
+            if response.status != 200:
+                raise NetworkError(
+                    f"DevTools-Endpunkt antwortete mit Status {response.status}."
+                )
+            targets = json.loads(response.read().decode("utf-8"))
+        except (OSError, json.JSONDecodeError) as error:
+            raise NetworkError(
+                f"DevTools-Endpunkt nicht erreichbar: {error}"
+            ) from error
+        finally:
+            connection.close()
+        if not isinstance(targets, list):
+            raise NetworkError("DevTools-Endpunkt lieferte keine Zielliste.")
+        return targets
+
+    def _first_page_websocket_url(self, targets: list[dict[str, Any]]) -> str:
+        """Ermittelt die WebSocket-URL der ersten Browserseite.
+
+        Args:
+            targets:
+                Liste der DevTools-Ziele.
+
+        Returns:
+            WebSocket-Debugger-URL der ersten Seite.
+
+        Raises:
+            NetworkError
+        """
+        for target in targets:
+            if target.get("type") == "page" and target.get("webSocketDebuggerUrl"):
+                return str(target["webSocketDebuggerUrl"])
+        raise NetworkError("Keine offene Browserseite gefunden.")
+
+    def _send_command(self, websocket_url: str, payload: bytes) -> None:
+        """Sendet ein CDP-Kommando ueber eine WebSocket-Verbindung.
+
+        Args:
+            websocket_url:
+                WebSocket-Debugger-URL des Ziels.
+
+            payload:
+                JSON-Kommando als Bytes.
+
+        Raises:
+            NetworkError
+        """
+        path = urlsplit(websocket_url).path
+        try:
+            with socket.create_connection(
+                (self._host, self._port), timeout=self._timeout
+            ) as connection:
+                self._perform_handshake(connection, path)
+                connection.sendall(encode_text_frame(payload))
+                self._read_frame_payload(connection)
+        except OSError as error:
+            raise NetworkError(
+                f"WebSocket-Verbindung fehlgeschlagen: {error}"
+            ) from error
+
+    def _perform_handshake(self, connection: socket.socket, path: str) -> None:
+        """Fuehrt den WebSocket-Handshake durch.
+
+        Args:
+            connection:
+                Offene TCP-Verbindung.
+
+            path:
+                Pfad des WebSocket-Endpunkts.
+
+        Raises:
+            NetworkError
+        """
+        key = base64.b64encode(os.urandom(16)).decode("ascii")
+        request = (
+            f"GET {path} HTTP/1.1\r\n"
+            f"Host: {self._host}:{self._port}\r\n"
+            "Upgrade: websocket\r\n"
+            "Connection: Upgrade\r\n"
+            f"Sec-WebSocket-Key: {key}\r\n"
+            "Sec-WebSocket-Version: 13\r\n"
+            "\r\n"
+        )
+        connection.sendall(request.encode("ascii"))
+        response = b""
+        while b"\r\n\r\n" not in response:
+            chunk = connection.recv(4096)
+            if not chunk:
+                raise NetworkError("Verbindung waehrend des Handshakes beendet.")
+            response += chunk
+        status_line = response.split(b"\r\n", 1)[0].decode("latin-1")
+        if WEBSOCKET_ACCEPT_STATUS not in status_line:
+            raise NetworkError(f"WebSocket-Handshake abgelehnt: {status_line}")
+
+    def _read_frame_payload(self, connection: socket.socket) -> bytes:
+        """Liest ein einzelnes WebSocket-Frame vom Server.
+
+        Args:
+            connection:
+                Offene WebSocket-Verbindung.
+
+        Returns:
+            Nutzdaten des Frames.
+
+        Raises:
+            NetworkError
+        """
+        header = self._read_exact(connection, 2)
+        length = header[1] & 0x7F
+        if length == 126:
+            length = int.from_bytes(self._read_exact(connection, 2), "big")
+        elif length == 127:
+            length = int.from_bytes(self._read_exact(connection, 8), "big")
+        return self._read_exact(connection, length)
+
+    def _read_exact(self, connection: socket.socket, count: int) -> bytes:
+        """Liest exakt die angeforderte Anzahl Bytes.
+
+        Args:
+            connection:
+                Offene Verbindung.
+
+            count:
+                Anzahl der zu lesenden Bytes.
+
+        Returns:
+            Die gelesenen Bytes.
+
+        Raises:
+            NetworkError
+        """
+        data = b""
+        while len(data) < count:
+            chunk = connection.recv(count - len(data))
+            if not chunk:
+                raise NetworkError("Verbindung unerwartet beendet.")
+            data += chunk
+        return data
