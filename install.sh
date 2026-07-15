@@ -98,6 +98,15 @@ install_service() {
     log "systemd-Dienst aktiviert."
 }
 
+install_sudoers() {
+    log "sudo-Regel fuer die Hostnameaenderung wird installiert."
+    cat >/etc/sudoers.d/pikiosk <<EOF
+${KIOSK_USER} ALL=(root) NOPASSWD: ${INSTALL_DIR}/.venv/bin/python ${INSTALL_DIR}/scripts/hostname_apply.py *
+EOF
+    chmod 440 /etc/sudoers.d/pikiosk
+    log "sudo-Regel installiert."
+}
+
 enable_autologin() {
     if command -v raspi-config >/dev/null 2>&1; then
         log "Autologin (Desktop) wird aktiviert."
@@ -123,6 +132,7 @@ main() {
     copy_project
     create_virtualenv
     install_service
+    install_sudoers
     enable_autologin
     start_service
 }

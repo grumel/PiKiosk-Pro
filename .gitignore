@@ -7,6 +7,8 @@ venv/
 
 # Laufzeitdaten
 config/config.json
+config/users.db
+config/secret_key
 logs/*.log
 logs/*.log.*
 backup/*.json
