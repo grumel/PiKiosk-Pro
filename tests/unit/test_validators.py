@@ -10,6 +10,7 @@ from app.exceptions import ValidationError
 from app.utils.validators import (
     ConfigValidator,
     HostnameValidator,
+    PasswordValidator,
     URLValidator,
 )
 
@@ -135,3 +136,34 @@ class TestConfigValidator:
     def test_kein_woerterbuch(self) -> None:
         with pytest.raises(ValidationError):
             ConfigValidator().validate([])  # type: ignore[arg-type]
+
+
+class TestPasswordValidator:
+    """Tests fuer PasswordValidator."""
+
+    @pytest.mark.parametrize(
+        "password",
+        ["Sicher-2026-Kiosk", "Aa1!Aa1!Aa1!", "XyZ9#kLm2$Qw7"],
+    )
+    def test_gueltige_passwoerter(self, password: str) -> None:
+        PasswordValidator().validate(password)
+
+    @pytest.mark.parametrize(
+        ("password", "failed_rule"),
+        [
+            ("Aa1!short", "min_length"),
+            ("nur-kleinbuchstaben-123", "uppercase"),
+            ("NUR-GROSSBUCHSTABEN-123", "lowercase"),
+            ("KeineZahlenHier!", "digit"),
+            ("KeineSonderzeichen123", "special"),
+        ],
+    )
+    def test_ungueltige_passwoerter(self, password: str, failed_rule: str) -> None:
+        validator = PasswordValidator()
+        with pytest.raises(ValidationError):
+            validator.validate(password)
+        assert validator.check_rules(password)[failed_rule] is False
+
+    def test_alle_regeln_erfuellt(self) -> None:
+        rules = PasswordValidator().check_rules("Sicher-2026-Kiosk")
+        assert all(rules.values())

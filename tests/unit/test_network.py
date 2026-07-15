@@ -5,7 +5,7 @@
 import pytest
 
 from app.exceptions import NetworkError
-from app.utils.network import DevToolsClient, encode_text_frame
+from app.utils.network import DevToolsClient, check_url_status, encode_text_frame
 
 
 def decode_masked_frame(frame: bytes) -> bytes:
@@ -75,3 +75,28 @@ class TestDevToolsClient:
         client = DevToolsClient("127.0.0.1", 59999)
         with pytest.raises(NetworkError):
             client._first_page_websocket_url([{"type": "service_worker"}])
+
+
+class TestCheckUrlStatus:
+    """Tests fuer die URL-Statuspruefung."""
+
+    def test_status_200_ist_gueltig(self, http_status_server: str) -> None:
+        valid, status = check_url_status(f"{http_status_server}/ok")
+        assert valid is True
+        assert status == 200
+
+    def test_status_302_ist_gueltig_ohne_weiterleitung(
+        self, http_status_server: str
+    ) -> None:
+        valid, status = check_url_status(f"{http_status_server}/redirect")
+        assert valid is True
+        assert status == 302
+
+    def test_status_404_ist_ungueltig(self, http_status_server: str) -> None:
+        valid, status = check_url_status(f"{http_status_server}/fehlt")
+        assert valid is False
+        assert status == 404
+
+    def test_nicht_erreichbare_url(self) -> None:
+        with pytest.raises(NetworkError):
+            check_url_status("http://127.0.0.1:59998/", timeout=0.5)
