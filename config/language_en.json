@@ -1,0 +1,19 @@
+{
+    "app_title": "PiKiosk Pro",
+    "status_heading": "System status",
+    "label_hostname": "Hostname",
+    "label_ip_address": "IP address",
+    "label_version": "Version",
+    "label_browser_status": "Browser status",
+    "label_kiosk_url": "Kiosk URL",
+    "no_url_configured": "No URL configured",
+    "first_start_notice": "Initial setup has not been completed yet.",
+    "browser_status_not_started": "Not started",
+    "browser_status_running": "Running",
+    "browser_status_restarting": "Restarting",
+    "browser_status_error": "Error",
+    "browser_status_crashed": "Crashed",
+    "error_heading": "An error occurred",
+    "error_message": "Please try again. Details have been logged for the administrator.",
+    "footer_text": "PiKiosk Pro – Professional open source kiosk system"
+}

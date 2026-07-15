@@ -1,0 +1,20 @@
+/*
+ * Copyright (c) 2026 Holger John
+ * Lizenz: MIT License (siehe LICENSE)
+ *
+ * PiKiosk Pro - Eigene Stile.
+ * Ergaenzt Bootstrap um Kiosk- und Touchscreen-Regeln:
+ * alle Bedienelemente sind mindestens 48 x 48 Pixel gross.
+ */
+
+.btn,
+button,
+input[type="submit"] {
+    min-width: 48px;
+    min-height: 48px;
+}
+
+body {
+    -webkit-user-select: none;
+    user-select: none;
+}

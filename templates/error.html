@@ -1,0 +1,19 @@
+{# Copyright (c) 2026 Holger John - Lizenz: MIT License (siehe LICENSE) #}
+{# Fehlerseite: verstaendliche Meldung ohne technische Details. #}
+{% extends "base.html" %}
+
+{% block title %}{{ texts['error_heading'] }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12 col-md-8 col-lg-6 text-center">
+        <div class="card shadow-sm">
+            <div class="card-body py-5">
+                <p class="display-4 mb-3">{{ code }}</p>
+                <h1 class="fs-4 mb-3">{{ texts['error_heading'] }}</h1>
+                <p class="text-body-secondary mb-0">{{ texts['error_message'] }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
