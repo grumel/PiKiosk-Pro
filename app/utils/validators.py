@@ -16,6 +16,7 @@ from app.constants import (
     ALLOWED_URL_SCHEMES,
     CONFIG_SCHEMA,
     HOSTNAME_MAX_LENGTH,
+    PASSWORD_MIN_LENGTH,
     SUPPORTED_BROWSERS,
     SUPPORTED_LANGUAGES,
     SUPPORTED_THEMES,
@@ -23,6 +24,10 @@ from app.constants import (
 from app.exceptions import ValidationError
 
 HOSTNAME_PATTERN: re.Pattern[str] = re.compile(r"^[A-Za-z0-9-]+$")
+PASSWORD_UPPER_PATTERN: re.Pattern[str] = re.compile(r"[A-Z]")
+PASSWORD_LOWER_PATTERN: re.Pattern[str] = re.compile(r"[a-z]")
+PASSWORD_DIGIT_PATTERN: re.Pattern[str] = re.compile(r"[0-9]")
+PASSWORD_SPECIAL_PATTERN: re.Pattern[str] = re.compile(r"[^A-Za-z0-9]")
 
 
 class HostnameValidator:
@@ -173,3 +178,49 @@ class ConfigValidator:
             raise ValidationError(
                 "Unterstuetzte Browser: " + ", ".join(SUPPORTED_BROWSERS)
             )
+
+
+class PasswordValidator:
+    """Validiert Administratorpasswoerter.
+
+    Ein Passwort muss mindestens 12 Zeichen lang sein und
+    Grossbuchstaben, Kleinbuchstaben, Zahlen und Sonderzeichen
+    enthalten.
+    """
+
+    def validate(self, password: str) -> None:
+        """Prueft die Passwortqualitaet.
+
+        Args:
+            password:
+                Zu pruefendes Passwort.
+
+        Raises:
+            ValidationError
+        """
+        failed = [
+            rule for rule, passed in self.check_rules(password).items() if not passed
+        ]
+        if failed:
+            raise ValidationError(
+                "Das Passwort erfuellt folgende Regeln nicht: " + ", ".join(failed)
+            )
+
+    def check_rules(self, password: str) -> dict[str, bool]:
+        """Prueft jede Passwortregel einzeln.
+
+        Args:
+            password:
+                Zu pruefendes Passwort.
+
+        Returns:
+            Regelname und Ergebnis jeder Einzelpruefung.
+        """
+        value = password if isinstance(password, str) else ""
+        return {
+            "min_length": len(value) >= PASSWORD_MIN_LENGTH,
+            "uppercase": bool(PASSWORD_UPPER_PATTERN.search(value)),
+            "lowercase": bool(PASSWORD_LOWER_PATTERN.search(value)),
+            "digit": bool(PASSWORD_DIGIT_PATTERN.search(value)),
+            "special": bool(PASSWORD_SPECIAL_PATTERN.search(value)),
+        }
