@@ -1,0 +1,24 @@
+{# Copyright (c) 2026 Holger John - Lizenz: MIT License (siehe LICENSE) #}
+{# Setup-Wizard: Seitenrahmen, laedt die Schritte als HTMX-Fragmente. #}
+{% extends "base.html" %}
+
+{% block title %}{{ texts['setup_title'] }}{% endblock %}
+
+{% block content %}
+<div id="setup-wizard"
+     class="row justify-content-center"
+     hx-headers='{"X-CSRF-Token": "{{ csrf_token }}"}'>
+    <div class="col-12 col-md-10 col-lg-8">
+        <div class="card shadow-sm">
+            <div class="card-header fs-5">{{ texts['setup_title'] }}</div>
+            <div class="card-body" id="step-content">
+                {% include "setup/_welcome.html" %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/htmx.min.js') }}"></script>
+{% endblock %}

@@ -8,17 +8,25 @@ from flask.testing import FlaskClient
 
 from app import create_app
 from app.constants import APP_VERSION
+from app.extensions import ServiceRegistry
 
 
-@pytest.fixture(scope="module")
-def flask_app() -> Flask:
-    """Erzeugt die Flask-Anwendung fuer die Tests.
+@pytest.fixture
+def flask_app(registry: ServiceRegistry) -> Flask:
+    """Erzeugt die Flask-Anwendung mit abgeschlossener Einrichtung.
+
+    Args:
+        registry:
+            ServiceRegistry mit temporaeren Datenpfaden.
 
     Returns:
         Die initialisierte Flask-Anwendung.
     """
-    application = create_app()
+    application = create_app(registry)
     application.config["TESTING"] = True
+    config = registry.config_service.load()
+    config["first_start"] = False
+    registry.config_service.save(config)
     return application
 
 
@@ -64,3 +72,10 @@ class TestFlaskApp:
     def test_statische_dateien_erreichbar(self, client: FlaskClient) -> None:
         response = client.get("/static/css/style.css")
         assert response.status_code == 200
+
+    def test_setup_leitet_nach_abschluss_zur_statusseite(
+        self, client: FlaskClient
+    ) -> None:
+        response = client.get("/setup/")
+        assert response.status_code == 302
+        assert response.headers["Location"].endswith("/")

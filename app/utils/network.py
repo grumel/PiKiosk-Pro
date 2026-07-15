@@ -14,14 +14,68 @@ import http.client
 import json
 import os
 import socket
+import urllib.error
+import urllib.request
 from typing import Any
 from urllib.parse import urlsplit
 
+from app.constants import (
+    APP_NAME,
+    APP_VERSION,
+    URL_CHECK_TIMEOUT_SECONDS,
+    URL_CHECK_VALID_STATUS,
+)
 from app.exceptions import NetworkError
 
 WEBSOCKET_ACCEPT_STATUS: str = "101"
 TEXT_FRAME_OPCODE: int = 0x81
 MASK_BIT: int = 0x80
+URL_CHECK_USER_AGENT: str = (
+    f"Mozilla/5.0 (X11; Linux aarch64) {APP_NAME.replace(' ', '')}/{APP_VERSION}"
+)
+
+
+class _NoRedirectHandler(urllib.request.HTTPRedirectHandler):
+    """Unterbindet das automatische Folgen von Weiterleitungen."""
+
+    def redirect_request(self, *args: Any, **kwargs: Any) -> None:
+        return None
+
+
+def check_url_status(
+    url: str, timeout: float = URL_CHECK_TIMEOUT_SECONDS
+) -> tuple[bool, int]:
+    """Prueft die Erreichbarkeit einer URL.
+
+    Weiterleitungen werden nicht verfolgt, damit die Statuscodes
+    301 und 302 direkt bewertet werden koennen.
+
+    Args:
+        url:
+            Zu pruefende URL.
+
+        timeout:
+            Timeout in Sekunden.
+
+    Returns:
+        Tupel aus Gueltigkeit (Status 200, 301 oder 302) und
+        HTTP-Statuscode.
+
+    Raises:
+        NetworkError
+    """
+    opener = urllib.request.build_opener(_NoRedirectHandler)
+    request = urllib.request.Request(
+        url, method="GET", headers={"User-Agent": URL_CHECK_USER_AGENT}
+    )
+    try:
+        with opener.open(request, timeout=timeout) as response:
+            status = int(response.status)
+    except urllib.error.HTTPError as error:
+        status = int(error.code)
+    except (urllib.error.URLError, OSError, ValueError) as error:
+        raise NetworkError(f"Die URL ist nicht erreichbar: {error}") from error
+    return status in URL_CHECK_VALID_STATUS, status
 
 
 def encode_text_frame(payload: bytes) -> bytes:

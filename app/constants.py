@@ -11,7 +11,7 @@ zu, damit keine doppelten Definitionen entstehen.
 from pathlib import Path
 
 APP_NAME: str = "PiKiosk Pro"
-APP_VERSION: str = "0.1.0"
+APP_VERSION: str = "0.2.0"
 
 BASE_DIR: Path = Path(__file__).resolve().parent.parent
 CONFIG_DIR: Path = BASE_DIR / "config"
@@ -56,6 +56,33 @@ ALLOWED_URL_SCHEMES: tuple[str, ...] = ("http", "https")
 SUPPORTED_LANGUAGES: tuple[str, ...] = ("de", "en")
 SUPPORTED_THEMES: tuple[str, ...] = ("dark", "light", "auto")
 SUPPORTED_BROWSERS: tuple[str, ...] = ("chromium",)
+
+USERS_DB_FILE: Path = CONFIG_DIR / "users.db"
+SECRET_KEY_FILE: Path = CONFIG_DIR / "secret_key"
+
+DEFAULT_ADMIN_USERNAME: str = "admin"
+ADMIN_ROLE: str = "admin"
+PASSWORD_MIN_LENGTH: int = 12
+
+URL_CHECK_TIMEOUT_SECONDS: float = 5.0
+URL_CHECK_VALID_STATUS: tuple[int, ...] = (200, 301, 302)
+
+NMCLI_BINARY: str = "nmcli"
+NMCLI_TIMEOUT_SECONDS: float = 45.0
+NETWORK_LOG_FILE: Path = LOG_DIR / "network.log"
+
+ETC_HOSTNAME_FILE: Path = Path("/etc/hostname")
+ETC_HOSTS_FILE: Path = Path("/etc/hosts")
+HOSTNAME_APPLY_SCRIPT: Path = BASE_DIR / "scripts" / "hostname_apply.py"
+
+SETUP_STEPS: tuple[str, ...] = (
+    "welcome",
+    "hostname",
+    "wifi",
+    "admin",
+    "url",
+    "summary",
+)
 
 CONFIG_SCHEMA: dict[str, type] = {
     "hostname": str,

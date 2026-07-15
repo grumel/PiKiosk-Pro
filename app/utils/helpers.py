@@ -8,11 +8,14 @@ JSON-Sprachdateien geladen, es stehen keine Texte im Python-Code.
 """
 
 import json
+import secrets
 import socket
 from pathlib import Path
 
-from app.constants import CONFIG_DIR, SUPPORTED_LANGUAGES
+from app.constants import CONFIG_DIR, SECRET_KEY_FILE, SUPPORTED_LANGUAGES
 from app.exceptions import ConfigurationError, ValidationError
+
+DEVICE_MODEL_FILE: Path = Path("/proc/device-tree/model")
 
 
 def load_language(language: str, config_dir: Path = CONFIG_DIR) -> dict[str, str]:
@@ -74,3 +77,44 @@ def local_ip_address() -> str:
     finally:
         probe.close()
     return address
+
+
+def device_model() -> str:
+    """Liest die Geraetebezeichnung des Raspberry Pi.
+
+    Returns:
+        Modellbezeichnung oder leer, wenn nicht verfuegbar.
+    """
+    try:
+        return DEVICE_MODEL_FILE.read_text(encoding="utf-8").strip("\x00\n ")
+    except OSError:
+        return ""
+
+
+def load_or_create_secret_key(key_file: Path = SECRET_KEY_FILE) -> str:
+    """Laedt den Flask-Sitzungsschluessel oder erzeugt ihn neu.
+
+    Args:
+        key_file:
+            Pfad der Schluesseldatei.
+
+    Returns:
+        Der Sitzungsschluessel als Hexadezimal-Zeichenkette.
+
+    Raises:
+        ConfigurationError
+    """
+    try:
+        if key_file.exists():
+            key = key_file.read_text(encoding="utf-8").strip()
+            if key:
+                return key
+        key = secrets.token_hex(32)
+        key_file.parent.mkdir(parents=True, exist_ok=True)
+        key_file.write_text(key + "\n", encoding="utf-8")
+        key_file.chmod(0o600)
+        return key
+    except OSError as error:
+        raise ConfigurationError(
+            f"Sitzungsschluessel konnte nicht erzeugt werden: {error}"
+        ) from error
