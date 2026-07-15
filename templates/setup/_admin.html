@@ -1,0 +1,64 @@
+{# Copyright (c) 2026 Holger John - Lizenz: MIT License (siehe LICENSE) #}
+{# Wizard Seite 4: Administratorkonto mit Passwortqualitaet. #}
+<h2 class="fs-4 mb-3">{{ texts['admin_heading'] }}</h2>
+{% if error %}
+<div class="alert alert-danger" role="alert">{{ error }}</div>
+{% endif %}
+{% if success %}
+<div class="alert alert-success" role="alert">{{ texts['admin_saved'] }}</div>
+{% endif %}
+<form hx-post="{{ url_for('setup.save_admin') }}" hx-target="#step-content">
+    <div class="mb-3">
+        <label class="form-label" for="admin-username">{{ texts['label_username'] }}</label>
+        <input class="form-control form-control-lg" type="text" id="admin-username"
+               name="username" autocomplete="off"
+               value="{{ username if username else state.get('admin_username', 'admin') }}">
+    </div>
+    <div class="mb-3">
+        <label class="form-label" for="admin-password">{{ texts['label_password'] }}</label>
+        <input class="form-control form-control-lg" type="password"
+               id="admin-password" name="password" autocomplete="new-password">
+    </div>
+    <div class="mb-3">
+        <label class="form-label" for="admin-password-repeat">{{ texts['label_password_repeat'] }}</label>
+        <input class="form-control form-control-lg" type="password"
+               id="admin-password-repeat" name="password_repeat"
+               autocomplete="new-password">
+    </div>
+    <p class="mb-1">{{ texts['password_rules_heading'] }}</p>
+    <ul class="list-unstyled mb-4">
+        {% for rule in ('min_length', 'uppercase', 'lowercase', 'digit', 'special') %}
+        <li>
+            {% if rules is defined and rules %}
+                {% if rules[rule] %}
+                    <span class="text-success">&#10004;</span>
+                {% else %}
+                    <span class="text-danger">&#10008;</span>
+                {% endif %}
+            {% else %}
+                <span class="text-body-secondary">&#8226;</span>
+            {% endif %}
+            {{ texts['rule_' ~ rule] }}
+        </li>
+        {% endfor %}
+    </ul>
+    <div class="d-flex justify-content-between">
+        <button type="button" class="btn btn-outline-secondary px-4"
+                hx-get="{{ url_for('setup.step', name='wifi') }}"
+                hx-target="#step-content">
+            {{ texts['btn_back'] }}
+        </button>
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-outline-primary px-4">
+                {{ texts['btn_check'] }}
+            </button>
+            {% if state.get('admin_password_hash') %}
+            <button type="button" class="btn btn-primary px-4"
+                    hx-get="{{ url_for('setup.step', name='url') }}"
+                    hx-target="#step-content">
+                {{ texts['btn_next'] }}
+            </button>
+            {% endif %}
+        </div>
+    </div>
+</form>

@@ -1,0 +1,40 @@
+{# Copyright (c) 2026 Holger John - Lizenz: MIT License (siehe LICENSE) #}
+{# Wizard Seite 6: Zusammenfassung und Installationsstart. #}
+<h2 class="fs-4 mb-3">{{ texts['summary_heading'] }}</h2>
+{% if error %}
+<div class="alert alert-danger" role="alert">{{ error }}</div>
+{% endif %}
+<ul class="list-group list-group-flush mb-4">
+    <li class="list-group-item d-flex justify-content-between">
+        <span>{{ texts['label_hostname'] }}</span>
+        <span class="fw-semibold">{{ state.get('hostname', '-') }}</span>
+    </li>
+    <li class="list-group-item d-flex justify-content-between">
+        <span>{{ texts['label_ssid'] }}</span>
+        <span class="fw-semibold">{{ state.get('wifi_ssid', '-') }}</span>
+    </li>
+    <li class="list-group-item d-flex justify-content-between">
+        <span>{{ texts['label_username'] }}</span>
+        <span class="fw-semibold">{{ state.get('admin_username', '-') }}</span>
+    </li>
+    <li class="list-group-item d-flex justify-content-between">
+        <span>{{ texts['label_kiosk_url'] }}</span>
+        <span class="fw-semibold text-truncate ms-3">{{ state.get('url', '-') }}</span>
+    </li>
+    <li class="list-group-item d-flex justify-content-between">
+        <span>{{ texts['label_browser'] }}</span>
+        <span class="fw-semibold">Chromium</span>
+    </li>
+</ul>
+<div class="d-flex justify-content-between">
+    <button type="button" class="btn btn-outline-secondary px-4"
+            hx-get="{{ url_for('setup.step', name='url') }}"
+            hx-target="#step-content">
+        {{ texts['btn_back'] }}
+    </button>
+    <button type="button" class="btn btn-success px-4"
+            hx-post="{{ url_for('setup.install') }}"
+            hx-target="#step-content">
+        {{ texts['btn_install'] }}
+    </button>
+</div>
