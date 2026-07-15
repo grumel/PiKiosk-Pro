@@ -5,6 +5,34 @@ dokumentiert. Das Format orientiert sich an
 [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die
 Versionierung folgt [Semantic Versioning](https://semver.org/lang/de/).
 
+## [0.2.0] - 2026-07-15
+
+### Hinzugefügt
+
+- Setup-Wizard für die Ersteinrichtung (6 Seiten: Willkommen, Hostname,
+  WLAN, Administrator, Kiosk-URL, Zusammenfassung) auf Basis von HTMX
+- Erststart-Sperre: bis zum Abschluss der Einrichtung leiten alle
+  Anfragen auf den Wizard um, danach ist der Wizard gesperrt
+- NetworkService: WLAN-Verwaltung über NetworkManager/nmcli
+  (Scan mit Sortierung nach Signalstärke, Verbinden mit verständlichen
+  Fehlermeldungen, IP/Gateway/DNS/MAC, gespeicherte Profile)
+- HostnameService mit Root-Helferskript `scripts/hostname_apply.py`
+  (aktualisiert /etc/hostname, /etc/hosts und ruft hostnamectl auf)
+- AuthService und UserModel: Administratorkonto in SQLite,
+  Passwörter ausschließlich als bcrypt-Hash
+- PasswordValidator (mindestens 12 Zeichen, Groß-/Kleinbuchstaben,
+  Zahl, Sonderzeichen) mit Einzelregel-Anzeige im Wizard
+- URL-Prüfung mit 5 Sekunden Timeout; gültig bei HTTP 200, 301, 302
+- CSRF-Schutz und HttpOnly/SameSite-Session-Cookies
+- install.sh installiert eine sudo-Regel für die Hostnameänderung
+
+### Behoben
+
+- nmcli-Ausgaben werden mit neutraler Locale (LC_ALL=C) gelesen,
+  damit die Auswertung nicht von der Systemsprache abhängt
+- URL-Prüfung sendet einen browserüblichen User-Agent, damit
+  Webseiten mit Bot-Filter nicht fälschlich als ungültig gelten
+
 ## [0.1.0] - 2026-07-15
 
 ### Hinzugefügt

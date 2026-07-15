@@ -7,8 +7,12 @@ Nach dem Booten meldet sich das Gerät automatisch an, startet Chromium im
 Kioskmodus und zeigt die konfigurierte Webseite an. Die komplette
 Administration erfolgt über eine lokale Weboberfläche – ohne Linux-Kenntnisse.
 
-## Funktionen (Version 0.1.0)
+## Funktionen (Version 0.2.0)
 
+- Setup-Wizard für die Ersteinrichtung ohne Linux-Kenntnisse:
+  Hostname, WLAN, Administratorkonto und Kiosk-URL mit Sofortprüfung
+- WLAN-Verwaltung über NetworkManager (Scan, Verbinden, IP/Gateway/DNS)
+- Administratorkonto in SQLite, Passwörter ausschließlich als bcrypt-Hash
 - Flask-Webserver mit Statusseite und Health-Endpunkt
 - Vollständige Chromium-Steuerung über Python (Start, Stopp, Neustart,
   Seiten-Reload per DevTools-Protokoll, Cache leeren, Statusüberwachung)
