@@ -1,0 +1,10 @@
+{
+    "hostname": "PiKiosk",
+    "url": "",
+    "language": "de",
+    "theme": "dark",
+    "fullscreen": true,
+    "watchdog": true,
+    "browser": "chromium",
+    "first_start": true
+}

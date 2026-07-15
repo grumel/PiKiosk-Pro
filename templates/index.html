@@ -1,0 +1,47 @@
+{# Copyright (c) 2026 Holger John - Lizenz: MIT License (siehe LICENSE) #}
+{# Statusseite: zeigt die wichtigsten Systemdaten des Kiosks an. #}
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12 col-md-8 col-lg-6">
+        {% if data['first_start'] %}
+        <div class="alert alert-info" role="alert">
+            {{ texts['first_start_notice'] }}
+        </div>
+        {% endif %}
+        <div class="card shadow-sm">
+            <div class="card-header fs-5">{{ texts['status_heading'] }}</div>
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item d-flex justify-content-between">
+                    <span>{{ texts['label_hostname'] }}</span>
+                    <span class="fw-semibold">{{ data['hostname'] }}</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span>{{ texts['label_ip_address'] }}</span>
+                    <span class="fw-semibold">{{ data['ip_address'] }}</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span>{{ texts['label_version'] }}</span>
+                    <span class="fw-semibold">{{ data['version'] }}</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span>{{ texts['label_browser_status'] }}</span>
+                    <span class="badge align-self-center
+                        {% if data['browser_status'] == 'running' %}text-bg-success
+                        {% elif data['browser_status'] in ('error', 'crashed') %}text-bg-danger
+                        {% else %}text-bg-secondary{% endif %}">
+                        {{ texts['browser_status_' ~ data['browser_status']] }}
+                    </span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span>{{ texts['label_kiosk_url'] }}</span>
+                    <span class="fw-semibold text-truncate ms-3">
+                        {% if data['kiosk_url'] %}{{ data['kiosk_url'] }}{% else %}{{ texts['no_url_configured'] }}{% endif %}
+                    </span>
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}
