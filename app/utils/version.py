@@ -59,3 +59,22 @@ def is_backup_compatible(
     backup = parse_version(backup_version)
     current = parse_version(current_version)
     return backup[0] == current[0] and backup[1:] <= current[1:]
+
+
+def is_newer(candidate: str, base: str) -> bool:
+    """Prueft, ob eine Version neuer als eine Bezugsversion ist.
+
+    Args:
+        candidate:
+            Zu pruefende Version.
+
+        base:
+            Bezugsversion.
+
+    Returns:
+        True, wenn candidate echt neuer als base ist.
+
+    Raises:
+        ValidationError
+    """
+    return parse_version(candidate) > parse_version(base)
