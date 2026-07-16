@@ -5,7 +5,7 @@
 import pytest
 
 from app.exceptions import ValidationError
-from app.utils.version import is_backup_compatible, parse_version
+from app.utils.version import is_backup_compatible, is_newer, parse_version
 
 
 class TestParseVersion:
@@ -42,3 +42,20 @@ class TestBackupCompatibility:
     def test_ungueltige_version_meldet_fehler(self) -> None:
         with pytest.raises(ValidationError):
             is_backup_compatible("kaputt", "0.5.0")
+
+
+class TestIsNewer:
+    """Tests fuer den Versionsvergleich."""
+
+    def test_neuere_version(self) -> None:
+        assert is_newer("0.7.0", "0.6.0") is True
+        assert is_newer("1.0.0", "0.9.9") is True
+        assert is_newer("0.6.1", "0.6.0") is True
+
+    def test_gleiche_oder_aeltere_version(self) -> None:
+        assert is_newer("0.6.0", "0.6.0") is False
+        assert is_newer("0.5.0", "0.6.0") is False
+
+    def test_ungueltige_version(self) -> None:
+        with pytest.raises(ValidationError):
+            is_newer("x", "0.6.0")

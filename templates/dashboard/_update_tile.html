@@ -1,0 +1,72 @@
+{# Copyright (c) 2026 Holger John - Lizenz: MIT License (siehe LICENSE) #}
+{# Dashboard-Kachel: Updates suchen, installieren und Rollback. #}
+<div class="card h-100">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span>{{ texts['tile_update'] }}</span>
+        <span class="badge text-bg-secondary">{{ current_version }}</span>
+    </div>
+    <div class="card-body">
+        {% if error %}
+        <div class="alert alert-danger" role="alert">{{ error }}</div>
+        {% endif %}
+        {% if message %}
+        <div class="alert alert-success" role="alert">{{ message }}</div>
+        {% endif %}
+        {% if info is not none %}
+            {% if info['available'] %}
+            <div class="alert alert-info" role="alert">
+                {{ texts['update_available'].format(version=info['latest']) }}
+            </div>
+            {% if info['notes'] %}
+            <pre class="border rounded p-2 small bg-body-tertiary log-viewer-pre">{{ info['notes'] }}</pre>
+            {% endif %}
+            <button type="button" class="btn btn-primary mb-3"
+                    hx-post="{{ url_for('update.install_github') }}"
+                    hx-target="#update-tile"
+                    hx-confirm="{{ texts['confirm_update'] }}">
+                {{ texts['btn_install_update'] }}
+            </button>
+            {% elif info['status'] == 'up_to_date' %}
+            <div class="alert alert-success" role="alert">{{ texts['update_up_to_date'] }}</div>
+            {% elif info['status'] == 'no_release' %}
+            <div class="alert alert-secondary" role="alert">{{ texts['update_no_release'] }}</div>
+            {% else %}
+            <div class="alert alert-warning" role="alert">{{ texts['update_invalid_version'] }}</div>
+            {% endif %}
+        {% endif %}
+        <div class="d-flex flex-wrap gap-2 mb-3">
+            <button type="button" class="btn btn-outline-primary"
+                    hx-post="{{ url_for('update.check') }}"
+                    hx-target="#update-tile">
+                {{ texts['btn_check_updates'] }}
+            </button>
+        </div>
+        <form class="mb-3">
+            <label class="form-label" for="update-upload">{{ texts['upload_update_heading'] }}</label>
+            <input class="form-control mb-2" type="file" id="update-upload"
+                   name="update_file" accept=".zip,.gz,.tgz">
+            <button type="button" class="btn btn-outline-primary"
+                    hx-post="{{ url_for('update.upload') }}"
+                    hx-encoding="multipart/form-data"
+                    hx-include="closest form"
+                    hx-target="#update-tile"
+                    hx-confirm="{{ texts['confirm_update'] }}">
+                {{ texts['btn_upload_update'] }}
+            </button>
+        </form>
+        <p class="mb-1 fw-semibold">{{ texts['rollback_heading'] }}</p>
+        {% if can_rollback and rollback_info %}
+        <p class="text-body-secondary small mb-2">
+            {{ texts['rollback_available'].format(to=rollback_info['to_version'], from_version=rollback_info['from_version']) }}
+        </p>
+        <button type="button" class="btn btn-outline-warning"
+                hx-post="{{ url_for('update.rollback') }}"
+                hx-target="#update-tile"
+                hx-confirm="{{ texts['confirm_rollback'] }}">
+            {{ texts['btn_rollback'] }}
+        </button>
+        {% else %}
+        <p class="text-body-secondary small mb-0">{{ texts['rollback_none'] }}</p>
+        {% endif %}
+    </div>
+</div>

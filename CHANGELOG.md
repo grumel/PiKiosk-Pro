@@ -5,6 +5,25 @@ dokumentiert. Das Format orientiert sich an
 [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die
 Versionierung folgt [Semantic Versioning](https://semver.org/lang/de/).
 
+## [0.6.0] - 2026-07-16
+
+### Hinzugefügt
+
+- UpdateService: Aktualisierung über lokale Update-Pakete (ZIP oder
+  tar.gz) und direkt aus GitHub-Releases
+- Automatische Sicherung vor jedem Update über den BackupService
+- Rollback-Stand des Programmcodes vor jedem Update; Rollback stellt
+  den vorherigen Stand vollständig wieder her (inklusive Entfernen
+  neu hinzugefügter Dateien)
+- GitHub-Prüfung über die Releases-API mit Versionsvergleich
+  (Semantic Versioning); Statusanzeige verfügbar/aktuell/kein Release
+- Dashboard-Kachel „Aktualisierung": Nach Updates suchen, aus GitHub
+  installieren, Paket hochladen und Rollback mit Bestätigungsabfrage
+- Schutz beim Update: Konfiguration, Benutzerdatenbank, Logs und das
+  Sicherungsverzeichnis bleiben unangetastet; Pfad-Ausbrüche und
+  überdimensionierte Archive werden abgewiesen
+- Versionsvergleich `is_newer` in app/utils/version.py
+
 ## [0.5.0] - 2026-07-16
 
 ### Hinzugefügt

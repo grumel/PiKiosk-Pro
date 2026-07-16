@@ -30,7 +30,7 @@ keine globalen Variablen.
  Raspberry Pi OS
 ```
 
-## Module (Version 0.5.0)
+## Module (Version 0.6.0)
 
 | Modul                              | Aufgabe                                        |
 | ---------------------------------- | ---------------------------------------------- |
@@ -61,6 +61,8 @@ keine globalen Variablen.
 | `app/controllers/backup_controller.py` | Sicherungs-Kachel im Dashboard            |
 | `app/controllers/restore_controller.py` | Wiederherstellung und USB-Import         |
 | `app/utils/version.py`             | Semantic Versioning, Kompatibilitaetspruefung  |
+| `app/services/update_service.py`   | Updates aus GitHub/Paket, Rollback             |
+| `app/controllers/update_controller.py` | Update-Kachel im Dashboard                |
 | `app/services/network_service.py`  | WLAN-Verwaltung über NetworkManager (nmcli)    |
 | `app/services/hostname_service.py` | Hostnameverwaltung mit Root-Helferskript       |
 | `app/services/auth_service.py`     | Benutzer- und Passwortverwaltung (bcrypt)      |
@@ -151,8 +153,24 @@ atomar in `logs/watchdog_status.json` geschrieben; das Dashboard
 liest die Datei und zeigt den Zustand an. Ist die Datei aelter als
 20 Sekunden, gilt der Watchdog als inaktiv.
 
+## Aktualisierung
+
+Der `UpdateService` unterstuetzt zwei Quellen: ein hochgeladenes
+Update-Paket (ZIP oder tar.gz) und das neueste GitHub-Release. Vor
+jeder Installation wird automatisch eine Sicherung erstellt und ein
+Rollback-Stand des aktuellen Programmcodes unter
+`backup/releases/rollback_<zeit>` angelegt. Das Paket wird geprueft
+(gueltiges Archiv, Pflichtdateien, auswertbare Version, keine
+Pfad-Ausbrueche) und muss echt neuer als die laufende Version sein.
+Beim Entpacken bleiben Konfiguration, Benutzerdatenbank, Logs und das
+Sicherungsverzeichnis unangetastet. Ein Manifest
+(`backup/releases/update_manifest.json`) haelt Von-/Zielversion,
+Rollback-Stand und die installierten Dateien fest, sodass der
+Rollback den vorherigen Stand vollstaendig wiederherstellt und neu
+hinzugefuegte Dateien wieder entfernt. Nach Update oder Rollback wird
+ein Neustart empfohlen.
+
 ## Ausblick
 
 Die Struktur ist auf die kommenden Versionen vorbereitet:
-Backup/Restore (v0.5), Updatesystem (v0.6), REST API (v0.7) sowie
-Mehrsprachigkeit und Themes (v0.8).
+REST API (v0.7) sowie Mehrsprachigkeit und Themes (v0.8).
