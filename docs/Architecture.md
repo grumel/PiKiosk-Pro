@@ -30,7 +30,7 @@ keine globalen Variablen.
  Raspberry Pi OS
 ```
 
-## Module (Version 0.7.0)
+## Module (Version 0.8.0)
 
 | Modul                              | Aufgabe                                        |
 | ---------------------------------- | ---------------------------------------------- |
@@ -184,7 +184,19 @@ kann darueber beliebig viele Geraete steuern (Status, Konfiguration,
 Browser, Netzwerk, Updates, Sicherungen, Neustart), ohne dass die
 lokale Weboberflaeche davon abhaengt. Details: [API.md](API.md).
 
+## Mehrsprachigkeit und Themes
+
+Alle Oberflaechentexte kommen aus den JSON-Sprachdateien
+(`config/language_de.json`, `config/language_en.json`); im
+Python-Code stehen keine Texte. Sprache und Theme werden in der
+Konfiguration gespeichert und lassen sich im Dashboard (Kachel
+„Darstellung") sowie im Setup-Wizard umschalten. Das Theme
+„Automatisch" folgt ueber `static/js/theme.js` der
+Systemeinstellung. Konfiguration und Sprachdateien werden je
+Aenderungsstand (mtime) zwischengespeichert, damit sie nicht bei
+jeder Anfrage neu gelesen werden.
+
 ## Ausblick
 
-Die Struktur ist auf die kommende Version vorbereitet:
-Mehrsprachigkeit ueber die Oberflaeche und Themes (v0.8).
+Es folgen die Stabilisierungsversionen v0.9 (Beta: Fehlerbehebung,
+Tests, Dokumentation) und v1.0 (Release).
