@@ -30,7 +30,7 @@ keine globalen Variablen.
  Raspberry Pi OS
 ```
 
-## Module (Version 0.2.0)
+## Module (Version 0.3.0)
 
 | Modul                              | Aufgabe                                        |
 | ---------------------------------- | ---------------------------------------------- |
@@ -44,6 +44,14 @@ keine globalen Variablen.
 | `app/services/config_service.py`   | Konfigurationsverwaltung (JSON)                |
 | `app/services/browser_service.py`  | Chromium-Steuerung über subprocess und CDP     |
 | `app/controllers/setup_controller.py` | Setup-Wizard (Ersteinrichtung)             |
+| `app/controllers/auth_controller.py`  | Anmeldung und Abmeldung (Flask-Login)      |
+| `app/controllers/dashboard_controller.py` | Dashboardseite und Datenfragment       |
+| `app/controllers/browser_controller.py` | Browsersteuerung im Dashboard            |
+| `app/controllers/settings_controller.py` | Kiosk-URL- und Hostname-Verwaltung      |
+| `app/controllers/network_controller.py` | WLAN-Kachel im Dashboard                 |
+| `app/controllers/system_controller.py` | Neustart, Herunterfahren, Logansicht      |
+| `app/services/dashboard_service.py` | Systeminformationen (psutil)                  |
+| `app/services/system_service.py`   | Neustart und Herunterfahren ueber systemd      |
 | `app/services/network_service.py`  | WLAN-Verwaltung über NetworkManager (nmcli)    |
 | `app/services/hostname_service.py` | Hostnameverwaltung mit Root-Helferskript       |
 | `app/services/auth_service.py`     | Benutzer- und Passwortverwaltung (bcrypt)      |
@@ -103,9 +111,17 @@ CSRF-Token geschützt.
 | Sitzungsschlüssel | `config/secret_key`       |
 | Logs           | `logs/*.log` (Dateien)       |
 
+## Anmeldung und Sicherheit
+
+Das Dashboard ist nur nach Anmeldung erreichbar (Flask-Login,
+`login_view = auth.login`). Passwoerter werden ausschliesslich mit
+bcrypt geprueft. Die Sitzung laeuft nach 30 Minuten ab, Cookies
+sind HttpOnly und SameSite=Lax. Ein globaler Before-Request-Hook
+erzwingt fuer alle Schreibanfragen (POST/PUT/PATCH/DELETE) ein
+CSRF-Token aus der Sitzung.
+
 ## Ausblick
 
-Die Struktur ist auf die kommenden Versionen vorbereitet: Dashboard
-mit Login (v0.3), Watchdog (v0.4), Backup/Restore (v0.5),
-Updatesystem (v0.6), REST API (v0.7) sowie Mehrsprachigkeit und
-Themes (v0.8).
+Die Struktur ist auf die kommenden Versionen vorbereitet: Watchdog
+(v0.4), Backup/Restore (v0.5), Updatesystem (v0.6), REST API (v0.7)
+sowie Mehrsprachigkeit und Themes (v0.8).

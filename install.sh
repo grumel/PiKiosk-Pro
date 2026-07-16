@@ -99,12 +99,14 @@ install_service() {
 }
 
 install_sudoers() {
-    log "sudo-Regel fuer die Hostnameaenderung wird installiert."
+    log "sudo-Regeln fuer Hostname, Neustart und Herunterfahren werden installiert."
     cat >/etc/sudoers.d/pikiosk <<EOF
 ${KIOSK_USER} ALL=(root) NOPASSWD: ${INSTALL_DIR}/.venv/bin/python ${INSTALL_DIR}/scripts/hostname_apply.py *
+${KIOSK_USER} ALL=(root) NOPASSWD: /usr/bin/systemctl reboot
+${KIOSK_USER} ALL=(root) NOPASSWD: /usr/bin/systemctl poweroff
 EOF
     chmod 440 /etc/sudoers.d/pikiosk
-    log "sudo-Regel installiert."
+    log "sudo-Regeln installiert."
 }
 
 enable_autologin() {

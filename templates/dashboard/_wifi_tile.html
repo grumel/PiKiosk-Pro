@@ -1,0 +1,78 @@
+{# Copyright (c) 2026 Holger John - Lizenz: MIT License (siehe LICENSE) #}
+{# Dashboard-Kachel: WLAN-Status, Scan, Verbinden und Trennen. #}
+<div class="card h-100">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span>{{ texts['tile_wifi'] }}</span>
+        <span class="badge {{ 'text-bg-success' if connection else 'text-bg-secondary' }}">
+            {{ texts['wifi_status_connected'] if connection else texts['wifi_status_disconnected'] }}
+        </span>
+    </div>
+    <div class="card-body">
+        {% if error %}
+        <div class="alert alert-danger" role="alert">{{ error }}</div>
+        {% endif %}
+        {% if message %}
+        <div class="alert alert-success" role="alert">{{ message }}</div>
+        {% endif %}
+        {% if connection %}
+        <ul class="list-group list-group-flush mb-3">
+            <li class="list-group-item d-flex justify-content-between px-0">
+                <span>{{ texts['label_ssid'] }}</span>
+                <span class="fw-semibold">{{ connection['ssid'] }}
+                    ({{ connection['signal'] }} %)</span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between px-0">
+                <span>{{ texts['label_ip_address'] }}</span>
+                <span class="fw-semibold">{{ connection['ip'] if connection['ip'] else '-' }}</span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between px-0">
+                <span>{{ texts['label_gateway'] }}</span>
+                <span class="fw-semibold">{{ connection['gateway'] if connection['gateway'] else '-' }}</span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between px-0">
+                <span>{{ texts['label_dns'] }}</span>
+                <span class="fw-semibold">{{ connection['dns'] if connection['dns'] else '-' }}</span>
+            </li>
+        </ul>
+        {% endif %}
+        <div class="d-flex flex-wrap gap-2 mb-3">
+            <button type="button" class="btn btn-outline-primary"
+                    hx-post="{{ url_for('network.scan') }}"
+                    hx-target="#wifi-tile">
+                {{ texts['btn_scan'] }}
+            </button>
+            {% if connection %}
+            <button type="button" class="btn btn-outline-danger"
+                    hx-post="{{ url_for('network.disconnect') }}"
+                    hx-target="#wifi-tile"
+                    hx-confirm="{{ texts['confirm_wifi_disconnect'] }}">
+                {{ texts['btn_disconnect'] }}
+            </button>
+            {% endif %}
+        </div>
+        {% if networks is defined and networks %}
+        <form hx-post="{{ url_for('network.connect') }}" hx-target="#wifi-tile">
+            <div class="list-group mb-3">
+                {% for network in networks %}
+                <label class="list-group-item d-flex align-items-center gap-3">
+                    <input class="form-check-input flex-shrink-0" type="radio"
+                           name="ssid" value="{{ network['ssid'] }}"
+                           {% if loop.first %}checked{% endif %}>
+                    <span class="flex-grow-1">{{ network['ssid'] }}</span>
+                    <span class="text-body-secondary small">{{ network['security'] }}</span>
+                    <span class="badge text-bg-secondary">{{ network['signal'] }} %</span>
+                </label>
+                {% endfor %}
+            </div>
+            <div class="mb-3">
+                <label class="form-label" for="wifi-tile-password">{{ texts['label_password'] }}</label>
+                <input class="form-control" type="password" id="wifi-tile-password"
+                       name="password" autocomplete="off">
+            </div>
+            <button type="submit" class="btn btn-primary">{{ texts['btn_connect'] }}</button>
+        </form>
+        {% elif networks is defined %}
+        <div class="alert alert-secondary mb-0" role="alert">{{ texts['wifi_no_networks'] }}</div>
+        {% endif %}
+    </div>
+</div>

@@ -7,7 +7,7 @@ from flask import Flask
 from flask.testing import FlaskClient
 
 from app import create_app
-from app.controllers.setup_controller import SESSION_CSRF_KEY
+from app.controllers import SESSION_CSRF_KEY
 from app.extensions import ServiceRegistry
 
 VALID_PASSWORD = "Sicher-2026-Kiosk"

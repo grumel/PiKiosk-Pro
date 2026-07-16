@@ -1,0 +1,95 @@
+{# Copyright (c) 2026 Holger John - Lizenz: MIT License (siehe LICENSE) #}
+{# Dashboard-Fragment: Systeminformationen, aktualisiert sich per HTMX. #}
+<div class="row g-3">
+    <div class="col-12 col-md-6 col-xl-4">
+        <div class="card h-100">
+            <div class="card-header">{{ texts['data_device_heading'] }}</div>
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item d-flex justify-content-between">
+                    <span>{{ texts['label_hostname'] }}</span>
+                    <span class="fw-semibold">{{ data['hostname'] }}</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span>{{ texts['label_device'] }}</span>
+                    <span class="fw-semibold">{{ data['device'] if data['device'] else '-' }}</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span>{{ texts['label_ip_address'] }}</span>
+                    <span class="fw-semibold">{{ data['ip_address'] }}</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span>{{ texts['label_mac_address'] }}</span>
+                    <span class="fw-semibold">{{ data['mac_address'] }}</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span>{{ texts['label_version'] }}</span>
+                    <span class="fw-semibold">{{ data['version'] }}</span>
+                </li>
+            </ul>
+        </div>
+    </div>
+    <div class="col-12 col-md-6 col-xl-4">
+        <div class="card h-100">
+            <div class="card-header">{{ texts['data_resources_heading'] }}</div>
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item d-flex justify-content-between">
+                    <span>{{ texts['label_cpu'] }}</span>
+                    <span class="fw-semibold">{{ data['cpu_percent'] }} %</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span>{{ texts['label_ram'] }}</span>
+                    <span class="fw-semibold">{{ data['ram_percent'] }} %
+                        ({{ data['ram_used_mb'] }} / {{ data['ram_total_mb'] }} MB)</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span>{{ texts['label_temperature'] }}</span>
+                    <span class="fw-semibold">
+                        {% if data['temperature'] is not none %}{{ data['temperature'] }} °C{% else %}-{% endif %}
+                    </span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span>{{ texts['label_disk'] }}</span>
+                    <span class="fw-semibold">{{ data['disk_percent'] }} %
+                        ({{ data['disk_free_gb'] }} / {{ data['disk_total_gb'] }} GB {{ texts['disk_free'] }})</span>
+                </li>
+            </ul>
+        </div>
+    </div>
+    <div class="col-12 col-md-6 col-xl-4">
+        <div class="card h-100">
+            <div class="card-header">{{ texts['data_status_heading'] }}</div>
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item d-flex justify-content-between">
+                    <span>{{ texts['label_browser_status'] }}</span>
+                    <span class="badge align-self-center
+                        {% if data['browser_status'] == 'running' %}text-bg-success
+                        {% elif data['browser_status'] in ('error', 'crashed') %}text-bg-danger
+                        {% else %}text-bg-secondary{% endif %}">
+                        {{ texts['browser_status_' ~ data['browser_status']] }}
+                    </span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span>{{ texts['label_internet_status'] }}</span>
+                    <span class="badge align-self-center
+                        {{ 'text-bg-success' if data['internet_online'] else 'text-bg-danger' }}">
+                        {{ texts['internet_online'] if data['internet_online'] else texts['internet_offline'] }}
+                    </span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span>{{ texts['label_kiosk_url'] }}</span>
+                    <span class="fw-semibold text-truncate ms-3">
+                        {% if data['url'] %}{{ data['url'] }}{% else %}{{ texts['no_url_configured'] }}{% endif %}
+                    </span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span>{{ texts['label_last_boot'] }}</span>
+                    <span class="fw-semibold">{{ data['last_boot'] }}</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span>{{ texts['label_uptime'] }}</span>
+                    <span class="fw-semibold">{{ data['uptime'] }}</span>
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>
