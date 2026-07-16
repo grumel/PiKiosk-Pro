@@ -128,3 +128,35 @@ class TestConfigService:
         )
         with pytest.raises(ConfigurationError):
             service.load()
+
+    def test_unveraenderte_datei_kommt_aus_dem_cache(
+        self, service: ConfigService, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        service.load()
+        from app.services import config_service as config_module
+
+        def fail_read(path: Path) -> dict[str, object]:
+            raise AssertionError("Datei darf nicht erneut gelesen werden")
+
+        monkeypatch.setattr(config_module, "read_json_file", fail_read)
+        assert service.load() == DEFAULTS
+
+    def test_cache_liefert_kopien(self, service: ConfigService) -> None:
+        first = service.load()
+        first["hostname"] = "manipuliert"
+        assert service.load()["hostname"] == "PiKiosk"
+
+    def test_externe_aenderung_wird_erkannt(
+        self, service: ConfigService, tmp_path: Path
+    ) -> None:
+        import json
+        import os
+
+        config = service.load()
+        config["hostname"] = "Extern"
+        config_file = tmp_path / "config.json"
+        config_file.write_text(
+            json.dumps(config, ensure_ascii=False, indent=4), encoding="utf-8"
+        )
+        os.utime(config_file, ns=(1, 1))
+        assert service.load()["hostname"] == "Extern"
