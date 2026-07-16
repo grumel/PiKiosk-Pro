@@ -3,6 +3,9 @@
 """PiKiosk Pro - Unit-Tests fuer den DashboardService."""
 
 from datetime import datetime, timedelta
+from pathlib import Path
+
+import pytest
 
 from app.constants import APP_VERSION
 from app.extensions import ServiceRegistry
@@ -56,3 +59,53 @@ class TestDashboardService:
         boot_time = datetime.now() + timedelta(minutes=5)
         uptime = registry.dashboard_service._format_uptime(boot_time)
         assert uptime == "0d 00:00"
+
+
+class TestDashboardFallbacks:
+    """Tests fuer Ausweichpfade der Systeminformationen."""
+
+    def test_mac_ohne_passende_schnittstelle(
+        self, registry: ServiceRegistry, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from app.services import dashboard_service as dashboard_module
+
+        monkeypatch.setattr(dashboard_module.psutil, "net_if_addrs", lambda: {})
+        assert registry.dashboard_service._mac_address() == "-"
+
+    def test_watchdog_state_ohne_zeitstempel(
+        self,
+        registry: ServiceRegistry,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        import json as json_module
+
+        from app.services import dashboard_service as dashboard_module
+
+        status_file = tmp_path / "watchdog_status.json"
+        status_file.write_text(json_module.dumps({"overall": "online"}))
+        monkeypatch.setattr(dashboard_module, "WATCHDOG_STATUS_FILE", status_file)
+        assert registry.dashboard_service.watchdog_state() == "inactive"
+
+    def test_watchdog_state_mit_unbekanntem_zustand(
+        self,
+        registry: ServiceRegistry,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        import json as json_module
+        from datetime import datetime, timezone
+
+        from app.services import dashboard_service as dashboard_module
+
+        status_file = tmp_path / "watchdog_status.json"
+        status_file.write_text(
+            json_module.dumps(
+                {
+                    "overall": "quatsch",
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                }
+            )
+        )
+        monkeypatch.setattr(dashboard_module, "WATCHDOG_STATUS_FILE", status_file)
+        assert registry.dashboard_service.watchdog_state() == "inactive"

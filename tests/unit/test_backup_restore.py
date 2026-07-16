@@ -197,3 +197,102 @@ class TestRestoreService:
         backup_path = prepared.backup_service.create()
         with pytest.raises(RestoreError):
             prepared.restore_service.import_from_path(str(backup_path))
+
+
+class TestRestoreEdgeCases:
+    """Tests fuer weitere Wiederherstellungs-Randfaelle."""
+
+    def test_beschaedigtes_archiv_wird_erkannt(self, prepared: ServiceRegistry) -> None:
+        backup_path = prepared.backup_service.create()
+        raw = bytearray(backup_path.read_bytes())
+        raw[len(raw) // 2] ^= 0xFF
+        broken = backup_path.with_name("beschaedigt.zip")
+        broken.write_bytes(bytes(raw))
+        with pytest.raises(RestoreError):
+            prepared.restore_service.validate(broken)
+
+    def test_konfiguration_ist_kein_objekt(
+        self, prepared: ServiceRegistry, tmp_path: Path
+    ) -> None:
+        bad = tmp_path / "liste.zip"
+        with zipfile.ZipFile(bad, "w") as archive:
+            archive.writestr(
+                BACKUP_MANIFEST_MEMBER, json.dumps({"app_version": "0.1.0"})
+            )
+            archive.writestr(BACKUP_CONFIG_MEMBER, "[]")
+        with pytest.raises(RestoreError):
+            prepared.restore_service.validate(bad)
+
+    def test_manifest_ohne_version(
+        self, prepared: ServiceRegistry, tmp_path: Path
+    ) -> None:
+        bad = tmp_path / "ohne_version.zip"
+        with zipfile.ZipFile(bad, "w") as archive:
+            archive.writestr(BACKUP_MANIFEST_MEMBER, json.dumps({"x": 1}))
+            archive.writestr(BACKUP_CONFIG_MEMBER, "{}")
+        with pytest.raises(RestoreError):
+            prepared.restore_service.validate(bad)
+
+    def test_leere_benutzerdatenbank_wird_abgelehnt(
+        self, prepared: ServiceRegistry, tmp_path: Path
+    ) -> None:
+        import sqlite3
+
+        empty_db = tmp_path / "leer.db"
+        connection = sqlite3.connect(empty_db)
+        connection.execute(
+            "CREATE TABLE users (id INTEGER PRIMARY KEY, username TEXT, "
+            "password_hash TEXT, role TEXT, created_at TEXT, "
+            "last_login TEXT, enabled INTEGER)"
+        )
+        connection.commit()
+        connection.close()
+        config = prepared.config_service.load()
+        bad = tmp_path / "leere_benutzer.zip"
+        with zipfile.ZipFile(bad, "w") as archive:
+            archive.writestr(
+                BACKUP_MANIFEST_MEMBER, json.dumps({"app_version": "0.1.0"})
+            )
+            archive.writestr(BACKUP_CONFIG_MEMBER, json.dumps(config))
+            archive.write(empty_db, BACKUP_USERS_MEMBER)
+        with pytest.raises(RestoreError):
+            prepared.restore_service.restore(bad)
+
+    def test_restore_ohne_benutzerdatenbank(
+        self, prepared: ServiceRegistry, tmp_path: Path
+    ) -> None:
+        config = prepared.config_service.load()
+        config["hostname"] = "NurKonfig"
+        nur_config = tmp_path / "nur_config.zip"
+        with zipfile.ZipFile(nur_config, "w") as archive:
+            archive.writestr(
+                BACKUP_MANIFEST_MEMBER, json.dumps({"app_version": "0.1.0"})
+            )
+            archive.writestr(BACKUP_CONFIG_MEMBER, json.dumps(config))
+        prepared.restore_service.restore(nur_config)
+        assert prepared.config_service.load()["hostname"] == "NurKonfig"
+        assert UserModel(tmp_path / "users.db").find_by_username("admin") is not None
+
+
+class TestBackupEdgeCases:
+    """Tests fuer Sicherungs-Randfaelle."""
+
+    def test_fremde_zip_wird_nicht_gelistet(
+        self, prepared: ServiceRegistry, tmp_path: Path
+    ) -> None:
+        prepared.backup_service.create()
+        (tmp_path / "backup" / "fremd.zip").write_bytes(b"PK")
+        backups = prepared.backup_service.list_backups()
+        assert len(backups) == 1
+
+    def test_schreibfehler_meldet_backupfehler(
+        self, prepared: ServiceRegistry, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from app.services import backup_service as backup_module
+
+        def broken_zip(*args: object, **kwargs: object) -> None:
+            raise OSError("Datentraeger voll")
+
+        monkeypatch.setattr(backup_module.zipfile, "ZipFile", broken_zip)
+        with pytest.raises(BackupError):
+            prepared.backup_service.create()

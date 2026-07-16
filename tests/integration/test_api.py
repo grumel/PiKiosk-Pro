@@ -2,6 +2,8 @@
 # Lizenz: MIT License (siehe LICENSE)
 """PiKiosk Pro - Integrationstests fuer die REST API."""
 
+from pathlib import Path
+
 import pytest
 from flask import Flask
 from flask.testing import FlaskClient
@@ -356,3 +358,139 @@ class TestSetupGate:
         response = client.get("/api/version", headers=headers)
         assert response.status_code == 200
         assert response.get_json()["version"] == APP_VERSION
+
+
+class TestApiBranches:
+    """Integrationstests fuer weitere API-Pfade."""
+
+    def test_browser_clear_cache(self, client: FlaskClient) -> None:
+        response = client.post(
+            "/api/browser", json={"action": "clear_cache"}, headers=bearer(client)
+        )
+        assert response.status_code == 200
+        assert response.get_json()["status"] == "not_started"
+
+    def test_browser_reload_ohne_browser(self, client: FlaskClient) -> None:
+        response = client.post(
+            "/api/browser", json={"action": "reload"}, headers=bearer(client)
+        )
+        assert response.status_code == 400
+
+    def test_settings_hostname_wird_angewendet(
+        self,
+        client: FlaskClient,
+        registry: ServiceRegistry,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        applied: list[str] = []
+        monkeypatch.setattr(
+            registry.hostname_service, "set", lambda hostname: applied.append(hostname)
+        )
+        response = client.put(
+            "/api/settings", json={"hostname": "api-kiosk"}, headers=bearer(client)
+        )
+        assert response.status_code == 200
+        assert applied == ["api-kiosk"]
+        assert registry.config_service.load()["hostname"] == "api-kiosk"
+
+    def test_network_aktionen(
+        self,
+        client: FlaskClient,
+        registry: ServiceRegistry,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        network = registry.network_service
+        monkeypatch.setattr(network, "scan", lambda: [{"ssid": "Netz-A"}])
+        monkeypatch.setattr(network, "connect", lambda ssid, password: None)
+        monkeypatch.setattr(network, "disconnect", lambda: None)
+        monkeypatch.setattr(network, "current", lambda: {"ssid": "Netz-A"})
+        headers = bearer(client)
+        response = client.post("/api/network", json={"action": "scan"}, headers=headers)
+        assert response.get_json()["networks"][0]["ssid"] == "Netz-A"
+        response = client.post(
+            "/api/network",
+            json={"action": "connect", "ssid": "Netz-A", "password": "x"},
+            headers=headers,
+        )
+        assert response.get_json()["connected"]["ssid"] == "Netz-A"
+        response = client.post(
+            "/api/network", json={"action": "disconnect"}, headers=headers
+        )
+        assert response.status_code == 200
+        response = client.post(
+            "/api/network", json={"action": "explode"}, headers=headers
+        )
+        assert response.status_code == 400
+
+    def test_network_profil_loeschen(
+        self,
+        client: FlaskClient,
+        registry: ServiceRegistry,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        profiles = ["Zuhause", "Buero"]
+        network = registry.network_service
+        monkeypatch.setattr(network, "saved", lambda: list(profiles))
+        monkeypatch.setattr(network, "delete", lambda name: profiles.remove(name))
+        response = client.delete("/api/network/profiles/Buero", headers=bearer(client))
+        assert response.status_code == 200
+        assert response.get_json()["deleted"] == "Buero"
+
+    def test_system_shutdown_und_statusdatei(
+        self,
+        client: FlaskClient,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        import json as json_module
+
+        from app.api import system as system_api
+        from app.services import system_service as system_module
+
+        status_file = tmp_path / "watchdog_status.json"
+        status_file.write_text(json_module.dumps({"overall": "online"}))
+        monkeypatch.setattr(system_api, "WATCHDOG_STATUS_FILE", status_file)
+        headers = bearer(client)
+        response = client.get("/api/system", headers=headers)
+        assert response.get_json()["watchdog"]["overall"] == "online"
+
+        class Result:
+            returncode = 0
+            stderr = ""
+            stdout = ""
+
+        monkeypatch.setattr(system_module.subprocess, "run", lambda *a, **k: Result())
+        response = client.post(
+            "/api/system", json={"action": "shutdown"}, headers=headers
+        )
+        assert response.get_json()["accepted"] is True
+        response = client.post(
+            "/api/system", json={"action": "explode"}, headers=headers
+        )
+        assert response.status_code == 400
+
+    def test_update_install_und_rollback(
+        self,
+        client: FlaskClient,
+        registry: ServiceRegistry,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.setattr(
+            registry.update_service, "apply_github", lambda: {"version": "9.9.9"}
+        )
+        monkeypatch.setattr(
+            registry.update_service, "rollback", lambda: {"version": "0.1.0"}
+        )
+        headers = bearer(client)
+        response = client.post(
+            "/api/update", json={"action": "install"}, headers=headers
+        )
+        assert response.get_json()["version"] == "9.9.9"
+        response = client.post(
+            "/api/update", json={"action": "rollback"}, headers=headers
+        )
+        assert response.get_json()["version"] == "0.1.0"
+        response = client.post(
+            "/api/update", json={"action": "explode"}, headers=headers
+        )
+        assert response.status_code == 400

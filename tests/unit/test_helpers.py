@@ -57,3 +57,105 @@ class TestReadLogTail:
 
     def test_fehlende_datei(self, tmp_path: Path) -> None:
         assert read_log_tail(tmp_path / "fehlt.log", 3) == ""
+
+
+class TestSystemHelpers:
+    """Tests fuer Geraete- und Temperaturhelfer."""
+
+    def test_cpu_temperatur_aus_sensoren(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        from app.utils import helpers as helpers_module
+
+        class Reading:
+            current = 55.4
+
+        monkeypatch.setattr(
+            helpers_module.psutil,
+            "sensors_temperatures",
+            lambda: {"cpu_thermal": [Reading()]},
+        )
+        assert helpers_module.cpu_temperature() == 55.4
+
+    def test_cpu_temperatur_aus_thermalzone(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from app.utils import helpers as helpers_module
+
+        zone = tmp_path / "temp"
+        zone.write_text("47500\n", encoding="ascii")
+        monkeypatch.setattr(helpers_module.psutil, "sensors_temperatures", lambda: {})
+        monkeypatch.setattr(helpers_module, "THERMAL_ZONE_FILE", zone)
+        assert helpers_module.cpu_temperature() == 47.5
+
+    def test_cpu_temperatur_ohne_sensor(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from app.utils import helpers as helpers_module
+
+        monkeypatch.setattr(helpers_module.psutil, "sensors_temperatures", lambda: {})
+        monkeypatch.setattr(helpers_module, "THERMAL_ZONE_FILE", tmp_path / "fehlt")
+        assert helpers_module.cpu_temperature() is None
+
+    def test_geraetemodell(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from app.utils import helpers as helpers_module
+
+        model_file = tmp_path / "model"
+        model_file.write_text("Raspberry Pi 4 Model B\x00", encoding="utf-8")
+        monkeypatch.setattr(helpers_module, "DEVICE_MODEL_FILE", model_file)
+        assert helpers_module.device_model() == "Raspberry Pi 4 Model B"
+        monkeypatch.setattr(helpers_module, "DEVICE_MODEL_FILE", tmp_path / "fehlt")
+        assert helpers_module.device_model() == ""
+
+    def test_lokale_ip_ohne_netz(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        from app.utils import helpers as helpers_module
+
+        class FakeSocket:
+            def connect(self, target: tuple[str, int]) -> None:
+                raise OSError("kein Netz")
+
+            def close(self) -> None:
+                pass
+
+        monkeypatch.setattr(
+            helpers_module.socket, "socket", lambda *a, **k: FakeSocket()
+        )
+        assert helpers_module.local_ip_address() == "0.0.0.0"
+
+
+class TestSecretKey:
+    """Tests fuer die Schluesseldatei."""
+
+    def test_erzeugt_und_liest_schluessel(self, tmp_path: Path) -> None:
+        from app.utils.helpers import load_or_create_secret_key
+
+        key_file = tmp_path / "secret_key"
+        key = load_or_create_secret_key(key_file)
+        assert len(key) == 64
+        assert load_or_create_secret_key(key_file) == key
+
+    def test_schreibfehler_meldet_konfigurationsfehler(self, tmp_path: Path) -> None:
+        from app.utils.helpers import load_or_create_secret_key
+
+        target = tmp_path / "gesperrt"
+        target.mkdir()
+        target.chmod(0o500)
+        try:
+            with pytest.raises(ConfigurationError):
+                load_or_create_secret_key(target / "secret_key")
+        finally:
+            target.chmod(0o700)
+
+
+class TestLanguageFileErrors:
+    """Tests fuer defekte Sprachdateien."""
+
+    def test_kaputtes_json(self, tmp_path: Path) -> None:
+        (tmp_path / "language_de.json").write_text("{kaputt", encoding="utf-8")
+        with pytest.raises(ConfigurationError):
+            load_language("de", config_dir=tmp_path)
+
+    def test_kein_objekt(self, tmp_path: Path) -> None:
+        (tmp_path / "language_de.json").write_text("[1, 2]", encoding="utf-8")
+        with pytest.raises(ConfigurationError):
+            load_language("de", config_dir=tmp_path)
