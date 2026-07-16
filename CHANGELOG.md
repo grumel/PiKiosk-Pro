@@ -5,6 +5,25 @@ dokumentiert. Das Format orientiert sich an
 [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die
 Versionierung folgt [Semantic Versioning](https://semver.org/lang/de/).
 
+## [0.8.0] - 2026-07-16
+
+### Hinzugefügt
+
+- Dashboard-Kachel „Darstellung": Sprache (Deutsch/Englisch) und
+  Theme (Dunkel/Hell/Automatisch) direkt über die Oberfläche
+  umschaltbar; die Seite lädt nach dem Speichern automatisch neu
+- Theme „Automatisch" folgt jetzt der Systemeinstellung
+  (prefers-color-scheme) und reagiert auf Änderungen zur Laufzeit
+- Sprachwahl auf der Willkommensseite des Setup-Wizards; die
+  Zusammenfassung zeigt die gewählte Sprache
+- Das lang-Attribut der Seiten folgt der konfigurierten Sprache
+
+### Geändert (Optimierungen)
+
+- Konfiguration wird je Änderungsstand zwischengespeichert
+  (mtime-basiert) statt bei jeder Anfrage neu gelesen und validiert
+- Sprachdateien werden je Änderungsstand zwischengespeichert
+
 ## [0.7.0] - 2026-07-16
 
 ### Hinzugefügt

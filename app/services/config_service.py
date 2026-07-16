@@ -49,12 +49,16 @@ class ConfigService:
         self._defaults_file = defaults_file
         self._backup_dir = backup_dir
         self._validator = ConfigValidator()
+        self._cache: dict[str, Any] | None = None
+        self._cache_mtime_ns: int = -1
 
     def load(self) -> dict[str, Any]:
         """Laedt die aktive Konfiguration.
 
         Existiert noch keine Konfigurationsdatei, wird sie aus den
-        Standardwerten erzeugt.
+        Standardwerten erzeugt. Eine unveraenderte Datei wird aus
+        dem Zwischenspeicher bedient, damit die Konfiguration nicht
+        bei jeder Anfrage neu gelesen und validiert werden muss.
 
         Returns:
             Die validierte Konfiguration.
@@ -67,8 +71,13 @@ class ConfigService:
                 "Keine Konfiguration gefunden, Standardwerte werden gesetzt."
             )
             return self.reset()
+        mtime_ns = self._config_file.stat().st_mtime_ns
+        if self._cache is not None and mtime_ns == self._cache_mtime_ns:
+            return dict(self._cache)
         config = read_json_file(self._config_file)
         self.validate(config)
+        self._cache = dict(config)
+        self._cache_mtime_ns = mtime_ns
         return config
 
     def save(self, config: dict[str, Any]) -> None:
@@ -84,6 +93,8 @@ class ConfigService:
         """
         self.validate(config)
         write_json_atomic(self._config_file, config)
+        self._cache = dict(config)
+        self._cache_mtime_ns = self._config_file.stat().st_mtime_ns
         self._logger.info(f"Konfiguration gespeichert: {self._config_file}")
 
     def reset(self) -> dict[str, Any]:

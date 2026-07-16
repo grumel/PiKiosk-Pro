@@ -315,6 +315,46 @@ class TestBackupTile:
         assert response.status_code == 200
 
 
+class TestAppearanceTile:
+    """Integrationstests fuer die Darstellungs-Kachel."""
+
+    def test_dashboard_zeigt_darstellungs_kachel(self, client: FlaskClient) -> None:
+        login(client)
+        body = client.get("/dashboard/").get_data(as_text=True)
+        assert "appearance-tile" in body
+        assert 'data-theme-mode="dark"' in body
+
+    def test_sprache_und_theme_umschalten(
+        self, client: FlaskClient, registry: ServiceRegistry
+    ) -> None:
+        token = login(client)
+        response = client.post(
+            "/dashboard/appearance",
+            data={"language": "en", "theme": "auto", "csrf_token": token},
+        )
+        assert response.status_code == 200
+        assert response.headers.get("HX-Refresh") == "true"
+        config = registry.config_service.load()
+        assert config["language"] == "en"
+        assert config["theme"] == "auto"
+        body = client.get("/dashboard/").get_data(as_text=True)
+        assert 'lang="en"' in body
+        assert 'data-theme-mode="auto"' in body
+        assert "Appearance" in body
+
+    def test_ungueltiges_theme_wird_abgelehnt(
+        self, client: FlaskClient, registry: ServiceRegistry
+    ) -> None:
+        token = login(client)
+        response = client.post(
+            "/dashboard/appearance",
+            data={"language": "de", "theme": "neon", "csrf_token": token},
+        )
+        assert response.status_code == 200
+        assert "alert-danger" in response.get_data(as_text=True)
+        assert registry.config_service.load()["theme"] == "dark"
+
+
 class TestUpdateTile:
     """Integrationstests fuer die Update-Kachel."""
 

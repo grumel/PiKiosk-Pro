@@ -86,6 +86,7 @@ def _render_step(name: str, **context: Any) -> str:
         state=_state(),
         app_name=APP_NAME,
         app_version=APP_VERSION,
+        current_language=_services().config_service.load()["language"],
         **context,
     )
 
@@ -174,6 +175,23 @@ def step(name: str) -> str:
     if name == "wifi":
         context["connection"] = _connection_info()
     return _render_step(name, **context)
+
+
+@setup_blueprint.post("/language")
+def save_language() -> str:
+    """Stellt die Sprache des Wizards um.
+
+    Returns:
+        Das Willkommens-Fragment in der neuen Sprache.
+    """
+    services = _services()
+    config = services.config_service.load()
+    config["language"] = request.form.get("language", config["language"])
+    try:
+        services.config_service.save(config)
+    except ValidationError as error:
+        return _render_step("welcome", error=str(error), device=device_model())
+    return _render_step("welcome", device=device_model())
 
 
 @setup_blueprint.post("/hostname")
