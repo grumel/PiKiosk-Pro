@@ -13,7 +13,7 @@
 set -euo pipefail
 
 INSTALL_DIR="/opt/pikiosk-pro"
-SERVICE_NAME="pikiosk.service"
+SERVICE_NAMES=("pikiosk.service" "pikiosk-watchdog.service")
 LOG_FILE="${INSTALL_DIR}/logs/update.log"
 
 log() {
@@ -41,8 +41,11 @@ main() {
     if [[ ! -d "${INSTALL_DIR}/.git" ]]; then
         fail "Kein Git-Repository unter ${INSTALL_DIR} gefunden."
     fi
-    systemctl stop "${SERVICE_NAME}" || true
-    log "Dienst gestoppt."
+    local service_name
+    for service_name in "${SERVICE_NAMES[@]}"; do
+        systemctl stop "${service_name}" || true
+    done
+    log "Dienste gestoppt."
     git -C "${INSTALL_DIR}" pull --ff-only >>"${LOG_FILE}" 2>&1 \
         || fail "Git-Aktualisierung fehlgeschlagen."
     log "Quellcode aktualisiert."
@@ -50,8 +53,10 @@ main() {
         -r "${INSTALL_DIR}/requirements.txt" >>"${LOG_FILE}" 2>&1 \
         || fail "Python-Abhaengigkeiten konnten nicht aktualisiert werden."
     log "Abhaengigkeiten aktualisiert."
-    systemctl start "${SERVICE_NAME}"
-    log "Dienst gestartet. Aktualisierung abgeschlossen."
+    for service_name in "${SERVICE_NAMES[@]}"; do
+        systemctl start "${service_name}"
+    done
+    log "Dienste gestartet. Aktualisierung abgeschlossen."
 }
 
 main "$@"

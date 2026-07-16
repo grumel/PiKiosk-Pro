@@ -10,8 +10,7 @@ Meldungen in der Kachel angezeigt.
 from flask import Blueprint, abort, render_template
 from flask_login import login_required
 
-from app.constants import LOCAL_URL
-from app.controllers import current_services, current_texts
+from app.controllers import current_services, current_texts, kiosk_target_url
 from app.exceptions import PiKioskError
 
 browser_blueprint = Blueprint("browser", __name__, url_prefix="/dashboard/browser")
@@ -42,16 +41,6 @@ def _render_tile(message: str | None = None, error: str | None = None) -> str:
     )
 
 
-def _target_url() -> str:
-    """Bestimmt die Ziel-URL fuer den Browserstart.
-
-    Returns:
-        Konfigurierte Kiosk-URL oder die lokale Statusseite.
-    """
-    config = current_services().config_service.load()
-    return str(config["url"]) if config["url"] else LOCAL_URL
-
-
 @browser_blueprint.post("/<action>")
 @login_required
 def control(action: str) -> str:
@@ -70,7 +59,7 @@ def control(action: str) -> str:
     services = current_services()
     try:
         if action == "start":
-            services.browser_service.start(_target_url())
+            services.browser_service.start(kiosk_target_url())
         elif action == "stop":
             services.browser_service.stop()
         else:

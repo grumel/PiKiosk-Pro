@@ -8,10 +8,7 @@ diesen Dienst auf Einstellungen zu. Schreibvorgaenge erfolgen
 atomar, ungueltige Konfigurationen werden niemals gespeichert.
 """
 
-import json
-import os
 import shutil
-import tempfile
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -19,6 +16,7 @@ from typing import Any
 from app.constants import BACKUP_DIR, CONFIG_FILE, DEFAULTS_FILE
 from app.exceptions import ConfigurationError
 from app.logger import KioskLogger
+from app.utils.filesystem import read_json_file, write_json_atomic
 from app.utils.validators import ConfigValidator
 
 
@@ -69,7 +67,7 @@ class ConfigService:
                 "Keine Konfiguration gefunden, Standardwerte werden gesetzt."
             )
             return self.reset()
-        config = self._read_json(self._config_file)
+        config = read_json_file(self._config_file)
         self.validate(config)
         return config
 
@@ -85,7 +83,7 @@ class ConfigService:
             ValidationError
         """
         self.validate(config)
-        self._write_json_atomic(self._config_file, config)
+        write_json_atomic(self._config_file, config)
         self._logger.info(f"Konfiguration gespeichert: {self._config_file}")
 
     def reset(self) -> dict[str, Any]:
@@ -98,7 +96,7 @@ class ConfigService:
             ConfigurationError
             ValidationError
         """
-        defaults = self._read_json(self._defaults_file)
+        defaults = read_json_file(self._defaults_file)
         self.save(defaults)
         self._logger.info("Konfiguration auf Standardwerte zurueckgesetzt.")
         return defaults
@@ -151,62 +149,7 @@ class ConfigService:
             ConfigurationError
             ValidationError
         """
-        config = self._read_json(backup_file)
+        config = read_json_file(backup_file)
         self.save(config)
         self._logger.info(f"Konfiguration wiederhergestellt aus: {backup_file}")
         return config
-
-    def _read_json(self, path: Path) -> dict[str, Any]:
-        """Liest eine JSON-Datei ein.
-
-        Args:
-            path:
-                Pfad der JSON-Datei.
-
-        Returns:
-            Inhalt der Datei als Woerterbuch.
-
-        Raises:
-            ConfigurationError
-        """
-        try:
-            with path.open("r", encoding="utf-8") as handle:
-                content = json.load(handle)
-        except FileNotFoundError as error:
-            raise ConfigurationError(f"Datei nicht gefunden: {path}") from error
-        except json.JSONDecodeError as error:
-            raise ConfigurationError(f"Ungueltiges JSON in {path}: {error}") from error
-        except OSError as error:
-            raise ConfigurationError(
-                f"Datei konnte nicht gelesen werden: {path}: {error}"
-            ) from error
-        if not isinstance(content, dict):
-            raise ConfigurationError(f"Die Datei {path} enthaelt kein JSON-Objekt.")
-        return content
-
-    def _write_json_atomic(self, path: Path, data: dict[str, Any]) -> None:
-        """Schreibt ein Woerterbuch atomar als JSON-Datei.
-
-        Args:
-            path:
-                Zielpfad.
-
-            data:
-                Zu schreibende Daten.
-
-        Raises:
-            ConfigurationError
-        """
-        path.parent.mkdir(parents=True, exist_ok=True)
-        try:
-            descriptor, temp_name = tempfile.mkstemp(
-                dir=path.parent, prefix=path.name, suffix=".tmp"
-            )
-            with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
-                json.dump(data, handle, ensure_ascii=False, indent=4)
-                handle.write("\n")
-            os.replace(temp_name, path)
-        except OSError as error:
-            raise ConfigurationError(
-                f"Datei konnte nicht geschrieben werden: {path}: {error}"
-            ) from error

@@ -23,8 +23,15 @@ Nach der Anmeldung zeigt das Dashboard:
 - **Gerät**: Hostname, Modell, IP-Adresse, MAC-Adresse, Version
 - **Ressourcen**: CPU-Auslastung, Arbeitsspeicher, Temperatur,
   Festplattenbelegung
-- **Status**: Browserstatus, Internetstatus, Kiosk-URL, letzter
-  Neustart, Systemlaufzeit
+- **Status**: Browserstatus, Internetstatus, Watchdogstatus,
+  Kiosk-URL, letzter Neustart, Systemlaufzeit
+
+Der Watchdogstatus fasst die Überwachung zusammen: **Online** (alles
+in Ordnung), **Warnung** (z. B. hohe Temperatur, DNS- oder
+URL-Problem), **Fehler** (Browser mehrfach abgestürzt oder kritische
+Temperatur), **Offline** (kein Internet), **Deaktiviert** (Watchdog
+in der Konfiguration abgeschaltet), **Inaktiv** (Watchdog-Dienst
+läuft nicht).
 
 Die Werte aktualisieren sich automatisch alle 10 Sekunden.
 
