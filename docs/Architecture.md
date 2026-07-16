@@ -30,7 +30,7 @@ keine globalen Variablen.
  Raspberry Pi OS
 ```
 
-## Module (Version 0.6.0)
+## Module (Version 0.7.0)
 
 | Modul                              | Aufgabe                                        |
 | ---------------------------------- | ---------------------------------------------- |
@@ -63,6 +63,8 @@ keine globalen Variablen.
 | `app/utils/version.py`             | Semantic Versioning, Kompatibilitaetspruefung  |
 | `app/services/update_service.py`   | Updates aus GitHub/Paket, Rollback             |
 | `app/controllers/update_controller.py` | Update-Kachel im Dashboard                |
+| `app/api/`                         | REST API (Token, Status, Browser, Settings, Netzwerk, System, Update, Backup, Logs) |
+| `app/utils/crypto.py`              | JWT (HS256) mit Bordmitteln                    |
 | `app/services/network_service.py`  | WLAN-Verwaltung über NetworkManager (nmcli)    |
 | `app/services/hostname_service.py` | Hostnameverwaltung mit Root-Helferskript       |
 | `app/services/auth_service.py`     | Benutzer- und Passwortverwaltung (bcrypt)      |
@@ -170,7 +172,19 @@ Rollback den vorherigen Stand vollstaendig wiederherstellt und neu
 hinzugefuegte Dateien wieder entfernt. Nach Update oder Rollback wird
 ein Neustart empfohlen.
 
+## REST API und Remote-Verwaltung
+
+Die REST API unter `/api` liefert ausschliesslich JSON und ist
+vollstaendig authentifiziert: `POST /api/token` stellt gegen die
+Administrator-Anmeldedaten ein JWT (HS256, 24 h gueltig) aus, alle
+weiteren Endpunkte erwarten es als Bearer-Token. Die API ist von
+CSRF-Schutz und Setup-Umleitung ausgenommen (Token statt Sitzung)
+und besitzt eigene JSON-Fehlerantworten. Eine zentrale Verwaltung
+kann darueber beliebig viele Geraete steuern (Status, Konfiguration,
+Browser, Netzwerk, Updates, Sicherungen, Neustart), ohne dass die
+lokale Weboberflaeche davon abhaengt. Details: [API.md](API.md).
+
 ## Ausblick
 
-Die Struktur ist auf die kommenden Versionen vorbereitet:
-REST API (v0.7) sowie Mehrsprachigkeit und Themes (v0.8).
+Die Struktur ist auf die kommende Version vorbereitet:
+Mehrsprachigkeit ueber die Oberflaeche und Themes (v0.8).

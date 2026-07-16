@@ -1,0 +1,119 @@
+# REST API
+
+PiKiosk Pro stellt unter `/api` eine REST API bereit. Sie ist die
+Grundlage für die Remote-Verwaltung mehrerer Geräte; die lokale
+Weboberfläche bleibt davon unberührt. Alle Antworten sind JSON,
+alle Endpunkte (außer der Token-Ausgabe) sind authentifiziert.
+
+## Authentifizierung
+
+Die API verwendet JSON Web Tokens (JWT, HS256). Ein Token wird mit
+den Anmeldedaten des Administrators ausgestellt und ist 24 Stunden
+gültig.
+
+```bash
+curl -X POST http://<geraet>:8080/api/token \
+  -H "Content-Type: application/json" \
+  -d '{"username": "admin", "password": "<passwort>"}'
+```
+
+Antwort:
+
+```json
+{"token": "<jwt>", "token_type": "Bearer", "expires_in": 86400}
+```
+
+Alle weiteren Anfragen tragen das Token im Header:
+
+```
+Authorization: Bearer <jwt>
+```
+
+Fehlende oder ungültige Tokens ergeben `401 {"error": "unauthorized"}`.
+Fachliche Fehler ergeben `400 {"error": "<meldung>"}`, unbekannte
+Pfade `404 {"error": "not_found"}`.
+
+## Endpunkte
+
+### Status und Version
+
+| Methode | Pfad           | Beschreibung                          |
+| ------- | -------------- | ------------------------------------- |
+| GET     | `/api/status`  | Vollständiger Gerätestatus (Hostname, IP, MAC, CPU, RAM, Temperatur, Festplatte, Browser-, Internet- und Watchdogstatus, URL, Version, Laufzeit) |
+| GET     | `/api/version` | Anwendungsname und Version            |
+
+### Browser
+
+| Methode | Pfad           | Beschreibung                          |
+| ------- | -------------- | ------------------------------------- |
+| GET     | `/api/browser` | Browserstatus                         |
+| POST    | `/api/browser` | Aktion ausführen: `{"action": "start\|stop\|restart\|reload\|clear_cache"}` |
+
+### Einstellungen
+
+| Methode | Pfad            | Beschreibung                         |
+| ------- | --------------- | ------------------------------------ |
+| GET     | `/api/settings` | Aktive Konfiguration                 |
+| PUT     | `/api/settings` | Schlüssel ändern: `url`, `language`, `theme`, `fullscreen`, `watchdog`, `hostname`. Ungültige Werte werden nie gespeichert; eine Hostnameänderung wird sofort angewendet. |
+
+### Netzwerk
+
+| Methode | Pfad                          | Beschreibung           |
+| ------- | ----------------------------- | ---------------------- |
+| GET     | `/api/network`                | Aktive Verbindung, IP, Gateway, DNS, MAC, Signal, gespeicherte Profile |
+| POST    | `/api/network`                | `{"action": "scan"}` (Netzwerkliste), `{"action": "connect", "ssid": "...", "password": "..."}`, `{"action": "disconnect"}` |
+| DELETE  | `/api/network/profiles/<name>`| Gespeichertes WLAN-Profil löschen |
+
+### System
+
+| Methode | Pfad          | Beschreibung                           |
+| ------- | ------------- | -------------------------------------- |
+| GET     | `/api/system` | Detaillierter Watchdogstatus           |
+| POST    | `/api/system` | `{"action": "reboot\|shutdown"}` (Browser wird vorher sauber beendet) |
+
+### Aktualisierung
+
+| Methode | Pfad          | Beschreibung                           |
+| ------- | ------------- | -------------------------------------- |
+| GET     | `/api/update` | Aktuelle Version und Rollback-Zustand  |
+| POST    | `/api/update` | `{"action": "check"}` (GitHub prüfen), `{"action": "install"}` (Release installieren, mit automatischer Sicherung), `{"action": "rollback"}` |
+
+### Sicherung
+
+| Methode | Pfad                 | Beschreibung                    |
+| ------- | -------------------- | ------------------------------- |
+| GET     | `/api/backup`        | Sicherungen auflisten           |
+| POST    | `/api/backup`        | Sicherung erstellen, optional `{"include_logs": true}` |
+| GET     | `/api/backup/<name>` | Sicherung herunterladen (ZIP)   |
+
+### Logs
+
+| Methode | Pfad               | Beschreibung                      |
+| ------- | ------------------ | --------------------------------- |
+| GET     | `/api/logs`        | Verfügbare Logdateien             |
+| GET     | `/api/logs/<name>` | Letzte 200 Zeilen einer Logdatei  |
+
+## Beispiel: Gerät per API verwalten
+
+```bash
+BASE=http://<geraet>:8080
+TOKEN=$(curl -s -X POST $BASE/api/token \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"<passwort>"}' | jq -r .token)
+
+curl -s $BASE/api/status  -H "Authorization: Bearer $TOKEN"
+curl -s -X PUT $BASE/api/settings \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"url": "https://beispiel.de/anzeige"}'
+curl -s -X POST $BASE/api/browser \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"action": "restart"}'
+```
+
+## Mehrgerätefähigkeit
+
+Eine zentrale Verwaltung spricht jedes Gerät über diese API an:
+Statusabfrage, Konfiguration, Browsersteuerung, Updates, Sicherungen
+und Neustarts sind vollständig entfernt steuerbar. Die Geräte bleiben
+dabei autark – die lokale Weboberfläche und der Kioskbetrieb sind von
+der API unabhängig.
