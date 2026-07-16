@@ -5,6 +5,28 @@ dokumentiert. Das Format orientiert sich an
 [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die
 Versionierung folgt [Semantic Versioning](https://semver.org/lang/de/).
 
+## [0.9.0] - 2026-07-16
+
+### Behoben
+
+- Setup-Wizard: Das Administratorkonto wird jetzt vor dem Abschluss
+  der Einrichtung angelegt. Zuvor konnte ein Fehler bei der
+  Kontoanlage das System in einen Zustand ohne Wizard und ohne
+  Anmeldung bringen.
+- install.sh kopiert das Git-Repository mit, damit update.sh auf
+  installierten Systemen funktioniert.
+
+### Geändert (Beta-Härtung)
+
+- Testabdeckung auf 95 % erhöht (396 Tests); Service-Schicht,
+  Controller-Schicht und Validatoren liegen über 90 %
+- Echte Netzwerkpfade werden gegen lokale Testserver geprüft
+  (GitHub-Abfrage, Update-Download, Watchdog-Endpunkte,
+  DevTools-WebSocket-Reload)
+- Dokumentation vervollständigt: Entwicklerhandbuch
+  (docs/DeveloperGuide.md), FAQ (docs/FAQ.md) und
+  Troubleshooting (docs/Troubleshooting.md)
+
 ## [0.8.0] - 2026-07-16
 
 ### Hinzugefügt

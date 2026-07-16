@@ -7,7 +7,7 @@ Nach dem Booten meldet sich das Gerät automatisch an, startet Chromium im
 Kioskmodus und zeigt die konfigurierte Webseite an. Die komplette
 Administration erfolgt über eine lokale Weboberfläche – ohne Linux-Kenntnisse.
 
-## Funktionen (Version 0.8.0)
+## Funktionen (Version 0.9.0)
 
 - Sprache (Deutsch/Englisch) und Theme (Dunkel/Hell/Automatisch)
   direkt im Dashboard umschaltbar; „Automatisch" folgt der
@@ -79,8 +79,20 @@ pytest                            # Tests ausführen
 ```
 
 Die Architektur ist in [docs/Architecture.md](docs/Architecture.md)
-beschrieben. Hinweise für Beiträge stehen in
-[CONTRIBUTING.md](CONTRIBUTING.md).
+beschrieben, das Entwicklerhandbuch in
+[docs/DeveloperGuide.md](docs/DeveloperGuide.md). Hinweise für
+Beiträge stehen in [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## Dokumentation
+
+- [Installation](docs/Installation.md)
+- [Administration](docs/Administration.md)
+- [REST API](docs/API.md)
+- [Architektur](docs/Architecture.md)
+- [Entwicklerhandbuch](docs/DeveloperGuide.md)
+- [FAQ](docs/FAQ.md)
+- [Troubleshooting](docs/Troubleshooting.md)
+- [Changelog](CHANGELOG.md)
 
 ## Lizenz
 

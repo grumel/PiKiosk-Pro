@@ -161,3 +161,75 @@ class TestBrowserService:
         monkeypatch.setattr(browser_module.shutil, "which", lambda name: None)
         with pytest.raises(BrowserError):
             service.start(TEST_URL)
+
+
+class TestBrowserServiceFehlerpfade:
+    """Tests fuer Fehler- und Sonderpfade der Browsersteuerung."""
+
+    def test_startfehler_setzt_fehlerstatus(
+        self, service: BrowserService, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        def broken_popen(*args: Any, **kwargs: Any) -> None:
+            raise OSError("kein Display")
+
+        monkeypatch.setattr(browser_module.subprocess, "Popen", broken_popen)
+        with pytest.raises(BrowserError):
+            service.start(TEST_URL)
+        assert service.status() is BrowserStatus.ERROR
+
+    def test_stop_erzwingt_kill_bei_haengendem_prozess(
+        self, service: BrowserService, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        service.start(TEST_URL)
+        process = service._process
+        monkeypatch.setattr(process, "terminate", lambda: None)
+        service.stop()
+        assert process.killed is True
+        assert service.status() is BrowserStatus.NOT_STARTED
+
+    def test_reload_bei_laufendem_browser(
+        self, service: BrowserService, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        reloads: list[bool] = []
+
+        class FakeClient:
+            def __init__(self, host: str, port: int) -> None:
+                pass
+
+            def reload_page(self) -> None:
+                reloads.append(True)
+
+        monkeypatch.setattr(browser_module, "DevToolsClient", FakeClient)
+        service.start(TEST_URL)
+        service.reload()
+        assert reloads == [True]
+
+    def test_reload_fehler_wird_uebersetzt(
+        self, service: BrowserService, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from app.exceptions import NetworkError
+
+        class BrokenClient:
+            def __init__(self, host: str, port: int) -> None:
+                pass
+
+            def reload_page(self) -> None:
+                raise NetworkError("keine Seite")
+
+        monkeypatch.setattr(browser_module, "DevToolsClient", BrokenClient)
+        service.start(TEST_URL)
+        with pytest.raises(BrowserError):
+            service.reload()
+
+    def test_clear_cache_fehler(
+        self, service: BrowserService, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        (tmp_path / "chromium").mkdir()
+
+        def broken_rmtree(path: object) -> None:
+            raise OSError("keine Rechte")
+
+        monkeypatch.setattr(browser_module.shutil, "rmtree", broken_rmtree)
+        with pytest.raises(BrowserError):
+            service.clear_cache()
+        assert service.status() is BrowserStatus.ERROR

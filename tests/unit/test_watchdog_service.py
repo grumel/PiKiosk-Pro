@@ -305,3 +305,112 @@ class TestCheckOnce:
         monkeypatch.setattr(watchdog_module, "cpu_temperature", lambda: 81.0)
         system = service._check_system()
         assert "temperature_critical" in system["warnings"]
+
+
+class TestNetworkChecks:
+    """Tests fuer die Netzwerkpruefungen des Watchdogs."""
+
+    def test_alle_pruefungen_positiv(
+        self,
+        service: WatchdogService,
+        http_status_server: str,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.setattr(watchdog_module, "default_gateway", lambda: "192.0.2.1")
+        monkeypatch.setattr(watchdog_module, "ping_host", lambda host: True)
+        monkeypatch.setattr(watchdog_module, "internet_reachable", lambda: True)
+        network = service._check_network(f"{http_status_server}/ok")
+        assert network == {
+            "gateway": True,
+            "dns": True,
+            "internet": True,
+            "url": True,
+        }
+
+    def test_ohne_gateway_und_url(
+        self, service: WatchdogService, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setattr(watchdog_module, "default_gateway", lambda: "")
+        monkeypatch.setattr(watchdog_module, "internet_reachable", lambda: False)
+        network = service._check_network("")
+        assert network["gateway"] is False
+        assert network["url"] is None
+        assert network["dns"] is True
+
+    def test_nicht_erreichbare_url(
+        self, service: WatchdogService, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setattr(watchdog_module, "default_gateway", lambda: "")
+        monkeypatch.setattr(watchdog_module, "internet_reachable", lambda: True)
+        network = service._check_network("http://127.0.0.1:59995/")
+        assert network["url"] is False
+
+    def test_dns_pruefung(
+        self, service: WatchdogService, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        assert service._dns_ok("") is True
+        assert service._dns_ok("http://192.0.2.7/seite") is True
+        monkeypatch.setattr(
+            watchdog_module.socket, "gethostbyname", lambda host: "192.0.2.1"
+        )
+        assert service._dns_ok("https://gibt-es.example/") is True
+
+        def fail(host: str) -> str:
+            raise OSError("keine Aufloesung")
+
+        monkeypatch.setattr(watchdog_module.socket, "gethostbyname", fail)
+        assert service._dns_ok("https://gibt-es-nicht.example/") is False
+
+
+class TestRunForever:
+    """Tests fuer die Dauerschleife des Watchdogs."""
+
+    def test_schleife_fuehrt_pruefzyklen_aus(
+        self, service: WatchdogService, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        cycles: list[int] = []
+        monkeypatch.setattr(service, "check_once", lambda: cycles.append(1))
+
+        def stop_sleep(seconds: float) -> None:
+            raise KeyboardInterrupt
+
+        monkeypatch.setattr(watchdog_module.time, "sleep", stop_sleep)
+        with pytest.raises(KeyboardInterrupt):
+            service.run_forever()
+        assert cycles == [1]
+
+    def test_fehler_im_zyklus_beendet_schleife_nicht(
+        self, service: WatchdogService, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        def broken_check() -> None:
+            raise ValueError("Absichtlicher Testfehler")
+
+        monkeypatch.setattr(service, "check_once", broken_check)
+
+        def stop_sleep(seconds: float) -> None:
+            raise KeyboardInterrupt
+
+        monkeypatch.setattr(watchdog_module.time, "sleep", stop_sleep)
+        with pytest.raises(KeyboardInterrupt):
+            service.run_forever()
+
+    def test_unlesbare_konfiguration_ergibt_disabled(
+        self, service: WatchdogService, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        def broken_load() -> dict[str, object]:
+            raise RuntimeError("Datenbank kaputt")
+
+        monkeypatch.setattr(service._config_service, "load", broken_load)
+        status = service.check_once()
+        assert status["overall"] == "disabled"
+
+    def test_statusdatei_fehler_wird_geloggt(
+        self, service: WatchdogService, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from app.exceptions import ConfigurationError
+
+        def broken_write(path: object, data: object) -> None:
+            raise ConfigurationError("kein Platz")
+
+        monkeypatch.setattr(watchdog_module, "write_json_atomic", broken_write)
+        service._write_status({"overall": "online"})
