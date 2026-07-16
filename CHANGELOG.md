@@ -5,6 +5,28 @@ dokumentiert. Das Format orientiert sich an
 [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die
 Versionierung folgt [Semantic Versioning](https://semver.org/lang/de/).
 
+## [0.3.0] - 2026-07-16
+
+### Hinzugefügt
+
+- Anmeldung mit Flask-Login: bcrypt-Passwortprüfung, Session-Timeout
+  30 Minuten, optional „Angemeldet bleiben" (7 Tage), Schutz vor
+  offenen Weiterleitungen
+- Dashboard mit automatisch aktualisierten Systeminformationen
+  (Hostname, Gerätemodell, IP, MAC, CPU, RAM, Temperatur, Festplatte,
+  Browserstatus, Internetstatus, URL, Version, letzter Neustart,
+  Systemlaufzeit) über den neuen DashboardService (psutil)
+- Dashboard-Kacheln: Browser (Start/Stopp/Neustart), Kiosk-URL
+  (Testen/Speichern mit automatischem Browserneustart), Hostname,
+  WLAN (Status/Scan/Verbinden/Trennen), System
+  (Neustart/Herunterfahren mit Bestätigung), Logs (Ansicht der
+  letzten 200 Zeilen und Download)
+- SystemService: kontrollierter Neustart und Shutdown über systemd,
+  der Browser wird vorher sauber beendet
+- Globaler CSRF-Schutz für alle Schreibanfragen der Anwendung
+- install.sh: sudo-Regeln für systemctl reboot und poweroff
+- Dokumentation: Administrationsanleitung (docs/Administration.md)
+
 ## [0.2.0] - 2026-07-15
 
 ### Hinzugefügt
