@@ -76,6 +76,16 @@
                     </span>
                 </li>
                 <li class="list-group-item d-flex justify-content-between">
+                    <span>{{ texts['label_watchdog'] }}</span>
+                    <span class="badge align-self-center
+                        {% if data['watchdog'] == 'online' %}text-bg-success
+                        {% elif data['watchdog'] == 'warning' %}text-bg-warning
+                        {% elif data['watchdog'] in ('error', 'offline') %}text-bg-danger
+                        {% else %}text-bg-secondary{% endif %}">
+                        {{ texts['watchdog_status_' ~ data['watchdog']] }}
+                    </span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between">
                     <span>{{ texts['label_kiosk_url'] }}</span>
                     <span class="fw-semibold text-truncate ms-3">
                         {% if data['url'] %}{{ data['url'] }}{% else %}{{ texts['no_url_configured'] }}{% endif %}

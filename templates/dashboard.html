@@ -53,7 +53,7 @@
                 <div class="card-header">{{ texts['tile_logs'] }}</div>
                 <div class="card-body">
                     <div class="d-flex flex-wrap gap-2 mb-3">
-                        {% for log_name in ('system', 'browser', 'network', 'install', 'update') %}
+                        {% for log_name in ('system', 'browser', 'watchdog', 'network', 'install', 'update') %}
                         <div class="btn-group">
                             <button type="button" class="btn btn-outline-primary"
                                     hx-get="{{ url_for('system.view_log', name=log_name) }}"
