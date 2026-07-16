@@ -9,11 +9,10 @@ ungueltige Eingaben niemals gespeichert. Passwoerter werden nur als
 bcrypt-Hash in der Sitzung gehalten.
 """
 
-import secrets
 import socket
 from typing import Any
 
-from flask import Blueprint, abort, current_app, render_template, request, session
+from flask import Blueprint, abort, render_template, request, session
 
 from app.constants import (
     APP_NAME,
@@ -21,46 +20,28 @@ from app.constants import (
     DEFAULT_ADMIN_USERNAME,
     SETUP_STEPS,
 )
+from app.controllers import current_services as _services
+from app.controllers import current_texts as _texts
+from app.controllers import ensure_csrf_token
 from app.exceptions import (
     NetworkError,
     PiKioskError,
     ValidationError,
     WifiError,
 )
-from app.extensions import ServiceRegistry, get_services
-from app.utils.helpers import device_model, load_language, local_ip_address
+from app.utils.helpers import device_model, local_ip_address
 from app.utils.network import check_url_status
 from app.utils.validators import URLValidator
 
 setup_blueprint = Blueprint("setup", __name__, url_prefix="/setup")
 
 SESSION_STATE_KEY: str = "setup_state"
-SESSION_CSRF_KEY: str = "csrf_token"
 REQUIRED_STATE_KEYS: tuple[str, ...] = (
     "hostname",
     "admin_username",
     "admin_password_hash",
     "url",
 )
-
-
-def _services() -> ServiceRegistry:
-    """Liefert die Anwendungsdienste.
-
-    Returns:
-        Die registrierte ServiceRegistry.
-    """
-    return get_services(current_app)
-
-
-def _texts() -> dict[str, str]:
-    """Laedt die Oberflaechentexte der aktiven Sprache.
-
-    Returns:
-        Woerterbuch mit Oberflaechentexten.
-    """
-    config = _services().config_service.load()
-    return load_language(config["language"])
 
 
 def _state() -> dict[str, Any]:
@@ -151,23 +132,6 @@ def _hostname_taken(hostname: str) -> bool:
     return resolved != local_ip_address()
 
 
-@setup_blueprint.before_request
-def verify_csrf_token() -> None:
-    """Prueft das CSRF-Token aller Schreibanfragen.
-
-    Raises:
-        werkzeug.exceptions.BadRequest
-    """
-    if request.method != "POST":
-        return
-    token = request.headers.get("X-CSRF-Token", "") or request.form.get(
-        "csrf_token", ""
-    )
-    expected = session.get(SESSION_CSRF_KEY, "")
-    if not expected or token != expected:
-        abort(400)
-
-
 @setup_blueprint.get("/")
 def wizard() -> str:
     """Rendert die Wizard-Seite mit dem Willkommensschritt.
@@ -175,14 +139,12 @@ def wizard() -> str:
     Returns:
         Die vollstaendige Wizard-Seite.
     """
-    if SESSION_CSRF_KEY not in session:
-        session[SESSION_CSRF_KEY] = secrets.token_hex(16)
+    ensure_csrf_token()
     config = _services().config_service.load()
     return render_template(
         "setup.html",
         texts=_texts(),
         theme=config["theme"],
-        csrf_token=session[SESSION_CSRF_KEY],
         state=_state(),
         app_name=APP_NAME,
         app_version=APP_VERSION,
