@@ -11,6 +11,7 @@ import secrets
 
 from flask import current_app, session
 
+from app.constants import LOCAL_URL
 from app.extensions import ServiceRegistry, get_services
 from app.utils.helpers import load_language
 
@@ -46,3 +47,13 @@ def ensure_csrf_token() -> str:
         session[SESSION_CSRF_KEY] = secrets.token_hex(16)
     token: str = session[SESSION_CSRF_KEY]
     return token
+
+
+def kiosk_target_url() -> str:
+    """Bestimmt die Ziel-URL fuer den Kioskbrowser.
+
+    Returns:
+        Konfigurierte Kiosk-URL oder die lokale Statusseite.
+    """
+    config = current_services().config_service.load()
+    return str(config["url"]) if config["url"] else LOCAL_URL
