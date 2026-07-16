@@ -32,6 +32,14 @@ class AuthenticationError(PiKioskError):
     """Fehler bei Anmeldung oder Benutzerverwaltung."""
 
 
+class BackupError(PiKioskError):
+    """Fehler beim Erstellen oder Verwalten von Sicherungen."""
+
+
+class RestoreError(PiKioskError):
+    """Fehler beim Wiederherstellen einer Sicherung."""
+
+
 class WifiError(NetworkError):
     """Fehler beim Verbinden mit einem WLAN.
 
