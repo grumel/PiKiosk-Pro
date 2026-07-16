@@ -69,7 +69,6 @@ copy_project() {
     log "Projekt wird nach ${INSTALL_DIR} kopiert."
     mkdir -p "${INSTALL_DIR}"
     rsync -a --delete \
-        --exclude ".git" \
         --exclude ".venv" \
         --exclude "logs/*.log" \
         "${SOURCE_DIR}/" "${INSTALL_DIR}/"

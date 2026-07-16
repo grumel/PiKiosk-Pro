@@ -323,15 +323,15 @@ def install() -> str:
         return _render_step("summary", error=texts["setup_incomplete"])
     try:
         services.hostname_service.set(str(state["hostname"]))
+        if not services.auth_service.administrator_exists():
+            services.auth_service.create_administrator(
+                str(state["admin_username"]), str(state["admin_password_hash"])
+            )
         config = services.config_service.load()
         config["hostname"] = state["hostname"]
         config["url"] = state["url"]
         config["first_start"] = False
         services.config_service.save(config)
-        if not services.auth_service.administrator_exists():
-            services.auth_service.create_administrator(
-                str(state["admin_username"]), str(state["admin_password_hash"])
-            )
         session.pop(SESSION_STATE_KEY, None)
         services.logger.info("Ersteinrichtung abgeschlossen.")
         return _render_step("install", success=True, redirect_url=config["url"])
