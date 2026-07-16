@@ -30,7 +30,7 @@ keine globalen Variablen.
  Raspberry Pi OS
 ```
 
-## Module (Version 0.4.0)
+## Module (Version 0.5.0)
 
 | Modul                              | Aufgabe                                        |
 | ---------------------------------- | ---------------------------------------------- |
@@ -56,6 +56,11 @@ keine globalen Variablen.
 | `app/watchdog.py`                  | Einstiegspunkt des Watchdog-Dienstes           |
 | `app/controllers/internal_controller.py` | Tokengeschuetzter Watchdog-Endpunkt     |
 | `app/utils/filesystem.py`          | Atomares JSON-Lesen und -Schreiben             |
+| `app/services/backup_service.py`   | ZIP-Sicherungen erstellen und verwalten        |
+| `app/services/restore_service.py`  | Sicherungen pruefen, wiederherstellen, USB-Scan |
+| `app/controllers/backup_controller.py` | Sicherungs-Kachel im Dashboard            |
+| `app/controllers/restore_controller.py` | Wiederherstellung und USB-Import         |
+| `app/utils/version.py`             | Semantic Versioning, Kompatibilitaetspruefung  |
 | `app/services/network_service.py`  | WLAN-Verwaltung über NetworkManager (nmcli)    |
 | `app/services/hostname_service.py` | Hostnameverwaltung mit Root-Helferskript       |
 | `app/services/auth_service.py`     | Benutzer- und Passwortverwaltung (bcrypt)      |

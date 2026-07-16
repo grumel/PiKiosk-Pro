@@ -7,8 +7,11 @@ Nach dem Booten meldet sich das Gerät automatisch an, startet Chromium im
 Kioskmodus und zeigt die konfigurierte Webseite an. Die komplette
 Administration erfolgt über eine lokale Weboberfläche – ohne Linux-Kenntnisse.
 
-## Funktionen (Version 0.4.0)
+## Funktionen (Version 0.5.0)
 
+- Backup und Restore: ZIP-Sicherungen von Konfiguration und
+  Benutzern mit Versionsprüfung, Download, Upload und
+  automatischem USB-Import
 - Watchdog als eigener systemd-Dienst: überwacht Browser, Netzwerk
   (Gateway, DNS, Internet, URL) und System (Temperatur, RAM,
   Festplatte) alle 5 Sekunden und startet einen abgestürzten
