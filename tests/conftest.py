@@ -30,6 +30,7 @@ from app.services.hostname_service import HostnameService  # noqa: E402
 from app.services.network_service import NetworkService  # noqa: E402
 from app.services.restore_service import RestoreService  # noqa: E402
 from app.services.system_service import SystemService  # noqa: E402
+from app.services.update_service import UpdateService  # noqa: E402
 
 
 @pytest.fixture
@@ -75,6 +76,14 @@ def registry(tmp_path: Path, test_logger: KioskLogger) -> ServiceRegistry:
     browser_service = BrowserService(
         logger=test_logger, user_data_dir=tmp_path / "chromium"
     )
+    backup_service = BackupService(
+        logger=test_logger,
+        config_service=config_service,
+        config_file=tmp_path / "config.json",
+        users_db_file=tmp_path / "users.db",
+        backup_dir=tmp_path / "backup",
+        log_dir=tmp_path / "logs",
+    )
     return ServiceRegistry(
         logger=test_logger,
         config_service=config_service,
@@ -92,18 +101,18 @@ def registry(tmp_path: Path, test_logger: KioskLogger) -> ServiceRegistry:
         system_service=SystemService(
             logger=test_logger, browser_service=browser_service
         ),
-        backup_service=BackupService(
-            logger=test_logger,
-            config_service=config_service,
-            config_file=tmp_path / "config.json",
-            users_db_file=tmp_path / "users.db",
-            backup_dir=tmp_path / "backup",
-            log_dir=tmp_path / "logs",
-        ),
+        backup_service=backup_service,
         restore_service=RestoreService(
             logger=test_logger,
             config_service=config_service,
             users_db_file=tmp_path / "users.db",
+        ),
+        update_service=UpdateService(
+            logger=test_logger,
+            config_service=config_service,
+            backup_service=backup_service,
+            install_dir=tmp_path / "install",
+            releases_dir=tmp_path / "releases",
         ),
     )
 
