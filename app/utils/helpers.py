@@ -12,7 +12,14 @@ import secrets
 import socket
 from pathlib import Path
 
-from app.constants import CONFIG_DIR, SECRET_KEY_FILE, SUPPORTED_LANGUAGES
+import psutil
+
+from app.constants import (
+    CONFIG_DIR,
+    SECRET_KEY_FILE,
+    SUPPORTED_LANGUAGES,
+    THERMAL_ZONE_FILE,
+)
 from app.exceptions import ConfigurationError, ValidationError
 
 DEVICE_MODEL_FILE: Path = Path("/proc/device-tree/model")
@@ -89,6 +96,31 @@ def device_model() -> str:
         return DEVICE_MODEL_FILE.read_text(encoding="utf-8").strip("\x00\n ")
     except OSError:
         return ""
+
+
+def cpu_temperature() -> float | None:
+    """Liest die CPU-Temperatur des Geraets.
+
+    Es werden zuerst die psutil-Sensoren gelesen, danach die
+    Thermalzone des Kernels.
+
+    Returns:
+        Temperatur in Grad Celsius oder None, wenn kein Sensor
+        verfuegbar ist.
+    """
+    try:
+        sensors = psutil.sensors_temperatures()
+    except AttributeError:
+        sensors = {}
+    for readings in sensors.values():
+        for reading in readings:
+            if reading.current:
+                return round(float(reading.current), 1)
+    try:
+        raw = THERMAL_ZONE_FILE.read_text(encoding="ascii").strip()
+        return round(int(raw) / 1000.0, 1)
+    except (OSError, ValueError):
+        return None
 
 
 def load_or_create_secret_key(key_file: Path = SECRET_KEY_FILE) -> str:
