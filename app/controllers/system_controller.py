@@ -7,8 +7,6 @@ Download der Logdateien bereit. Es sind ausschliesslich die in
 LOG_FILES definierten Dateien zugreifbar.
 """
 
-from collections import deque
-
 from flask import Blueprint, abort, render_template, send_file
 from flask_login import login_required
 from werkzeug.wrappers import Response
@@ -16,6 +14,7 @@ from werkzeug.wrappers import Response
 from app.constants import LOG_FILES, LOG_VIEW_LINES
 from app.controllers import current_services, current_texts
 from app.exceptions import PiKioskError
+from app.utils.helpers import read_log_tail
 
 system_blueprint = Blueprint("system", __name__, url_prefix="/dashboard/system")
 
@@ -85,12 +84,7 @@ def view_log(name: str) -> str:
     if log_file is None:
         abort(404)
     texts = current_texts()
-    try:
-        with log_file.open("r", encoding="utf-8", errors="replace") as handle:
-            lines = deque(handle, maxlen=LOG_VIEW_LINES)
-        content = "".join(lines)
-    except OSError:
-        content = ""
+    content = read_log_tail(log_file, LOG_VIEW_LINES)
     return render_template(
         "dashboard/_log_viewer.html",
         texts=texts,
