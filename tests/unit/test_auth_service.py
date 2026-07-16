@@ -104,3 +104,32 @@ class TestAuthService:
         rules = service.check_password_rules("nur-klein-123")
         assert rules["min_length"] is True
         assert rules["uppercase"] is False
+
+    def test_authenticate_erfolgreich(
+        self, service: AuthService, user_model: UserModel
+    ) -> None:
+        password_hash = service.hash_password(VALID_PASSWORD)
+        service.create_administrator("admin", password_hash)
+        login_user = service.authenticate("admin", VALID_PASSWORD)
+        assert login_user is not None
+        assert login_user.username == "admin"
+        refreshed = user_model.find_by_username("admin")
+        assert refreshed is not None
+        assert refreshed.last_login is not None
+
+    def test_authenticate_falsches_passwort(self, service: AuthService) -> None:
+        password_hash = service.hash_password(VALID_PASSWORD)
+        service.create_administrator("admin", password_hash)
+        assert service.authenticate("admin", "Falsch-2026-Kiosk") is None
+
+    def test_authenticate_unbekannter_benutzer(self, service: AuthService) -> None:
+        assert service.authenticate("fehlt", VALID_PASSWORD) is None
+
+    def test_load_user(self, service: AuthService) -> None:
+        password_hash = service.hash_password(VALID_PASSWORD)
+        created = service.create_administrator("admin", password_hash)
+        loaded = service.load_user(str(created.id))
+        assert loaded is not None
+        assert loaded.username == "admin"
+        assert service.load_user("99999") is None
+        assert service.load_user("keine-zahl") is None

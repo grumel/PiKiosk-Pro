@@ -175,6 +175,45 @@ class UserModel:
             enabled=bool(row["enabled"]),
         )
 
+    def find_by_id(self, user_id: int) -> User | None:
+        """Sucht einen Benutzer anhand seiner Kennung.
+
+        Args:
+            user_id:
+                Eindeutige Benutzerkennung.
+
+        Returns:
+            Der Benutzer oder None.
+
+        Raises:
+            AuthenticationError
+        """
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT username FROM users WHERE id = ?",
+                (user_id,),
+            ).fetchone()
+        if row is None:
+            return None
+        return self.find_by_username(str(row["username"]))
+
+    def update_last_login(self, user_id: int) -> None:
+        """Setzt den Zeitpunkt der letzten Anmeldung auf jetzt.
+
+        Args:
+            user_id:
+                Eindeutige Benutzerkennung.
+
+        Raises:
+            AuthenticationError
+        """
+        timestamp = datetime.now(timezone.utc).isoformat()
+        with self._connect() as connection:
+            connection.execute(
+                "UPDATE users SET last_login = ? WHERE id = ?",
+                (timestamp, user_id),
+            )
+
     def count_users(self) -> int:
         """Zaehlt alle vorhandenen Benutzer.
 

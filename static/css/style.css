@@ -18,3 +18,12 @@ body {
     -webkit-user-select: none;
     user-select: none;
 }
+
+.log-viewer-pre {
+    max-height: 20rem;
+    overflow: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+    -webkit-user-select: text;
+    user-select: text;
+}

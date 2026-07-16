@@ -1,0 +1,78 @@
+{# Copyright (c) 2026 Holger John - Lizenz: MIT License (siehe LICENSE) #}
+{# Dashboard: Systeminformationen und Verwaltungskacheln. #}
+{% extends "base.html" %}
+
+{% block title %}{{ texts['dashboard_title'] }}{% endblock %}
+
+{% block navbar_actions %}
+<form method="post" action="{{ url_for('auth.logout') }}" class="ms-auto">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <button type="submit" class="btn btn-outline-secondary">
+        {{ texts['logout_button'] }}
+    </button>
+</form>
+{% endblock %}
+
+{% block content %}
+<div id="dashboard" hx-headers='{"X-CSRF-Token": "{{ csrf_token }}"}'>
+    <div id="dashboard-data"
+         hx-get="{{ url_for('dashboard.data') }}"
+         hx-trigger="every 10s"
+         hx-swap="innerHTML">
+        {% include "dashboard/_data.html" %}
+    </div>
+    <div class="row g-3 mt-1">
+        <div class="col-12 col-md-6 col-xl-4" id="browser-tile">
+            {% include "dashboard/_browser_tile.html" %}
+        </div>
+        <div class="col-12 col-md-6 col-xl-4" id="url-tile">
+            {% set url = config['url'] %}
+            {% include "dashboard/_url_tile.html" %}
+        </div>
+        <div class="col-12 col-md-6 col-xl-4" id="hostname-tile">
+            {% set hostname = data['hostname'] %}
+            {% include "dashboard/_hostname_tile.html" %}
+        </div>
+        <div class="col-12 col-md-6 col-xl-4" id="wifi-tile"
+             hx-get="{{ url_for('network.status') }}"
+             hx-trigger="load"
+             hx-swap="innerHTML">
+            <div class="card h-100">
+                <div class="card-header">{{ texts['tile_wifi'] }}</div>
+                <div class="card-body text-body-secondary">
+                    <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                    {{ texts['wifi_loading'] }}
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-6 col-xl-4" id="system-tile">
+            {% include "dashboard/_system_tile.html" %}
+        </div>
+        <div class="col-12 col-md-6 col-xl-4">
+            <div class="card h-100">
+                <div class="card-header">{{ texts['tile_logs'] }}</div>
+                <div class="card-body">
+                    <div class="d-flex flex-wrap gap-2 mb-3">
+                        {% for log_name in ('system', 'browser', 'network', 'install', 'update') %}
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-outline-primary"
+                                    hx-get="{{ url_for('system.view_log', name=log_name) }}"
+                                    hx-target="#log-viewer">
+                                {{ texts['log_' ~ log_name] }}
+                            </button>
+                            <a class="btn btn-outline-secondary"
+                               href="{{ url_for('system.download_log', name=log_name) }}">&#8595;</a>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <div id="log-viewer"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/htmx.min.js') }}"></script>
+{% endblock %}

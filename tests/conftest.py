@@ -24,8 +24,10 @@ from app.models.user_model import UserModel  # noqa: E402
 from app.services.auth_service import AuthService  # noqa: E402
 from app.services.browser_service import BrowserService  # noqa: E402
 from app.services.config_service import ConfigService  # noqa: E402
+from app.services.dashboard_service import DashboardService  # noqa: E402
 from app.services.hostname_service import HostnameService  # noqa: E402
 from app.services.network_service import NetworkService  # noqa: E402
+from app.services.system_service import SystemService  # noqa: E402
 
 
 @pytest.fixture
@@ -68,16 +70,25 @@ def registry(tmp_path: Path, test_logger: KioskLogger) -> ServiceRegistry:
         defaults_file=PROJECT_ROOT / "config" / "defaults.json",
         backup_dir=tmp_path / "backup",
     )
+    browser_service = BrowserService(
+        logger=test_logger, user_data_dir=tmp_path / "chromium"
+    )
     return ServiceRegistry(
         logger=test_logger,
         config_service=config_service,
-        browser_service=BrowserService(
-            logger=test_logger, user_data_dir=tmp_path / "chromium"
-        ),
+        browser_service=browser_service,
         network_service=NetworkService(logger=test_logger),
         hostname_service=HostnameService(logger=test_logger),
         auth_service=AuthService(
             logger=test_logger, user_model=UserModel(tmp_path / "users.db")
+        ),
+        dashboard_service=DashboardService(
+            logger=test_logger,
+            config_service=config_service,
+            browser_service=browser_service,
+        ),
+        system_service=SystemService(
+            logger=test_logger, browser_service=browser_service
         ),
     )
 

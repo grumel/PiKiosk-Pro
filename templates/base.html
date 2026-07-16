@@ -13,6 +13,7 @@
     <header class="navbar navbar-expand bg-body-tertiary border-bottom">
         <div class="container-fluid">
             <span class="navbar-brand fw-semibold">{{ texts['app_title'] }}</span>
+            {% block navbar_actions %}{% endblock %}
         </div>
     </header>
     <main class="container py-4 flex-grow-1">

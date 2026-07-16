@@ -16,8 +16,10 @@ from app.logger import KioskLogger
 from app.services.auth_service import AuthService
 from app.services.browser_service import BrowserService
 from app.services.config_service import ConfigService
+from app.services.dashboard_service import DashboardService
 from app.services.hostname_service import HostnameService
 from app.services.network_service import NetworkService
+from app.services.system_service import SystemService
 
 EXTENSION_KEY: str = "pikiosk"
 
@@ -44,6 +46,12 @@ class ServiceRegistry:
 
         auth_service:
             Dienst fuer Benutzer- und Passwortverwaltung.
+
+        dashboard_service:
+            Dienst fuer die Dashboard-Systeminformationen.
+
+        system_service:
+            Dienst fuer Neustart und Herunterfahren.
     """
 
     logger: KioskLogger
@@ -52,6 +60,8 @@ class ServiceRegistry:
     network_service: NetworkService
     hostname_service: HostnameService
     auth_service: AuthService
+    dashboard_service: DashboardService
+    system_service: SystemService
 
 
 def register_services(app: Flask, registry: ServiceRegistry) -> None:
