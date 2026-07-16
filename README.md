@@ -7,8 +7,11 @@ Nach dem Booten meldet sich das Gerät automatisch an, startet Chromium im
 Kioskmodus und zeigt die konfigurierte Webseite an. Die komplette
 Administration erfolgt über eine lokale Weboberfläche – ohne Linux-Kenntnisse.
 
-## Funktionen (Version 0.5.0)
+## Funktionen (Version 0.6.0)
 
+- Update-System: Aktualisierung aus GitHub-Releases oder per
+  hochgeladenem Paket, automatische Sicherung vor dem Update und
+  vollständiger Rollback
 - Backup und Restore: ZIP-Sicherungen von Konfiguration und
   Benutzern mit Versionsprüfung, Download, Upload und
   automatischem USB-Import
