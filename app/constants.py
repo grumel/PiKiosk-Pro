@@ -11,7 +11,7 @@ zu, damit keine doppelten Definitionen entstehen.
 from pathlib import Path
 
 APP_NAME: str = "PiKiosk Pro"
-APP_VERSION: str = "0.2.0"
+APP_VERSION: str = "0.3.0"
 
 BASE_DIR: Path = Path(__file__).resolve().parent.parent
 CONFIG_DIR: Path = BASE_DIR / "config"
@@ -83,6 +83,27 @@ SETUP_STEPS: tuple[str, ...] = (
     "url",
     "summary",
 )
+
+SESSION_TIMEOUT_MINUTES: int = 30
+REMEMBER_COOKIE_DAYS: int = 7
+
+INTERNET_CHECK_HOST: str = "1.1.1.1"
+INTERNET_CHECK_PORT: int = 53
+INTERNET_CHECK_TIMEOUT_SECONDS: float = 2.0
+
+THERMAL_ZONE_FILE: Path = Path("/sys/class/thermal/thermal_zone0/temp")
+
+LOG_VIEW_LINES: int = 200
+LOG_FILES: dict[str, Path] = {
+    "system": LOG_DIR / "system.log",
+    "browser": LOG_DIR / "browser.log",
+    "network": LOG_DIR / "network.log",
+    "install": LOG_DIR / "install.log",
+    "update": LOG_DIR / "update.log",
+}
+
+SYSTEMCTL_BINARY: str = "systemctl"
+SYSTEM_COMMAND_TIMEOUT_SECONDS: float = 30.0
 
 CONFIG_SCHEMA: dict[str, type] = {
     "hostname": str,
