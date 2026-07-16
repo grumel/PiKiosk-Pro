@@ -22,11 +22,13 @@ from app.extensions import ServiceRegistry  # noqa: E402
 from app.logger import KioskLogger  # noqa: E402
 from app.models.user_model import UserModel  # noqa: E402
 from app.services.auth_service import AuthService  # noqa: E402
+from app.services.backup_service import BackupService  # noqa: E402
 from app.services.browser_service import BrowserService  # noqa: E402
 from app.services.config_service import ConfigService  # noqa: E402
 from app.services.dashboard_service import DashboardService  # noqa: E402
 from app.services.hostname_service import HostnameService  # noqa: E402
 from app.services.network_service import NetworkService  # noqa: E402
+from app.services.restore_service import RestoreService  # noqa: E402
 from app.services.system_service import SystemService  # noqa: E402
 
 
@@ -89,6 +91,19 @@ def registry(tmp_path: Path, test_logger: KioskLogger) -> ServiceRegistry:
         ),
         system_service=SystemService(
             logger=test_logger, browser_service=browser_service
+        ),
+        backup_service=BackupService(
+            logger=test_logger,
+            config_service=config_service,
+            config_file=tmp_path / "config.json",
+            users_db_file=tmp_path / "users.db",
+            backup_dir=tmp_path / "backup",
+            log_dir=tmp_path / "logs",
+        ),
+        restore_service=RestoreService(
+            logger=test_logger,
+            config_service=config_service,
+            users_db_file=tmp_path / "users.db",
         ),
     )
 

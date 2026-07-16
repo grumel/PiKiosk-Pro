@@ -246,6 +246,73 @@ class TestDashboard:
         assert "alert-danger" in response.get_data(as_text=True)
 
 
+class TestBackupTile:
+    """Integrationstests fuer Sicherung und Wiederherstellung."""
+
+    def test_kachel_ohne_anmeldung_gesperrt(self, client: FlaskClient) -> None:
+        response = client.get("/dashboard/backup/")
+        assert response.status_code == 302
+
+    def test_erstellen_auflisten_und_wiederherstellen(
+        self, client: FlaskClient, registry: ServiceRegistry
+    ) -> None:
+        token = login(client)
+        response = client.post("/dashboard/backup/create", data={"csrf_token": token})
+        assert "alert-success" in response.get_data(as_text=True)
+        backups = registry.backup_service.list_backups()
+        assert len(backups) == 1
+        name = backups[0]["name"]
+        tile = client.get("/dashboard/backup/").get_data(as_text=True)
+        assert name in tile
+        config = registry.config_service.load()
+        config["hostname"] = "Geaendert"
+        registry.config_service.save(config)
+        response = client.post(
+            f"/dashboard/restore/file/{name}", data={"csrf_token": token}
+        )
+        assert "alert-success" in response.get_data(as_text=True)
+        assert registry.config_service.load()["hostname"] == "PiKiosk"
+
+    def test_download(self, client: FlaskClient, registry: ServiceRegistry) -> None:
+        login(client)
+        name = registry.backup_service.create().name
+        response = client.get(f"/dashboard/backup/download/{name}")
+        assert response.status_code == 200
+        assert response.data[:2] == b"PK"
+        response = client.get("/dashboard/backup/download/boese.zip")
+        assert response.status_code == 404
+
+    def test_upload_wiederherstellung(
+        self, client: FlaskClient, registry: ServiceRegistry
+    ) -> None:
+        token = login(client)
+        backup_path = registry.backup_service.create()
+        config = registry.config_service.load()
+        config["hostname"] = "Geaendert"
+        registry.config_service.save(config)
+        with backup_path.open("rb") as handle:
+            response = client.post(
+                "/dashboard/restore/upload",
+                data={
+                    "csrf_token": token,
+                    "backup_file": (handle, backup_path.name),
+                },
+                content_type="multipart/form-data",
+            )
+        assert "alert-success" in response.get_data(as_text=True)
+        assert registry.config_service.load()["hostname"] == "PiKiosk"
+
+    def test_upload_ohne_datei(self, client: FlaskClient) -> None:
+        token = login(client)
+        response = client.post("/dashboard/restore/upload", data={"csrf_token": token})
+        assert "alert-danger" in response.get_data(as_text=True)
+
+    def test_usb_fragment(self, client: FlaskClient) -> None:
+        login(client)
+        response = client.get("/dashboard/backup/usb")
+        assert response.status_code == 200
+
+
 class TestInternalRestart:
     """Integrationstests fuer den internen Watchdog-Endpunkt."""
 
