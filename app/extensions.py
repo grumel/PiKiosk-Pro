@@ -22,6 +22,7 @@ from app.services.hostname_service import HostnameService
 from app.services.network_service import NetworkService
 from app.services.restore_service import RestoreService
 from app.services.system_service import SystemService
+from app.services.update_service import UpdateService
 
 EXTENSION_KEY: str = "pikiosk"
 
@@ -60,6 +61,9 @@ class ServiceRegistry:
 
         restore_service:
             Dienst fuer das Wiederherstellen von Sicherungen.
+
+        update_service:
+            Dienst fuer Updates und Rollbacks.
     """
 
     logger: KioskLogger
@@ -72,6 +76,7 @@ class ServiceRegistry:
     system_service: SystemService
     backup_service: BackupService
     restore_service: RestoreService
+    update_service: UpdateService
 
 
 def register_services(app: Flask, registry: ServiceRegistry) -> None:
