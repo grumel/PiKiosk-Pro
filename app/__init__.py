@@ -12,12 +12,23 @@ angezeigt.
 """
 
 from datetime import timedelta
+from typing import Any
 
-from flask import Flask, abort, redirect, render_template, request, session, url_for
+from flask import (
+    Flask,
+    abort,
+    jsonify,
+    redirect,
+    render_template,
+    request,
+    session,
+    url_for,
+)
 from flask_login import LoginManager
 from werkzeug.exceptions import HTTPException
 from werkzeug.wrappers import Response
 
+from app.api import api_blueprint
 from app.constants import (
     BASE_DIR,
     BROWSER_LOG_FILE,
@@ -57,7 +68,7 @@ from app.utils.helpers import load_language, load_or_create_secret_key
 
 SETUP_EXEMPT_ENDPOINTS: tuple[str, ...] = ("static", "main.health")
 CSRF_PROTECTED_METHODS: tuple[str, ...] = ("POST", "PUT", "PATCH", "DELETE")
-TOKEN_AUTHENTICATED_BLUEPRINTS: tuple[str, ...] = ("internal",)
+TOKEN_AUTHENTICATED_BLUEPRINTS: tuple[str, ...] = ("internal", "api")
 
 
 def create_app(registry: ServiceRegistry | None = None) -> Flask:
@@ -174,6 +185,7 @@ def _register_blueprints(app: Flask) -> None:
     app.register_blueprint(restore_blueprint)
     app.register_blueprint(update_blueprint)
     app.register_blueprint(internal_blueprint)
+    app.register_blueprint(api_blueprint)
 
 
 def _configure_login(app: Flask, registry: ServiceRegistry) -> None:
@@ -279,14 +291,18 @@ def _register_error_handlers(app: Flask, registry: ServiceRegistry) -> None:
     """
 
     @app.errorhandler(HTTPException)
-    def handle_http_error(error: HTTPException) -> tuple[str, int]:
-        texts = _load_error_texts(registry)
+    def handle_http_error(error: HTTPException) -> tuple[str, int] | tuple[Any, int]:
         code = error.code if error.code is not None else 500
         registry.logger.warning(f"HTTP-Fehler {code}: {error.description}")
+        if request.path.startswith("/api"):
+            return jsonify(error=error.name.lower().replace(" ", "_")), code
+        texts = _load_error_texts(registry)
         return render_template("error.html", texts=texts, code=code), code
 
     @app.errorhandler(Exception)
-    def handle_unexpected_error(error: Exception) -> tuple[str, int]:
-        texts = _load_error_texts(registry)
+    def handle_unexpected_error(error: Exception) -> tuple[str, int] | tuple[Any, int]:
         registry.logger.error(f"Unerwarteter Fehler: {error}", exc_info=True)
+        if request.path.startswith("/api"):
+            return jsonify(error="internal_error"), 500
+        texts = _load_error_texts(registry)
         return render_template("error.html", texts=texts, code=500), 500

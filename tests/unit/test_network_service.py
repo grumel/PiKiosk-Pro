@@ -154,6 +154,16 @@ class TestNetworkService:
         scripted(service, monkeypatch, [DEVICE_OUTPUT, DEVICE_SHOW_MAC])
         assert service.mac() == "AA:BB:CC:DD:EE:FF"
 
+    def test_mac_ohne_maskierte_doppelpunkte(
+        self, service: NetworkService, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        scripted(
+            service,
+            monkeypatch,
+            [DEVICE_OUTPUT, "GENERAL.HWADDR:AA:BB:CC:DD:EE:FF\n"],
+        )
+        assert service.mac() == "AA:BB:CC:DD:EE:FF"
+
     def test_signal_ohne_verbindung(
         self, service: NetworkService, monkeypatch: pytest.MonkeyPatch
     ) -> None:

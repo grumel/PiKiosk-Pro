@@ -319,8 +319,11 @@ class NetworkService:
         values: list[str] = []
         for line in output.splitlines():
             fields = split_terse_line(line)
-            if len(fields) >= 2 and fields[0].startswith(field) and fields[1]:
-                values.append(fields[1])
+            if len(fields) < 2 or not fields[0].startswith(field):
+                continue
+            value = ":".join(fields[1:])
+            if value:
+                values.append(value)
         return values
 
     def _device_field(self, field: str) -> str:

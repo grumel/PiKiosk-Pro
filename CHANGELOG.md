@@ -5,6 +5,28 @@ dokumentiert. Das Format orientiert sich an
 [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die
 Versionierung folgt [Semantic Versioning](https://semver.org/lang/de/).
 
+## [0.7.0] - 2026-07-16
+
+### Hinzugefügt
+
+- REST API unter /api mit JWT-Authentifizierung (HS256, mit
+  Bordmitteln implementiert, Tokens 24 Stunden gültig)
+- Endpunkte: /api/token, /api/status, /api/version, /api/browser,
+  /api/settings, /api/network (inkl. Profil-Löschung per DELETE),
+  /api/system, /api/update, /api/backup, /api/logs — alle
+  authentifiziert, alle Antworten JSON
+- Einheitliche JSON-Fehlerbehandlung für alle /api-Pfade
+  (401 unauthorized, 400 mit Fehlermeldung, 404 not_found)
+- Grundlage für die Remote-Verwaltung mehrerer Geräte; die lokale
+  Weboberfläche bleibt unabhängig
+- API-Dokumentation (docs/API.md)
+
+### Behoben
+
+- MAC-Adresse über nmcli wurde abgeschnitten, wenn nmcli die
+  Doppelpunkte nicht maskiert; der Feldparser setzt Werte jetzt
+  korrekt wieder zusammen
+
 ## [0.6.0] - 2026-07-16
 
 ### Hinzugefügt
