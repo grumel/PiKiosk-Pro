@@ -1,0 +1,28 @@
+{# Copyright (c) 2026 Holger John - Lizenz: MIT License (siehe LICENSE) #}
+{# Dashboard-Kachel: Hostname aendern. #}
+<div class="card h-100">
+    <div class="card-header">{{ texts['tile_hostname'] }}</div>
+    <div class="card-body">
+        {% if error %}
+        <div class="alert alert-danger" role="alert">{{ error }}</div>
+        {% endif %}
+        {% if message %}
+        <div class="alert alert-success" role="alert">{{ message }}</div>
+        {% endif %}
+        <form>
+            <div class="mb-3">
+                <label class="form-label" for="hostname-input">{{ texts['label_hostname'] }}</label>
+                <input class="form-control" type="text" id="hostname-input" name="hostname"
+                       maxlength="63" autocomplete="off"
+                       value="{{ entered_hostname if entered_hostname is defined else hostname }}">
+                <div class="form-text">{{ texts['hostname_help'] }}</div>
+            </div>
+            <button type="button" class="btn btn-primary"
+                    hx-post="{{ url_for('settings.hostname_save') }}"
+                    hx-include="closest form"
+                    hx-target="#hostname-tile">
+                {{ texts['btn_save'] }}
+            </button>
+        </form>
+    </div>
+</div>

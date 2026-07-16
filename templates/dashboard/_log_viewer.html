@@ -1,0 +1,8 @@
+{# Copyright (c) 2026 Holger John - Lizenz: MIT License (siehe LICENSE) #}
+{# Dashboard-Fragment: Anzeige der letzten Logzeilen. #}
+<p class="mb-1 fw-semibold">{{ texts['log_' ~ name] }}</p>
+{% if content %}
+<pre class="border rounded p-2 small bg-body-tertiary log-viewer-pre">{{ content }}</pre>
+{% else %}
+<div class="alert alert-secondary mb-0" role="alert">{{ texts['log_empty'] }}</div>
+{% endif %}
