@@ -1,0 +1,70 @@
+{# Copyright (c) 2026 Holger John - Lizenz: MIT License (siehe LICENSE) #}
+{# Dashboard-Kachel: Sicherungen erstellen, wiederherstellen, USB-Import. #}
+<div class="card h-100">
+    <div class="card-header">{{ texts['tile_backup'] }}</div>
+    <div class="card-body">
+        {% if error %}
+        <div class="alert alert-danger" role="alert">{{ error }}</div>
+        {% endif %}
+        {% if message %}
+        <div class="alert alert-success" role="alert">{{ message }}</div>
+        {% endif %}
+        <form class="mb-3">
+            <div class="form-check mb-2">
+                <input class="form-check-input" type="checkbox"
+                       id="include-logs" name="include_logs">
+                <label class="form-check-label" for="include-logs">
+                    {{ texts['include_logs_label'] }}
+                </label>
+            </div>
+            <button type="button" class="btn btn-primary"
+                    hx-post="{{ url_for('backup.create') }}"
+                    hx-include="closest form"
+                    hx-target="#backup-tile">
+                {{ texts['btn_create_backup'] }}
+            </button>
+        </form>
+        {% if backups %}
+        <ul class="list-group list-group-flush mb-3">
+            {% for backup in backups %}
+            <li class="list-group-item d-flex align-items-center gap-2 px-0">
+                <span class="flex-grow-1 text-truncate small">
+                    {{ backup['name'] }}<br>
+                    <span class="text-body-secondary">{{ backup['created'] }} · {{ backup['size_kb'] }} KB</span>
+                </span>
+                <a class="btn btn-outline-secondary"
+                   href="{{ url_for('backup.download', name=backup['name']) }}">&#8595;</a>
+                <button type="button" class="btn btn-outline-primary"
+                        hx-post="{{ url_for('restore.restore_file', name=backup['name']) }}"
+                        hx-target="#backup-tile"
+                        hx-confirm="{{ texts['confirm_restore'] }}">
+                    {{ texts['btn_restore'] }}
+                </button>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <div class="alert alert-secondary" role="alert">{{ texts['no_backups'] }}</div>
+        {% endif %}
+        <form class="mb-3">
+            <label class="form-label" for="backup-upload">{{ texts['upload_heading'] }}</label>
+            <input class="form-control mb-2" type="file" id="backup-upload"
+                   name="backup_file" accept=".zip">
+            <button type="button" class="btn btn-outline-primary"
+                    hx-post="{{ url_for('restore.upload') }}"
+                    hx-encoding="multipart/form-data"
+                    hx-include="closest form"
+                    hx-target="#backup-tile"
+                    hx-confirm="{{ texts['confirm_restore'] }}">
+                {{ texts['btn_upload_restore'] }}
+            </button>
+        </form>
+        <p class="mb-1 fw-semibold">{{ texts['usb_heading'] }}</p>
+        <div id="usb-backups"
+             hx-get="{{ url_for('backup.usb') }}"
+             hx-trigger="load, every 20s"
+             hx-swap="innerHTML">
+            <span class="text-body-secondary small">{{ texts['usb_none_found'] }}</span>
+        </div>
+    </div>
+</div>

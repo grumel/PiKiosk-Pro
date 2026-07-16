@@ -1,0 +1,26 @@
+{# Copyright (c) 2026 Holger John - Lizenz: MIT License (siehe LICENSE) #}
+{# Dashboard-Fragment: auf USB-Medien gefundene Sicherungen. #}
+{% if usb_backups %}
+<ul class="list-group list-group-flush">
+    {% for backup in usb_backups %}
+    <li class="list-group-item d-flex align-items-center gap-2 px-0">
+        <span class="flex-grow-1 text-truncate small">
+            {{ backup['name'] }}<br>
+            <span class="text-body-secondary">{{ backup['created'] }} · {{ backup['size_kb'] }} KB</span>
+        </span>
+        <form>
+            <input type="hidden" name="path" value="{{ backup['path'] }}">
+            <button type="button" class="btn btn-outline-primary"
+                    hx-post="{{ url_for('restore.restore_usb') }}"
+                    hx-include="closest form"
+                    hx-target="#backup-tile"
+                    hx-confirm="{{ texts['confirm_restore'] }}">
+                {{ texts['btn_import'] }}
+            </button>
+        </form>
+    </li>
+    {% endfor %}
+</ul>
+{% else %}
+<span class="text-body-secondary small">{{ texts['usb_none_found'] }}</span>
+{% endif %}
