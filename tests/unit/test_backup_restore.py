@@ -9,6 +9,7 @@ from pathlib import Path
 import pytest
 
 from app.constants import (
+    APP_VERSION,
     BACKUP_CONFIG_MEMBER,
     BACKUP_MANIFEST_MEMBER,
     BACKUP_USERS_MEMBER,
@@ -149,7 +150,7 @@ class TestRestoreService:
         bad = tmp_path / "bad_config.zip"
         with zipfile.ZipFile(bad, "w") as archive:
             archive.writestr(
-                BACKUP_MANIFEST_MEMBER, json.dumps({"app_version": "0.1.0"})
+                BACKUP_MANIFEST_MEMBER, json.dumps({"app_version": APP_VERSION})
             )
             archive.writestr(BACKUP_CONFIG_MEMBER, json.dumps({"theme": "neon"}))
         before = prepared.config_service.load()
@@ -164,7 +165,7 @@ class TestRestoreService:
         config = prepared.config_service.load()
         with zipfile.ZipFile(bad, "w") as archive:
             archive.writestr(
-                BACKUP_MANIFEST_MEMBER, json.dumps({"app_version": "0.1.0"})
+                BACKUP_MANIFEST_MEMBER, json.dumps({"app_version": APP_VERSION})
             )
             archive.writestr(BACKUP_CONFIG_MEMBER, json.dumps(config))
             archive.writestr(BACKUP_USERS_MEMBER, b"kein sqlite")
@@ -217,7 +218,7 @@ class TestRestoreEdgeCases:
         bad = tmp_path / "liste.zip"
         with zipfile.ZipFile(bad, "w") as archive:
             archive.writestr(
-                BACKUP_MANIFEST_MEMBER, json.dumps({"app_version": "0.1.0"})
+                BACKUP_MANIFEST_MEMBER, json.dumps({"app_version": APP_VERSION})
             )
             archive.writestr(BACKUP_CONFIG_MEMBER, "[]")
         with pytest.raises(RestoreError):
@@ -251,7 +252,7 @@ class TestRestoreEdgeCases:
         bad = tmp_path / "leere_benutzer.zip"
         with zipfile.ZipFile(bad, "w") as archive:
             archive.writestr(
-                BACKUP_MANIFEST_MEMBER, json.dumps({"app_version": "0.1.0"})
+                BACKUP_MANIFEST_MEMBER, json.dumps({"app_version": APP_VERSION})
             )
             archive.writestr(BACKUP_CONFIG_MEMBER, json.dumps(config))
             archive.write(empty_db, BACKUP_USERS_MEMBER)
@@ -266,7 +267,7 @@ class TestRestoreEdgeCases:
         nur_config = tmp_path / "nur_config.zip"
         with zipfile.ZipFile(nur_config, "w") as archive:
             archive.writestr(
-                BACKUP_MANIFEST_MEMBER, json.dumps({"app_version": "0.1.0"})
+                BACKUP_MANIFEST_MEMBER, json.dumps({"app_version": APP_VERSION})
             )
             archive.writestr(BACKUP_CONFIG_MEMBER, json.dumps(config))
         prepared.restore_service.restore(nur_config)
