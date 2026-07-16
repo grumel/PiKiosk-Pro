@@ -7,11 +7,15 @@ Nach dem Booten meldet sich das Gerät automatisch an, startet Chromium im
 Kioskmodus und zeigt die konfigurierte Webseite an. Die komplette
 Administration erfolgt über eine lokale Weboberfläche – ohne Linux-Kenntnisse.
 
-## Funktionen (Version 0.3.0)
+## Funktionen (Version 0.4.0)
 
+- Watchdog als eigener systemd-Dienst: überwacht Browser, Netzwerk
+  (Gateway, DNS, Internet, URL) und System (Temperatur, RAM,
+  Festplatte) alle 5 Sekunden und startet einen abgestürzten
+  Browser automatisch neu (maximal 3-mal pro Minute)
 - Dashboard mit Login: Systeminformationen (CPU, RAM, Temperatur,
-  Festplatte, Netzwerk, Browserstatus, Laufzeit) und Kacheln für
-  Browser, Kiosk-URL, Hostname, WLAN, System und Logs
+  Festplatte, Netzwerk, Browserstatus, Watchdogstatus, Laufzeit)
+  und Kacheln für Browser, Kiosk-URL, Hostname, WLAN, System und Logs
 - Anmeldung über Flask-Login mit Session-Timeout und CSRF-Schutz
 - Setup-Wizard für die Ersteinrichtung ohne Linux-Kenntnisse:
   Hostname, WLAN, Administratorkonto und Kiosk-URL mit Sofortprüfung
