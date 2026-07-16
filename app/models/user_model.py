@@ -9,9 +9,11 @@ SQL-Injection-Angriffsflaeche.
 """
 
 import sqlite3
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Iterator
 
 from app.constants import USERS_DB_FILE
 from app.exceptions import AuthenticationError
@@ -77,10 +79,14 @@ class UserModel:
         self._db_file = db_file
         self._ensure_schema()
 
-    def _connect(self) -> sqlite3.Connection:
-        """Oeffnet eine Datenbankverbindung.
+    @contextmanager
+    def _database(self) -> Iterator[sqlite3.Connection]:
+        """Oeffnet eine Datenbankverbindung und schliesst sie sicher.
 
-        Returns:
+        Erfolgreiche Transaktionen werden bestaetigt, die Verbindung
+        wird in jedem Fall geschlossen.
+
+        Yields:
             Eine SQLite-Verbindung mit Zeilenzugriff per Name.
 
         Raises:
@@ -90,11 +96,15 @@ class UserModel:
             self._db_file.parent.mkdir(parents=True, exist_ok=True)
             connection = sqlite3.connect(self._db_file)
             connection.row_factory = sqlite3.Row
-            return connection
         except (sqlite3.Error, OSError) as error:
             raise AuthenticationError(
                 f"Benutzerdatenbank nicht verfuegbar: {error}"
             ) from error
+        try:
+            with connection:
+                yield connection
+        finally:
+            connection.close()
 
     def _ensure_schema(self) -> None:
         """Legt die Benutzertabelle an, falls sie fehlt.
@@ -102,7 +112,7 @@ class UserModel:
         Raises:
             AuthenticationError
         """
-        with self._connect() as connection:
+        with self._database() as connection:
             connection.execute(USERS_TABLE_SCHEMA)
 
     def create_user(self, username: str, password_hash: str, role: str) -> User:
@@ -126,7 +136,7 @@ class UserModel:
         """
         created_at = datetime.now(timezone.utc).isoformat()
         try:
-            with self._connect() as connection:
+            with self._database() as connection:
                 connection.execute(
                     "INSERT INTO users "
                     "(username, password_hash, role, created_at, enabled) "
@@ -157,7 +167,7 @@ class UserModel:
         Raises:
             AuthenticationError
         """
-        with self._connect() as connection:
+        with self._database() as connection:
             row = connection.execute(
                 "SELECT id, username, password_hash, role, created_at, "
                 "last_login, enabled FROM users WHERE username = ?",
@@ -188,7 +198,7 @@ class UserModel:
         Raises:
             AuthenticationError
         """
-        with self._connect() as connection:
+        with self._database() as connection:
             row = connection.execute(
                 "SELECT username FROM users WHERE id = ?",
                 (user_id,),
@@ -208,7 +218,7 @@ class UserModel:
             AuthenticationError
         """
         timestamp = datetime.now(timezone.utc).isoformat()
-        with self._connect() as connection:
+        with self._database() as connection:
             connection.execute(
                 "UPDATE users SET last_login = ? WHERE id = ?",
                 (timestamp, user_id),
@@ -223,6 +233,6 @@ class UserModel:
         Raises:
             AuthenticationError
         """
-        with self._connect() as connection:
+        with self._database() as connection:
             row = connection.execute("SELECT COUNT(*) AS total FROM users").fetchone()
         return int(row["total"])

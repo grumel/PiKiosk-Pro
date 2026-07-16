@@ -30,7 +30,7 @@ keine globalen Variablen.
  Raspberry Pi OS
 ```
 
-## Module (Version 0.9.0)
+## Module (Version 1.0.0)
 
 | Modul                              | Aufgabe                                        |
 | ---------------------------------- | ---------------------------------------------- |
@@ -196,7 +196,10 @@ Systemeinstellung. Konfiguration und Sprachdateien werden je
 Aenderungsstand (mtime) zwischengespeichert, damit sie nicht bei
 jeder Anfrage neu gelesen werden.
 
-## Ausblick
+## Zukunftssicherheit
 
-Es folgen die Stabilisierungsversionen v0.9 (Beta: Fehlerbehebung,
-Tests, Dokumentation) und v1.0 (Release).
+Die Architektur ist vorbereitet auf: zentrale Verwaltung vieler
+Geraete ueber die REST API, OTA-Updates (Update-System mit
+Rollback), ein Plugin-System (modulare Service-Schicht mit
+Dependency Injection), weitere Sprachen (JSON-Sprachdateien) und
+zusaetzliche Themes.

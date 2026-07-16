@@ -62,9 +62,35 @@ sudo systemctl stop pikiosk.service      # Stoppen
 sudo ./update.sh
 ```
 
+## Abnahme auf dem Gerät (Release-Checkliste)
+
+Nach der Installation auf einem Raspberry Pi 4 sollten folgende
+Punkte geprüft werden:
+
+1. **Erster Boot**: Nach `sudo reboot` erscheint ohne Eingriff der
+   Setup-Wizard im Vollbild (kein Desktop, keine Taskleiste).
+2. **Wizard**: Hostname, WLAN (Scan findet Netzwerke, Verbindung
+   klappt), Administrator (Passwortregeln werden angezeigt) und
+   URL (Prüfung liefert HTTP-Status) lassen sich abschließen.
+3. **Kioskstart**: Nach Abschluss lädt der Browser die konfigurierte
+   Webseite; nach einem weiteren Neustart startet der Kiosk
+   automatisch (Bootzeit bis zur Anzeige unter 30 Sekunden,
+   Browserstart unter 5 Sekunden).
+4. **Dashboard**: `http://<ip>:8080/login` – Anmeldung, alle
+   Kacheln funktionieren, Dashboard lädt unter 1 Sekunde.
+5. **Watchdog**: Badge zeigt „Online";
+   `sudo pkill chromium` → der Browser startet automatisch neu.
+6. **System-Kachel**: Neustart und Herunterfahren funktionieren.
+7. **Sicherung**: Erstellen, Herunterladen und Wiederherstellen
+   einer Sicherung; USB-Stick mit `PiKiosk_Backup*.zip` wird
+   erkannt.
+8. **API**: `curl http://<ip>:8080/api/version` mit Token liefert
+   die Version (siehe [API.md](API.md)).
+
 ## Fehlersuche
 
 - Systemereignisse: `logs/system.log`
 - Browserereignisse: `logs/browser.log`
+- Watchdog: `logs/watchdog.log`
 - Installation: `logs/install.log`
 - Aktualisierung: `logs/update.log`

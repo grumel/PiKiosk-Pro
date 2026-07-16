@@ -5,6 +5,41 @@ dokumentiert. Das Format orientiert sich an
 [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die
 Versionierung folgt [Semantic Versioning](https://semver.org/lang/de/).
 
+## [1.0.0] - 2026-07-16
+
+Erstes stabiles Release. PiKiosk Pro verwandelt einen Raspberry
+Pi 4 in ein wartungsarmes Kiosksystem: Nach `sudo ./install.sh`
+und einem Neustart führt der Setup-Wizard durch Hostname, WLAN,
+Administratorkonto und Kiosk-URL – danach startet Chromium
+automatisch im Kioskmodus. Die komplette Verwaltung läuft über
+das Dashboard, die Fernverwaltung über die REST API.
+
+### Funktionsumfang
+
+- Setup-Wizard mit Sofortprüfung aller Eingaben (v0.2)
+- Dashboard mit Login, Systeminformationen und Kacheln für
+  Browser, URL, Hostname, WLAN, System, Logs (v0.3)
+- Watchdog als eigener systemd-Dienst mit Browser-Neustart,
+  Netzwerk- und Systemüberwachung (v0.4)
+- Sicherung/Wiederherstellung als ZIP inkl. USB-Import (v0.5)
+- Update-System mit GitHub-Releases, Paket-Upload und Rollback (v0.6)
+- REST API mit JWT für die Remote-Verwaltung (v0.7)
+- Mehrsprachigkeit (de/en) und Themes inkl. Automatik (v0.8)
+- Beta-Härtung: 95 % Testabdeckung, vollständige Dokumentation (v0.9)
+
+### Behoben
+
+- SQLite-Verbindungen der Benutzerdatenbank wurden nie geschlossen
+  (Ressourcenleck); sie werden jetzt nach jeder Transaktion sicher
+  geschlossen
+
+### Hinzugefügt
+
+- GitHub-Actions-CI: Black, isort, ruff, mypy und pytest
+  (mit Mindestabdeckung 90 %) bei jedem Push; bei Versions-Tags
+  wird automatisch ein Release-Archiv gebaut und veröffentlicht
+- Abnahme-Checkliste für den Gerätetest in docs/Installation.md
+
 ## [0.9.0] - 2026-07-16
 
 ### Behoben
