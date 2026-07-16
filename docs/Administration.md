@@ -67,11 +67,29 @@ nach Signalstärke; die Verbindung erfolgt direkt aus der Liste.
 und führen die Aktion anschließend über systemd aus. Beide Aktionen
 müssen bestätigt werden.
 
+### Sicherung
+
+„Sicherung erstellen" erzeugt eine ZIP-Datei
+(`PiKiosk_Backup_JJJJMMTT_HHMM.zip`) mit Konfiguration und
+Benutzerkonten, optional mit Logdateien. Vorhandene Sicherungen
+lassen sich herunterladen oder wiederherstellen. Zusätzlich kann
+eine Sicherungsdatei hochgeladen und direkt wiederhergestellt
+werden.
+
+Vor jeder Wiederherstellung wird die Sicherung vollständig geprüft
+(ZIP-Integrität, Manifest, Versionskompatibilität, Konfiguration);
+ungültige Sicherungen werden nicht angewendet. Nach der
+Wiederherstellung wird ein Neustart empfohlen.
+
+**USB-Import**: Eingesteckte USB-Sticks werden automatisch nach
+`PiKiosk_Backup*.zip` durchsucht; gefundene Sicherungen erscheinen
+in der Kachel und können mit einem Klick importiert werden.
+
 ### Logs
 
-Zeigt die letzten 200 Zeilen von Systemlog, Browserlog, Netzwerklog,
-Installationslog und Updatelog. Über den Pfeil-Button lässt sich
-jede Logdatei herunterladen.
+Zeigt die letzten 200 Zeilen von Systemlog, Browserlog, Watchdoglog,
+Netzwerklog, Installationslog und Updatelog. Über den Pfeil-Button
+lässt sich jede Logdatei herunterladen.
 
 ## Abmeldung
 

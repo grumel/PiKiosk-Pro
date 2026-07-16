@@ -11,7 +11,7 @@ zu, damit keine doppelten Definitionen entstehen.
 from pathlib import Path
 
 APP_NAME: str = "PiKiosk Pro"
-APP_VERSION: str = "0.4.0"
+APP_VERSION: str = "0.5.0"
 
 BASE_DIR: Path = Path(__file__).resolve().parent.parent
 CONFIG_DIR: Path = BASE_DIR / "config"
@@ -122,6 +122,16 @@ DISK_WARNING_PERCENT: float = 90.0
 
 PING_BINARY: str = "ping"
 PING_TIMEOUT_SECONDS: int = 2
+
+BACKUP_PREFIX: str = "PiKiosk_Backup_"
+BACKUP_TIMESTAMP_FORMAT: str = "%Y%m%d_%H%M"
+BACKUP_NAME_REGEX: str = r"^PiKiosk_Backup_\d{8}_\d{4}\.zip$"
+BACKUP_MANIFEST_MEMBER: str = "manifest.json"
+BACKUP_CONFIG_MEMBER: str = "config/config.json"
+BACKUP_USERS_MEMBER: str = "config/users.db"
+USB_MOUNT_ROOTS: tuple[Path, ...] = (Path("/media"), Path("/run/media"))
+USB_BACKUP_GLOB: str = "PiKiosk_Backup*.zip"
+MAX_UPLOAD_BYTES: int = 50 * 1024 * 1024
 
 SYSTEMCTL_BINARY: str = "systemctl"
 SYSTEM_COMMAND_TIMEOUT_SECONDS: float = 30.0

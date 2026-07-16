@@ -5,6 +5,28 @@ dokumentiert. Das Format orientiert sich an
 [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die
 Versionierung folgt [Semantic Versioning](https://semver.org/lang/de/).
 
+## [0.5.0] - 2026-07-16
+
+### Hinzugefügt
+
+- BackupService: Sicherung als ZIP (PiKiosk_Backup_YYYYMMDD_HHMM.zip)
+  mit Konfiguration, Benutzerdatenbank, optional Logdateien und
+  Manifest (Version, Zeitpunkt, Hostname); Cache und temporäre
+  Dateien werden nicht gesichert
+- RestoreService: Wiederherstellung mit vollständiger Prüfung
+  (ZIP-Integrität, Manifest, Versionskompatibilität, Konfigurations-
+  und Benutzerdatenbank-Validierung); ungültige Sicherungen werden
+  niemals angewendet, danach wird ein Neustart empfohlen
+- USB-Import: eingehängte USB-Medien (/media, /run/media) werden
+  automatisch nach PiKiosk_Backup*.zip durchsucht, Import direkt
+  aus der Sicherungs-Kachel
+- Dashboard-Kachel „Sicherung": Erstellen (optional mit Logs),
+  Auflisten, Herunterladen, Wiederherstellen und Hochladen von
+  Sicherungen mit Bestätigungsabfrage
+- Versionsverwaltung (app/utils/version.py): Semantic-Versioning-
+  Parser und Kompatibilitätsprüfung für Sicherungen
+- Upload-Größenlimit (50 MB) für die gesamte Anwendung
+
 ## [0.4.0] - 2026-07-16
 
 ### Hinzugefügt
