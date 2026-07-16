@@ -30,6 +30,7 @@ from app.controllers import SESSION_CSRF_KEY, ensure_csrf_token
 from app.controllers.auth_controller import auth_blueprint
 from app.controllers.browser_controller import browser_blueprint
 from app.controllers.dashboard_controller import dashboard_blueprint
+from app.controllers.internal_controller import internal_blueprint
 from app.controllers.network_controller import network_blueprint
 from app.controllers.settings_controller import settings_blueprint
 from app.controllers.setup_controller import setup_blueprint
@@ -49,6 +50,7 @@ from app.utils.helpers import load_language, load_or_create_secret_key
 
 SETUP_EXEMPT_ENDPOINTS: tuple[str, ...] = ("static", "main.health")
 CSRF_PROTECTED_METHODS: tuple[str, ...] = ("POST", "PUT", "PATCH", "DELETE")
+TOKEN_AUTHENTICATED_BLUEPRINTS: tuple[str, ...] = ("internal",)
 
 
 def create_app(registry: ServiceRegistry | None = None) -> Flask:
@@ -146,6 +148,7 @@ def _register_blueprints(app: Flask) -> None:
     app.register_blueprint(settings_blueprint)
     app.register_blueprint(network_blueprint)
     app.register_blueprint(system_blueprint)
+    app.register_blueprint(internal_blueprint)
 
 
 def _configure_login(app: Flask, registry: ServiceRegistry) -> None:
@@ -180,6 +183,8 @@ def _register_csrf_protection(app: Flask) -> None:
     def verify_csrf_token() -> None:
         if request.method not in CSRF_PROTECTED_METHODS:
             return
+        if request.blueprint in TOKEN_AUTHENTICATED_BLUEPRINTS:
+            return
         token = request.headers.get("X-CSRF-Token", "") or request.form.get(
             "csrf_token", ""
         )
@@ -204,6 +209,8 @@ def _register_setup_gate(app: Flask) -> None:
     def enforce_setup_state() -> Response | None:
         endpoint = request.endpoint or ""
         if endpoint in SETUP_EXEMPT_ENDPOINTS or endpoint == "static":
+            return None
+        if request.blueprint in TOKEN_AUTHENTICATED_BLUEPRINTS:
             return None
         registry = get_services(app)
         config = registry.config_service.load()

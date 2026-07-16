@@ -9,22 +9,23 @@ letzter Neustart und Systemlaufzeit.
 """
 
 import socket
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any
 
 import psutil
 
 from app.constants import (
     APP_VERSION,
-    INTERNET_CHECK_HOST,
-    INTERNET_CHECK_PORT,
-    INTERNET_CHECK_TIMEOUT_SECONDS,
-    THERMAL_ZONE_FILE,
+    WATCHDOG_STATUS_FILE,
+    WATCHDOG_STATUS_MAX_AGE_SECONDS,
 )
+from app.exceptions import ConfigurationError
 from app.logger import KioskLogger
 from app.services.browser_service import BrowserService
 from app.services.config_service import ConfigService
-from app.utils.helpers import device_model, local_ip_address
+from app.utils.filesystem import read_json_file
+from app.utils.helpers import cpu_temperature, device_model, local_ip_address
+from app.utils.network import internet_reachable
 
 
 class DashboardService:
@@ -70,32 +71,41 @@ class DashboardService:
             "ram_percent": memory.percent,
             "ram_used_mb": int(memory.used / (1024 * 1024)),
             "ram_total_mb": int(memory.total / (1024 * 1024)),
-            "temperature": self._cpu_temperature(),
+            "temperature": cpu_temperature(),
             "disk_percent": disk.percent,
             "disk_free_gb": round(disk.free / (1024**3), 1),
             "disk_total_gb": round(disk.total / (1024**3), 1),
             "browser_status": self._browser_service.status().value,
-            "internet_online": self.internet_online(),
+            "internet_online": internet_reachable(),
+            "watchdog": self.watchdog_state(),
             "url": config["url"],
             "version": APP_VERSION,
             "last_boot": boot_time.strftime("%d.%m.%Y %H:%M"),
             "uptime": self._format_uptime(boot_time),
         }
 
-    def internet_online(self) -> bool:
-        """Prueft die Internetverbindung ueber einen TCP-Verbindungsaufbau.
+    def watchdog_state(self) -> str:
+        """Liest den Gesamtzustand des Watchdogs aus der Statusdatei.
 
         Returns:
-            True, wenn das Internet erreichbar ist.
+            Einer der Zustaende online, warning, error, offline,
+            disabled oder inactive (Statusdatei fehlt oder ist
+            veraltet).
         """
         try:
-            with socket.create_connection(
-                (INTERNET_CHECK_HOST, INTERNET_CHECK_PORT),
-                timeout=INTERNET_CHECK_TIMEOUT_SECONDS,
-            ):
-                return True
-        except OSError:
-            return False
+            status = read_json_file(WATCHDOG_STATUS_FILE)
+        except ConfigurationError:
+            return "inactive"
+        try:
+            written = datetime.fromisoformat(str(status["timestamp"]))
+        except (KeyError, ValueError):
+            return "inactive"
+        max_age = timedelta(seconds=WATCHDOG_STATUS_MAX_AGE_SECONDS)
+        if datetime.now(written.tzinfo) - written > max_age:
+            return "inactive"
+        overall = str(status.get("overall", "inactive"))
+        allowed = ("online", "warning", "error", "offline", "disabled")
+        return overall if overall in allowed else "inactive"
 
     def _mac_address(self) -> str:
         """Ermittelt die MAC-Adresse der aktiven Netzwerkschnittstelle.
@@ -113,27 +123,6 @@ class DashboardService:
                 if address.family == psutil.AF_LINK and address.address:
                     return address.address
         return "-"
-
-    def _cpu_temperature(self) -> float | None:
-        """Liest die CPU-Temperatur.
-
-        Returns:
-            Temperatur in Grad Celsius oder None, wenn kein
-            Sensor verfuegbar ist.
-        """
-        try:
-            sensors = psutil.sensors_temperatures()
-        except AttributeError:
-            sensors = {}
-        for readings in sensors.values():
-            for reading in readings:
-                if reading.current:
-                    return round(float(reading.current), 1)
-        try:
-            raw = THERMAL_ZONE_FILE.read_text(encoding="ascii").strip()
-            return round(int(raw) / 1000.0, 1)
-        except (OSError, ValueError):
-            return None
 
     def _format_uptime(self, boot_time: datetime) -> str:
         """Formatiert die Systemlaufzeit seit dem letzten Start.

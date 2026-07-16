@@ -5,6 +5,31 @@ dokumentiert. Das Format orientiert sich an
 [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die
 Versionierung folgt [Semantic Versioning](https://semver.org/lang/de/).
 
+## [0.4.0] - 2026-07-16
+
+### Hinzugefügt
+
+- Watchdog als eigenständiger systemd-Dienst (pikiosk-watchdog.service),
+  prüft alle 5 Sekunden Browser, Netzwerk und System
+- Browser-Watchdog: startet einen abgestürzten Chromium automatisch neu,
+  maximal 3 Neustarts innerhalb von 60 Sekunden, danach Fehlerstatus
+  mit Administratorbenachrichtigung über das Log
+- Netzwerk-Watchdog: Gateway (Ping), DNS, Internet und Kiosk-URL;
+  alle Zustände werden in einer Statusdatei gespeichert
+- System-Watchdog: Temperatur (Warnung 75 °C, kritisch 80 °C),
+  RAM (Warnung 85 %), Festplatte (Warnung 90 %) mit Logeinträgen
+  bei Zustandswechseln
+- Dashboard zeigt den Watchdog-Gesamtzustand (Online, Warnung, Fehler,
+  Offline, Deaktiviert, Inaktiv) und das Watchdoglog
+- Interner tokengeschützter Endpunkt /internal/browser/restart für
+  den Browser-Neustart durch den Watchdogprozess
+- Gemeinsame Helfer: atomares JSON-Schreiben (app/utils/filesystem.py),
+  CPU-Temperatur, Internet-/Gateway-/Ping-Prüfungen
+
+### Geändert
+
+- install.sh und update.sh verwalten jetzt beide systemd-Dienste
+
 ## [0.3.0] - 2026-07-16
 
 ### Hinzugefügt

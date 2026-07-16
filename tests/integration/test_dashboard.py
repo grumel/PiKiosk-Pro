@@ -244,3 +244,50 @@ class TestDashboard:
         token = login(client)
         response = client.post("/dashboard/system/reboot", data={"csrf_token": token})
         assert "alert-danger" in response.get_data(as_text=True)
+
+
+class TestInternalRestart:
+    """Integrationstests fuer den internen Watchdog-Endpunkt."""
+
+    def test_neustart_mit_gueltigem_token(
+        self,
+        client: FlaskClient,
+        flask_app: Flask,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.setattr(browser_module.subprocess, "Popen", FakeProcess)
+        monkeypatch.setattr(browser_module.shutil, "which", lambda name: FAKE_BINARY)
+        response = client.post(
+            "/internal/browser/restart",
+            headers={"X-Watchdog-Token": flask_app.config["SECRET_KEY"]},
+        )
+        assert response.status_code == 200
+        assert response.get_json()["restarted"] is True
+
+    def test_laufender_browser_wird_nicht_angefasst(
+        self,
+        client: FlaskClient,
+        flask_app: Flask,
+        registry: ServiceRegistry,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.setattr(browser_module.subprocess, "Popen", FakeProcess)
+        monkeypatch.setattr(browser_module.shutil, "which", lambda name: FAKE_BINARY)
+        registry.browser_service.start("https://example.org/")
+        response = client.post(
+            "/internal/browser/restart",
+            headers={"X-Watchdog-Token": flask_app.config["SECRET_KEY"]},
+        )
+        assert response.status_code == 200
+        assert response.get_json()["restarted"] is False
+
+    def test_falsches_token_wird_abgelehnt(self, client: FlaskClient) -> None:
+        response = client.post(
+            "/internal/browser/restart",
+            headers={"X-Watchdog-Token": "falsches-token"},
+        )
+        assert response.status_code == 403
+
+    def test_fehlendes_token_wird_abgelehnt(self, client: FlaskClient) -> None:
+        response = client.post("/internal/browser/restart")
+        assert response.status_code == 403

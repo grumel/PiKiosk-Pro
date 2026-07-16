@@ -11,7 +11,7 @@ zu, damit keine doppelten Definitionen entstehen.
 from pathlib import Path
 
 APP_NAME: str = "PiKiosk Pro"
-APP_VERSION: str = "0.3.0"
+APP_VERSION: str = "0.4.0"
 
 BASE_DIR: Path = Path(__file__).resolve().parent.parent
 CONFIG_DIR: Path = BASE_DIR / "config"
@@ -97,10 +97,31 @@ LOG_VIEW_LINES: int = 200
 LOG_FILES: dict[str, Path] = {
     "system": LOG_DIR / "system.log",
     "browser": LOG_DIR / "browser.log",
+    "watchdog": LOG_DIR / "watchdog.log",
     "network": LOG_DIR / "network.log",
     "install": LOG_DIR / "install.log",
     "update": LOG_DIR / "update.log",
 }
+
+WATCHDOG_LOG_FILE: Path = LOG_DIR / "watchdog.log"
+WATCHDOG_STATUS_FILE: Path = LOG_DIR / "watchdog_status.json"
+WATCHDOG_INTERVAL_SECONDS: float = 5.0
+WATCHDOG_STATUS_MAX_AGE_SECONDS: float = 20.0
+WATCHDOG_TOKEN_HEADER: str = "X-Watchdog-Token"
+HEALTH_CHECK_URL: str = f"http://127.0.0.1:{DEFAULT_PORT}/health"
+BROWSER_RESTART_URL: str = f"http://127.0.0.1:{DEFAULT_PORT}/internal/browser/restart"
+WATCHDOG_HTTP_TIMEOUT_SECONDS: float = 3.0
+
+BROWSER_RESTART_LIMIT: int = 3
+BROWSER_RESTART_WINDOW_SECONDS: float = 60.0
+
+TEMPERATURE_WARNING_CELSIUS: float = 75.0
+TEMPERATURE_CRITICAL_CELSIUS: float = 80.0
+RAM_WARNING_PERCENT: float = 85.0
+DISK_WARNING_PERCENT: float = 90.0
+
+PING_BINARY: str = "ping"
+PING_TIMEOUT_SECONDS: int = 2
 
 SYSTEMCTL_BINARY: str = "systemctl"
 SYSTEM_COMMAND_TIMEOUT_SECONDS: float = 30.0

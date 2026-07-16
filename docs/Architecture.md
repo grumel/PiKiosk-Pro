@@ -30,7 +30,7 @@ keine globalen Variablen.
  Raspberry Pi OS
 ```
 
-## Module (Version 0.3.0)
+## Module (Version 0.4.0)
 
 | Modul                              | Aufgabe                                        |
 | ---------------------------------- | ---------------------------------------------- |
@@ -52,6 +52,10 @@ keine globalen Variablen.
 | `app/controllers/system_controller.py` | Neustart, Herunterfahren, Logansicht      |
 | `app/services/dashboard_service.py` | Systeminformationen (psutil)                  |
 | `app/services/system_service.py`   | Neustart und Herunterfahren ueber systemd      |
+| `app/services/watchdog_service.py` | Browser-, Netzwerk- und Systemueberwachung     |
+| `app/watchdog.py`                  | Einstiegspunkt des Watchdog-Dienstes           |
+| `app/controllers/internal_controller.py` | Tokengeschuetzter Watchdog-Endpunkt     |
+| `app/utils/filesystem.py`          | Atomares JSON-Lesen und -Schreiben             |
 | `app/services/network_service.py`  | WLAN-Verwaltung über NetworkManager (nmcli)    |
 | `app/services/hostname_service.py` | Hostnameverwaltung mit Root-Helferskript       |
 | `app/services/auth_service.py`     | Benutzer- und Passwortverwaltung (bcrypt)      |
@@ -120,8 +124,30 @@ sind HttpOnly und SameSite=Lax. Ein globaler Before-Request-Hook
 erzwingt fuer alle Schreibanfragen (POST/PUT/PATCH/DELETE) ein
 CSRF-Token aus der Sitzung.
 
+## Watchdog
+
+Der Watchdog laeuft als eigenstaendiger systemd-Dienst
+(`pikiosk-watchdog.service`) in einem eigenen Prozess und prueft
+alle 5 Sekunden:
+
+- **Browser**: Zustand ueber den Health-Endpunkt der Hauptanwendung.
+  Ein abgestuerzter Browser wird ueber den tokengeschuetzten
+  Endpunkt `/internal/browser/restart` neu gestartet, maximal 3 Mal
+  innerhalb von 60 Sekunden; danach Fehlerstatus. Ein vom
+  Administrator gestoppter Browser wird nicht angefasst.
+- **Netzwerk**: Gateway (Ping auf die Standardroute), DNS
+  (Aufloesung des Kiosk-URL-Hosts), Internet (TCP-Verbindung),
+  Kiosk-URL (HTTP-Statuspruefung).
+- **System**: Temperatur (Warnung 75 °C, kritisch 80 °C), RAM
+  (85 %), Festplatte (90 %).
+
+Der Gesamtzustand (online, warning, error, offline, disabled) wird
+atomar in `logs/watchdog_status.json` geschrieben; das Dashboard
+liest die Datei und zeigt den Zustand an. Ist die Datei aelter als
+20 Sekunden, gilt der Watchdog als inaktiv.
+
 ## Ausblick
 
-Die Struktur ist auf die kommenden Versionen vorbereitet: Watchdog
-(v0.4), Backup/Restore (v0.5), Updatesystem (v0.6), REST API (v0.7)
-sowie Mehrsprachigkeit und Themes (v0.8).
+Die Struktur ist auf die kommenden Versionen vorbereitet:
+Backup/Restore (v0.5), Updatesystem (v0.6), REST API (v0.7) sowie
+Mehrsprachigkeit und Themes (v0.8).

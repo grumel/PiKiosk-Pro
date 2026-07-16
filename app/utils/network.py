@@ -14,18 +14,28 @@ import http.client
 import json
 import os
 import socket
+import subprocess
 import urllib.error
 import urllib.request
+from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
 
 from app.constants import (
     APP_NAME,
     APP_VERSION,
+    INTERNET_CHECK_HOST,
+    INTERNET_CHECK_PORT,
+    INTERNET_CHECK_TIMEOUT_SECONDS,
+    PING_BINARY,
+    PING_TIMEOUT_SECONDS,
     URL_CHECK_TIMEOUT_SECONDS,
     URL_CHECK_VALID_STATUS,
 )
 from app.exceptions import NetworkError
+
+PROC_ROUTE_FILE: Path = Path("/proc/net/route")
+DEFAULT_ROUTE_DESTINATION: str = "00000000"
 
 WEBSOCKET_ACCEPT_STATUS: str = "101"
 TEXT_FRAME_OPCODE: int = 0x81
@@ -76,6 +86,67 @@ def check_url_status(
     except (urllib.error.URLError, OSError, ValueError) as error:
         raise NetworkError(f"Die URL ist nicht erreichbar: {error}") from error
     return status in URL_CHECK_VALID_STATUS, status
+
+
+def internet_reachable() -> bool:
+    """Prueft die Internetverbindung ueber einen TCP-Verbindungsaufbau.
+
+    Returns:
+        True, wenn das Internet erreichbar ist.
+    """
+    try:
+        with socket.create_connection(
+            (INTERNET_CHECK_HOST, INTERNET_CHECK_PORT),
+            timeout=INTERNET_CHECK_TIMEOUT_SECONDS,
+        ):
+            return True
+    except OSError:
+        return False
+
+
+def default_gateway() -> str:
+    """Ermittelt das Standardgateway aus der Kernel-Routingtabelle.
+
+    Returns:
+        IPv4-Adresse des Standardgateways oder leer, wenn keine
+        Standardroute existiert.
+    """
+    try:
+        lines = PROC_ROUTE_FILE.read_text(encoding="ascii").splitlines()
+    except OSError:
+        return ""
+    for line in lines[1:]:
+        fields = line.split()
+        if len(fields) >= 3 and fields[1] == DEFAULT_ROUTE_DESTINATION:
+            try:
+                return socket.inet_ntoa(bytes.fromhex(fields[2])[::-1])
+            except ValueError:
+                return ""
+    return ""
+
+
+def ping_host(host: str) -> bool:
+    """Prueft die Erreichbarkeit eines Hosts per Ping.
+
+    Args:
+        host:
+            Hostname oder IP-Adresse.
+
+    Returns:
+        True, wenn der Host auf den Ping antwortet.
+    """
+    if not host:
+        return False
+    try:
+        result = subprocess.run(
+            [PING_BINARY, "-c", "1", "-W", str(PING_TIMEOUT_SECONDS), host],
+            capture_output=True,
+            timeout=PING_TIMEOUT_SECONDS + 2.0,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+    return result.returncode == 0
 
 
 def encode_text_frame(payload: bytes) -> bytes:

@@ -1,0 +1,23 @@
+# Copyright (c) 2026 Holger John
+# Lizenz: MIT License (siehe LICENSE)
+#
+# PiKiosk Pro - Watchdog-Dienst.
+# Ueberwacht Browser, Netzwerk und System im 5-Sekunden-Takt.
+# Die Platzhalter __KIOSK_USER__ und __INSTALL_DIR__ werden von
+# install.sh beim Installieren ersetzt.
+
+[Unit]
+Description=PiKiosk Pro Watchdog
+After=network-online.target pikiosk.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=__KIOSK_USER__
+WorkingDirectory=__INSTALL_DIR__
+ExecStart=__INSTALL_DIR__/.venv/bin/python -m app.watchdog
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

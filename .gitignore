@@ -11,6 +11,7 @@ config/users.db
 config/secret_key
 logs/*.log
 logs/*.log.*
+logs/watchdog_status.json
 backup/*.json
 backup/*.zip
 

@@ -14,7 +14,7 @@
 set -euo pipefail
 
 INSTALL_DIR="/opt/pikiosk-pro"
-SERVICE_NAME="pikiosk.service"
+SERVICE_NAMES=("pikiosk.service" "pikiosk-watchdog.service")
 SOURCE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LOG_FILE="${SOURCE_DIR}/logs/install.log"
 
@@ -88,14 +88,19 @@ create_virtualenv() {
 }
 
 install_service() {
-    log "systemd-Dienst wird installiert."
-    sed -e "s|__KIOSK_USER__|${KIOSK_USER}|g" \
-        -e "s|__INSTALL_DIR__|${INSTALL_DIR}|g" \
-        "${INSTALL_DIR}/services/${SERVICE_NAME}" \
-        >"/etc/systemd/system/${SERVICE_NAME}"
+    log "systemd-Dienste werden installiert."
+    local service_name
+    for service_name in "${SERVICE_NAMES[@]}"; do
+        sed -e "s|__KIOSK_USER__|${KIOSK_USER}|g" \
+            -e "s|__INSTALL_DIR__|${INSTALL_DIR}|g" \
+            "${INSTALL_DIR}/services/${service_name}" \
+            >"/etc/systemd/system/${service_name}"
+    done
     systemctl daemon-reload
-    systemctl enable "${SERVICE_NAME}" >>"${LOG_FILE}" 2>&1
-    log "systemd-Dienst aktiviert."
+    for service_name in "${SERVICE_NAMES[@]}"; do
+        systemctl enable "${service_name}" >>"${LOG_FILE}" 2>&1
+    done
+    log "systemd-Dienste aktiviert."
 }
 
 install_sudoers() {
@@ -120,8 +125,11 @@ enable_autologin() {
 }
 
 start_service() {
-    log "Dienst wird gestartet."
-    systemctl restart "${SERVICE_NAME}"
+    log "Dienste werden gestartet."
+    local service_name
+    for service_name in "${SERVICE_NAMES[@]}"; do
+        systemctl restart "${service_name}"
+    done
     log "Installation abgeschlossen. PiKiosk Pro laeuft nach dem naechsten Neustart automatisch."
 }
 
