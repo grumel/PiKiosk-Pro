@@ -10,6 +10,7 @@ JSON-Sprachdateien geladen, es stehen keine Texte im Python-Code.
 import json
 import secrets
 import socket
+from collections import deque
 from pathlib import Path
 
 import psutil
@@ -121,6 +122,27 @@ def cpu_temperature() -> float | None:
         return round(int(raw) / 1000.0, 1)
     except (OSError, ValueError):
         return None
+
+
+def read_log_tail(log_file: Path, max_lines: int) -> str:
+    """Liest die letzten Zeilen einer Logdatei.
+
+    Args:
+        log_file:
+            Pfad der Logdatei.
+
+        max_lines:
+            Maximale Anzahl der Zeilen.
+
+    Returns:
+        Die letzten Zeilen oder leer, wenn die Datei fehlt.
+    """
+    try:
+        with log_file.open("r", encoding="utf-8", errors="replace") as handle:
+            lines = deque(handle, maxlen=max_lines)
+    except OSError:
+        return ""
+    return "".join(lines)
 
 
 def load_or_create_secret_key(key_file: Path = SECRET_KEY_FILE) -> str:
