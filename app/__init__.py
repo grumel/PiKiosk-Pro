@@ -21,6 +21,7 @@ from werkzeug.wrappers import Response
 from app.constants import (
     BASE_DIR,
     BROWSER_LOG_FILE,
+    MAX_UPLOAD_BYTES,
     NETWORK_LOG_FILE,
     REMEMBER_COOKIE_DAYS,
     SESSION_TIMEOUT_MINUTES,
@@ -28,10 +29,12 @@ from app.constants import (
 )
 from app.controllers import SESSION_CSRF_KEY, ensure_csrf_token
 from app.controllers.auth_controller import auth_blueprint
+from app.controllers.backup_controller import backup_blueprint
 from app.controllers.browser_controller import browser_blueprint
 from app.controllers.dashboard_controller import dashboard_blueprint
 from app.controllers.internal_controller import internal_blueprint
 from app.controllers.network_controller import network_blueprint
+from app.controllers.restore_controller import restore_blueprint
 from app.controllers.settings_controller import settings_blueprint
 from app.controllers.setup_controller import setup_blueprint
 from app.controllers.system_controller import system_blueprint
@@ -40,11 +43,13 @@ from app.logger import KioskLogger
 from app.models.user_model import UserModel
 from app.routes import main_blueprint
 from app.services.auth_service import AuthService, LoginUser
+from app.services.backup_service import BackupService
 from app.services.browser_service import BrowserService
 from app.services.config_service import ConfigService
 from app.services.dashboard_service import DashboardService
 from app.services.hostname_service import HostnameService
 from app.services.network_service import NetworkService
+from app.services.restore_service import RestoreService
 from app.services.system_service import SystemService
 from app.utils.helpers import load_language, load_or_create_secret_key
 
@@ -99,6 +104,7 @@ def _configure_session(app: Flask) -> None:
     app.config["REMEMBER_COOKIE_DURATION"] = timedelta(days=REMEMBER_COOKIE_DAYS)
     app.config["REMEMBER_COOKIE_HTTPONLY"] = True
     app.config["REMEMBER_COOKIE_SAMESITE"] = "Lax"
+    app.config["MAX_CONTENT_LENGTH"] = MAX_UPLOAD_BYTES
 
 
 def _build_services() -> ServiceRegistry:
@@ -130,6 +136,14 @@ def _build_services() -> ServiceRegistry:
         system_service=SystemService(
             logger=system_logger, browser_service=browser_service
         ),
+        backup_service=BackupService(
+            logger=KioskLogger("backup", SYSTEM_LOG_FILE),
+            config_service=config_service,
+        ),
+        restore_service=RestoreService(
+            logger=KioskLogger("restore", SYSTEM_LOG_FILE),
+            config_service=config_service,
+        ),
     )
 
 
@@ -148,6 +162,8 @@ def _register_blueprints(app: Flask) -> None:
     app.register_blueprint(settings_blueprint)
     app.register_blueprint(network_blueprint)
     app.register_blueprint(system_blueprint)
+    app.register_blueprint(backup_blueprint)
+    app.register_blueprint(restore_blueprint)
     app.register_blueprint(internal_blueprint)
 
 

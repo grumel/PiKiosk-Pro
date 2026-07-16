@@ -14,11 +14,13 @@ from flask import Flask
 
 from app.logger import KioskLogger
 from app.services.auth_service import AuthService
+from app.services.backup_service import BackupService
 from app.services.browser_service import BrowserService
 from app.services.config_service import ConfigService
 from app.services.dashboard_service import DashboardService
 from app.services.hostname_service import HostnameService
 from app.services.network_service import NetworkService
+from app.services.restore_service import RestoreService
 from app.services.system_service import SystemService
 
 EXTENSION_KEY: str = "pikiosk"
@@ -52,6 +54,12 @@ class ServiceRegistry:
 
         system_service:
             Dienst fuer Neustart und Herunterfahren.
+
+        backup_service:
+            Dienst fuer das Erstellen von Sicherungen.
+
+        restore_service:
+            Dienst fuer das Wiederherstellen von Sicherungen.
     """
 
     logger: KioskLogger
@@ -62,6 +70,8 @@ class ServiceRegistry:
     auth_service: AuthService
     dashboard_service: DashboardService
     system_service: SystemService
+    backup_service: BackupService
+    restore_service: RestoreService
 
 
 def register_services(app: Flask, registry: ServiceRegistry) -> None:
