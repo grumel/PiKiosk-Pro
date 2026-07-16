@@ -40,6 +40,10 @@ class RestoreError(PiKioskError):
     """Fehler beim Wiederherstellen einer Sicherung."""
 
 
+class UpdateError(PiKioskError):
+    """Fehler beim Pruefen, Installieren oder Zuruecksetzen von Updates."""
+
+
 class WifiError(NetworkError):
     """Fehler beim Verbinden mit einem WLAN.
 

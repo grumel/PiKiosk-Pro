@@ -2,6 +2,8 @@
 # Lizenz: MIT License (siehe LICENSE)
 """PiKiosk Pro - Integrationstests fuer Anmeldung und Dashboard."""
 
+from pathlib import Path
+
 import pytest
 from flask import Flask
 from flask.testing import FlaskClient
@@ -311,6 +313,79 @@ class TestBackupTile:
         login(client)
         response = client.get("/dashboard/backup/usb")
         assert response.status_code == 200
+
+
+class TestUpdateTile:
+    """Integrationstests fuer die Update-Kachel."""
+
+    def test_kachel_ohne_anmeldung_gesperrt(self, client: FlaskClient) -> None:
+        response = client.get("/dashboard/update/")
+        assert response.status_code == 302
+
+    def test_kachel_zeigt_version(self, client: FlaskClient) -> None:
+        login(client)
+        from app.constants import APP_VERSION
+
+        body = client.get("/dashboard/update/").get_data(as_text=True)
+        assert APP_VERSION in body
+
+    def test_check_ohne_release(
+        self,
+        client: FlaskClient,
+        registry: ServiceRegistry,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.setattr(registry.update_service, "_github_latest", lambda: None)
+        token = login(client)
+        response = client.post("/dashboard/update/check", data={"csrf_token": token})
+        assert response.status_code == 200
+        assert "GitHub-Release" in response.get_data(as_text=True)
+
+    def test_check_zeigt_verfuegbares_update(
+        self,
+        client: FlaskClient,
+        registry: ServiceRegistry,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.setattr(
+            registry.update_service,
+            "_github_latest",
+            lambda: {"tag_name": "v9.9.0", "tarball_url": "https://example.org/a.tgz"},
+        )
+        token = login(client)
+        response = client.post("/dashboard/update/check", data={"csrf_token": token})
+        assert "9.9.0" in response.get_data(as_text=True)
+
+    def test_upload_installiert_paket(
+        self, client: FlaskClient, registry: ServiceRegistry, tmp_path: Path
+    ) -> None:
+        import zipfile
+
+        package = tmp_path / "pkg.zip"
+        with zipfile.ZipFile(package, "w") as archive:
+            archive.writestr("app/constants.py", 'APP_VERSION: str = "9.9.0"\n')
+            archive.writestr("app/__init__.py", "# init\n")
+            archive.writestr("requirements.txt", "Flask\n")
+            archive.writestr("marker.txt", "installiert")
+        token = login(client)
+        with package.open("rb") as handle:
+            response = client.post(
+                "/dashboard/update/upload",
+                data={"csrf_token": token, "update_file": (handle, "pkg.zip")},
+                content_type="multipart/form-data",
+            )
+        assert "alert-success" in response.get_data(as_text=True)
+        assert (registry.update_service._install_dir / "marker.txt").exists()
+
+    def test_upload_ohne_datei(self, client: FlaskClient) -> None:
+        token = login(client)
+        response = client.post("/dashboard/update/upload", data={"csrf_token": token})
+        assert "alert-danger" in response.get_data(as_text=True)
+
+    def test_rollback_ohne_stand(self, client: FlaskClient) -> None:
+        token = login(client)
+        response = client.post("/dashboard/update/rollback", data={"csrf_token": token})
+        assert "alert-danger" in response.get_data(as_text=True)
 
 
 class TestInternalRestart:

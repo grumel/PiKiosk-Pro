@@ -60,6 +60,18 @@
                 </div>
             </div>
         </div>
+        <div class="col-12 col-md-6 col-xl-4" id="update-tile"
+             hx-get="{{ url_for('update.tile') }}"
+             hx-trigger="load"
+             hx-swap="innerHTML">
+            <div class="card h-100">
+                <div class="card-header">{{ texts['tile_update'] }}</div>
+                <div class="card-body text-body-secondary">
+                    <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                    {{ texts['update_loading'] }}
+                </div>
+            </div>
+        </div>
         <div class="col-12 col-md-6 col-xl-4">
             <div class="card h-100">
                 <div class="card-header">{{ texts['tile_logs'] }}</div>

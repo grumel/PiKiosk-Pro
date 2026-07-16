@@ -11,7 +11,7 @@ zu, damit keine doppelten Definitionen entstehen.
 from pathlib import Path
 
 APP_NAME: str = "PiKiosk Pro"
-APP_VERSION: str = "0.5.0"
+APP_VERSION: str = "0.6.0"
 
 BASE_DIR: Path = Path(__file__).resolve().parent.parent
 CONFIG_DIR: Path = BASE_DIR / "config"
@@ -132,6 +132,31 @@ BACKUP_USERS_MEMBER: str = "config/users.db"
 USB_MOUNT_ROOTS: tuple[Path, ...] = (Path("/media"), Path("/run/media"))
 USB_BACKUP_GLOB: str = "PiKiosk_Backup*.zip"
 MAX_UPLOAD_BYTES: int = 50 * 1024 * 1024
+
+GITHUB_REPO: str = "grumel/PiKiosk-Pro"
+GITHUB_API_BASE: str = "https://api.github.com"
+UPDATE_HTTP_TIMEOUT_SECONDS: float = 15.0
+UPDATE_PACKAGE_MAX_BYTES: int = 50 * 1024 * 1024
+UPDATE_MAX_UNCOMPRESSED_BYTES: int = 200 * 1024 * 1024
+RELEASES_DIR: Path = BACKUP_DIR / "releases"
+UPDATE_USER_AGENT: str = f"PiKiosk-Pro/{APP_VERSION}"
+UPDATE_REQUIRED_MEMBERS: tuple[str, ...] = (
+    "app/constants.py",
+    "app/__init__.py",
+    "requirements.txt",
+)
+UPDATE_PROTECTED_PATHS: tuple[str, ...] = (
+    "config/config.json",
+    "config/users.db",
+    "config/secret_key",
+)
+UPDATE_PROTECTED_PREFIXES: tuple[str, ...] = (
+    "logs/",
+    "backup/",
+    ".venv/",
+    "venv/",
+    ".git/",
+)
 
 SYSTEMCTL_BINARY: str = "systemctl"
 SYSTEM_COMMAND_TIMEOUT_SECONDS: float = 30.0

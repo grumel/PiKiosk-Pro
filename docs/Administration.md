@@ -85,6 +85,18 @@ Wiederherstellung wird ein Neustart empfohlen.
 `PiKiosk_Backup*.zip` durchsucht; gefundene Sicherungen erscheinen
 in der Kachel und können mit einem Klick importiert werden.
 
+### Aktualisierung
+
+„Nach Updates suchen" prüft das GitHub-Repository auf ein neueres
+Release. Ist eines verfügbar, kann es mit „Update installieren"
+eingespielt werden. Alternativ lässt sich ein Update-Paket (ZIP oder
+tar.gz) hochladen und installieren.
+
+Vor jeder Installation wird automatisch eine Sicherung erstellt und
+ein Rollback-Stand angelegt. Über „Rollback durchführen" kann der
+zuletzt installierte Stand wieder zurückgenommen werden. Nach Update
+oder Rollback wird ein Neustart empfohlen (System-Kachel).
+
 ### Logs
 
 Zeigt die letzten 200 Zeilen von Systemlog, Browserlog, Watchdoglog,

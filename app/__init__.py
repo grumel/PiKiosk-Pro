@@ -38,6 +38,7 @@ from app.controllers.restore_controller import restore_blueprint
 from app.controllers.settings_controller import settings_blueprint
 from app.controllers.setup_controller import setup_blueprint
 from app.controllers.system_controller import system_blueprint
+from app.controllers.update_controller import update_blueprint
 from app.extensions import ServiceRegistry, get_services, register_services
 from app.logger import KioskLogger
 from app.models.user_model import UserModel
@@ -51,6 +52,7 @@ from app.services.hostname_service import HostnameService
 from app.services.network_service import NetworkService
 from app.services.restore_service import RestoreService
 from app.services.system_service import SystemService
+from app.services.update_service import UpdateService
 from app.utils.helpers import load_language, load_or_create_secret_key
 
 SETUP_EXEMPT_ENDPOINTS: tuple[str, ...] = ("static", "main.health")
@@ -121,6 +123,10 @@ def _build_services() -> ServiceRegistry:
     dashboard_logger = KioskLogger("dashboard", SYSTEM_LOG_FILE)
     config_service = ConfigService(logger=config_logger)
     browser_service = BrowserService(logger=browser_logger)
+    backup_service = BackupService(
+        logger=KioskLogger("backup", SYSTEM_LOG_FILE),
+        config_service=config_service,
+    )
     return ServiceRegistry(
         logger=system_logger,
         config_service=config_service,
@@ -136,13 +142,15 @@ def _build_services() -> ServiceRegistry:
         system_service=SystemService(
             logger=system_logger, browser_service=browser_service
         ),
-        backup_service=BackupService(
-            logger=KioskLogger("backup", SYSTEM_LOG_FILE),
-            config_service=config_service,
-        ),
+        backup_service=backup_service,
         restore_service=RestoreService(
             logger=KioskLogger("restore", SYSTEM_LOG_FILE),
             config_service=config_service,
+        ),
+        update_service=UpdateService(
+            logger=KioskLogger("update", SYSTEM_LOG_FILE),
+            config_service=config_service,
+            backup_service=backup_service,
         ),
     )
 
@@ -164,6 +172,7 @@ def _register_blueprints(app: Flask) -> None:
     app.register_blueprint(system_blueprint)
     app.register_blueprint(backup_blueprint)
     app.register_blueprint(restore_blueprint)
+    app.register_blueprint(update_blueprint)
     app.register_blueprint(internal_blueprint)
 
 
