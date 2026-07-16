@@ -1,7 +1,24 @@
 {# Copyright (c) 2026 Holger John - Lizenz: MIT License (siehe LICENSE) #}
 {# Wizard Seite 1: Willkommen mit Geraeteinformationen. #}
 <h2 class="fs-4 mb-3">{{ texts['welcome_heading'] }}</h2>
+{% if error %}
+<div class="alert alert-danger" role="alert">{{ error }}</div>
+{% endif %}
 <p class="text-body-secondary">{{ texts['welcome_text'] }}</p>
+<div class="btn-group mb-4" role="group" aria-label="{{ texts['label_language'] }}">
+    <button type="button" class="btn btn-outline-secondary"
+            hx-post="{{ url_for('setup.save_language') }}"
+            hx-vals='{"language": "de"}'
+            hx-target="#step-content">
+        {{ texts['language_de'] }}
+    </button>
+    <button type="button" class="btn btn-outline-secondary"
+            hx-post="{{ url_for('setup.save_language') }}"
+            hx-vals='{"language": "en"}'
+            hx-target="#step-content">
+        {{ texts['language_en'] }}
+    </button>
+</div>
 <ul class="list-group list-group-flush mb-4">
     <li class="list-group-item d-flex justify-content-between">
         <span>{{ texts['label_version'] }}</span>

@@ -174,3 +174,20 @@ class TestSetupWizard:
         response = client.post("/setup/install", data={"csrf_token": token})
         assert response.status_code == 200
         assert "alert-danger" in response.get_data(as_text=True)
+
+    def test_sprachwahl_im_wizard(
+        self, client: FlaskClient, registry: ServiceRegistry
+    ) -> None:
+        token = csrf_token(client)
+        response = client.post(
+            "/setup/language",
+            data={"language": "en", "csrf_token": token},
+        )
+        assert response.status_code == 200
+        assert "Welcome to PiKiosk Pro" in response.get_data(as_text=True)
+        assert registry.config_service.load()["language"] == "en"
+        response = client.post(
+            "/setup/language",
+            data={"language": "de", "csrf_token": token},
+        )
+        assert "Willkommen bei PiKiosk Pro" in response.get_data(as_text=True)

@@ -67,6 +67,13 @@ nach Signalstärke; die Verbindung erfolgt direkt aus der Liste.
 und führen die Aktion anschließend über systemd aus. Beide Aktionen
 müssen bestätigt werden.
 
+### Darstellung
+
+Sprache (Deutsch/Englisch) und Theme (Dunkel/Hell/Automatisch)
+lassen sich hier umschalten. „Automatisch" folgt der
+Systemeinstellung des anzeigenden Geräts. Nach dem Speichern lädt
+die Seite neu und wendet die Auswahl sofort an.
+
 ### Sicherung
 
 „Sicherung erstellen" erzeugt eine ZIP-Datei

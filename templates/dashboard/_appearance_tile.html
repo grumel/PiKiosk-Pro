@@ -1,0 +1,43 @@
+{# Copyright (c) 2026 Holger John - Lizenz: MIT License (siehe LICENSE) #}
+{# Dashboard-Kachel: Sprache und Theme umschalten. #}
+<div class="card h-100">
+    <div class="card-header">{{ texts['tile_appearance'] }}</div>
+    <div class="card-body">
+        {% if error %}
+        <div class="alert alert-danger" role="alert">{{ error }}</div>
+        {% endif %}
+        <form>
+            <div class="mb-3">
+                <label class="form-label" for="language-select">{{ texts['label_language'] }}</label>
+                <select class="form-select" id="language-select" name="language">
+                    <option value="de" {% if config['language'] == 'de' %}selected{% endif %}>
+                        {{ texts['language_de'] }}
+                    </option>
+                    <option value="en" {% if config['language'] == 'en' %}selected{% endif %}>
+                        {{ texts['language_en'] }}
+                    </option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label" for="theme-select">{{ texts['label_theme'] }}</label>
+                <select class="form-select" id="theme-select" name="theme">
+                    <option value="dark" {% if config['theme'] == 'dark' %}selected{% endif %}>
+                        {{ texts['theme_dark'] }}
+                    </option>
+                    <option value="light" {% if config['theme'] == 'light' %}selected{% endif %}>
+                        {{ texts['theme_light'] }}
+                    </option>
+                    <option value="auto" {% if config['theme'] == 'auto' %}selected{% endif %}>
+                        {{ texts['theme_auto'] }}
+                    </option>
+                </select>
+            </div>
+            <button type="button" class="btn btn-primary"
+                    hx-post="{{ url_for('settings.appearance_save') }}"
+                    hx-include="closest form"
+                    hx-target="#appearance-tile">
+                {{ texts['btn_save'] }}
+            </button>
+        </form>
+    </div>
+</div>

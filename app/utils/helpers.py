@@ -11,6 +11,7 @@ import json
 import secrets
 import socket
 from collections import deque
+from functools import lru_cache
 from pathlib import Path
 
 import psutil
@@ -49,12 +50,35 @@ def load_language(language: str, config_dir: Path = CONFIG_DIR) -> dict[str, str
         )
     language_file = config_dir / f"language_{language}.json"
     try:
-        with language_file.open("r", encoding="utf-8") as handle:
-            texts = json.load(handle)
-    except FileNotFoundError as error:
+        mtime_ns = language_file.stat().st_mtime_ns
+    except OSError as error:
         raise ConfigurationError(
             f"Sprachdatei nicht gefunden: {language_file}"
         ) from error
+    return dict(_load_language_file(language_file, mtime_ns))
+
+
+@lru_cache(maxsize=8)
+def _load_language_file(language_file: Path, mtime_ns: int) -> dict[str, str]:
+    """Liest eine Sprachdatei, zwischengespeichert je Aenderungsstand.
+
+    Args:
+        language_file:
+            Pfad der Sprachdatei.
+
+        mtime_ns:
+            Aenderungszeit der Datei; Teil des Cache-Schluessels,
+            damit geaenderte Dateien neu gelesen werden.
+
+    Returns:
+        Woerterbuch mit allen Oberflaechentexten.
+
+    Raises:
+        ConfigurationError
+    """
+    try:
+        with language_file.open("r", encoding="utf-8") as handle:
+            texts = json.load(handle)
     except (json.JSONDecodeError, OSError) as error:
         raise ConfigurationError(
             f"Sprachdatei konnte nicht gelesen werden: {language_file}: {error}"

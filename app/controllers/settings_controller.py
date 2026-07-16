@@ -2,13 +2,15 @@
 # Lizenz: MIT License (siehe LICENSE)
 """PiKiosk Pro - Einstellungen im Dashboard.
 
-Verwaltet Kiosk-URL und Hostname. Die URL wird vor dem Speichern
-geprueft; nach erfolgreichem Speichern startet ein laufender
-Browser automatisch mit der neuen URL. Ungueltige Eingaben werden
+Verwaltet Kiosk-URL, Hostname und Darstellung (Sprache, Theme).
+Die URL wird vor dem Speichern geprueft; nach erfolgreichem
+Speichern startet ein laufender Browser automatisch mit der neuen
+URL. Nach einer Darstellungsaenderung laedt die Seite neu, damit
+Sprache und Theme sofort wirken. Ungueltige Eingaben werden
 niemals gespeichert.
 """
 
-from flask import Blueprint, render_template, request
+from flask import Blueprint, Response, make_response, render_template, request
 from flask_login import login_required
 
 from app.controllers import current_services, current_texts
@@ -144,3 +146,46 @@ def hostname_save() -> str:
     except PiKioskError as error:
         return _render_hostname_tile(error=str(error), entered_hostname=hostname)
     return _render_hostname_tile(message=texts["hostname_saved_reboot_hint"])
+
+
+def _render_appearance_tile(**context: object) -> str:
+    """Rendert die Darstellungs-Kachel.
+
+    Args:
+        context:
+            Zusaetzliche Template-Variablen.
+
+    Returns:
+        Das gerenderte Kachel-Fragment.
+    """
+    config = current_services().config_service.load()
+    return render_template(
+        "dashboard/_appearance_tile.html",
+        texts=current_texts(),
+        config=config,
+        **context,
+    )
+
+
+@settings_blueprint.post("/appearance")
+@login_required
+def appearance_save() -> str | Response:
+    """Speichert Sprache und Theme.
+
+    Nach erfolgreichem Speichern laedt die Seite ueber HTMX neu,
+    damit die neue Sprache und das neue Theme sofort wirken.
+
+    Returns:
+        Seitenneuladen bei Erfolg, sonst die Kachel mit Fehler.
+    """
+    services = current_services()
+    config = services.config_service.load()
+    config["language"] = request.form.get("language", config["language"])
+    config["theme"] = request.form.get("theme", config["theme"])
+    try:
+        services.config_service.save(config)
+    except ValidationError as error:
+        return _render_appearance_tile(error=str(error))
+    response = make_response("", 200)
+    response.headers["HX-Refresh"] = "true"
+    return response
