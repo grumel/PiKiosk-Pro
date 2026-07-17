@@ -5,6 +5,35 @@ dokumentiert. Das Format orientiert sich an
 [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die
 Versionierung folgt [Semantic Versioning](https://semver.org/lang/de/).
 
+## [1.3.0] - 2026-07-17
+
+### Behoben
+
+- **WLAN-Verbindungen scheiterten mit „Not authorized to control
+  networking".** NetworkManager verlangt für Verbindungsänderungen
+  eine polkit-Bestätigung, die ein systemd-Dienst mangels Sitzung
+  nicht beantworten kann; nur der Scan funktionierte. install.sh
+  installiert jetzt eine polkit-Regel, die ausschließlich dem
+  Kioskbenutzer genau die benötigten NetworkManager-Aktionen
+  erlaubt (services/pikiosk-networkmanager.rules). Bestehende
+  Installationen: siehe docs/Troubleshooting.md
+- Fehlende Berechtigungen werden jetzt als verständliche Meldung
+  angezeigt statt als nmcli-Fehlertext
+
+### Hinzugefügt
+
+- Standard-WLAN: Ein gespeichertes Netzwerk lässt sich als Standard
+  hinterlegen und per Knopfdruck verbinden; andere Netzwerke bleiben
+  sicht- und verbindbar. Gespeichert wird nur der Name – das
+  Passwort bleibt bei NetworkManager
+- Passwortfelder haben ein Auge zum Ein- und Ausblenden der
+  Eingabe (Geräte-Oberfläche, Setup-Wizard und Zentrale)
+- API: `wifi_preferred_ssid` über `PUT /api/settings` setzbar
+
+### Geändert
+
+- Die Zentrale trägt dieselbe Versionsnummer wie die Anwendung
+
 ## [1.2.0] - 2026-07-17
 
 Zentrale Verwaltung: Mit PiKiosk Center lassen sich beliebig viele

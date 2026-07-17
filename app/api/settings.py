@@ -17,6 +17,7 @@ UPDATABLE_KEYS: tuple[str, ...] = (
     "update_source",
     "update_url",
     "connectivity_check",
+    "wifi_preferred_ssid",
 )
 
 

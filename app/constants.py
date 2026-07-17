@@ -11,7 +11,7 @@ zu, damit keine doppelten Definitionen entstehen.
 from pathlib import Path
 
 APP_NAME: str = "PiKiosk Pro"
-APP_VERSION: str = "1.1.0"
+APP_VERSION: str = "1.3.0"
 
 BASE_DIR: Path = Path(__file__).resolve().parent.parent
 CONFIG_DIR: Path = BASE_DIR / "config"
@@ -74,6 +74,7 @@ PASSWORD_MIN_LENGTH: int = 12
 URL_CHECK_TIMEOUT_SECONDS: float = 5.0
 URL_CHECK_VALID_STATUS: tuple[int, ...] = (200, 301, 302)
 
+WIFI_SSID_MAX_LENGTH: int = 32
 NMCLI_BINARY: str = "nmcli"
 NMCLI_TIMEOUT_SECONDS: float = 45.0
 NETWORK_LOG_FILE: Path = LOG_DIR / "network.log"
@@ -182,4 +183,5 @@ CONFIG_SCHEMA: dict[str, type] = {
     "update_source": str,
     "update_url": str,
     "connectivity_check": str,
+    "wifi_preferred_ssid": str,
 }

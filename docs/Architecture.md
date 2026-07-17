@@ -30,7 +30,7 @@ keine globalen Variablen.
  Raspberry Pi OS
 ```
 
-## Module (Version 1.2.0)
+## Module (Version 1.3.0)
 
 | Modul                              | Aufgabe                                        |
 | ---------------------------------- | ---------------------------------------------- |
@@ -195,6 +195,25 @@ Konfiguration gespeichert und lassen sich im Dashboard (Kachel
 Systemeinstellung. Konfiguration und Sprachdateien werden je
 Aenderungsstand (mtime) zwischengespeichert, damit sie nicht bei
 jeder Anfrage neu gelesen werden.
+
+## Systemrechte
+
+PiKiosk Pro laeuft als unprivilegierter Dienst. Fuer die wenigen
+Aufgaben mit Systemrechten gibt es eng begrenzte Ausnahmen, die
+install.sh einrichtet:
+
+| Aufgabe | Mechanismus |
+| ------- | ----------- |
+| Hostname setzen | sudo-Regel fuer `scripts/hostname_apply.py` |
+| Neustart, Herunterfahren | sudo-Regeln fuer `systemctl reboot/poweroff` |
+| WLAN verbinden, trennen, Profile aendern | polkit-Regel `50-pikiosk-networkmanager.rules` |
+
+Die polkit-Regel ist noetig, weil NetworkManager Verbindungs-
+aenderungen mit `auth_admin_keep` schuetzt: Ohne Sitzung (systemd-
+Dienst) kann die Rueckfrage nicht beantwortet werden. Die Regel
+erlaubt ausschliesslich dem Kioskbenutzer die vier benoetigten
+Aktionen (network-control, settings.modify.system,
+settings.modify.own, wifi.scan).
 
 ## Offline-Betrieb
 

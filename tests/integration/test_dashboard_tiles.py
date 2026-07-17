@@ -163,6 +163,108 @@ class TestWifiTile:
         assert "WLAN-Passwort ist falsch" in response.get_data(as_text=True)
 
 
+class TestPreferredWifi:
+    """Integrationstests fuer das Standard-WLAN."""
+
+    def test_kachel_zeigt_auswahl(
+        self,
+        client: FlaskClient,
+        registry: ServiceRegistry,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        mock_wifi(registry, monkeypatch)
+        monkeypatch.setattr(
+            registry.network_service, "saved", lambda: ["Zuhause", "Buero"]
+        )
+        login(client)
+        body = client.get("/dashboard/wifi/").get_data(as_text=True)
+        assert "Standard-WLAN" in body
+        assert "Buero" in body
+
+    def test_standard_wlan_speichern(
+        self,
+        client: FlaskClient,
+        registry: ServiceRegistry,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        mock_wifi(registry, monkeypatch)
+        monkeypatch.setattr(registry.network_service, "saved", lambda: ["Zuhause"])
+        token = login(client)
+        response = client.post(
+            "/dashboard/wifi/preferred",
+            data={"preferred_ssid": "Zuhause", "csrf_token": token},
+        )
+        assert "alert-success" in response.get_data(as_text=True)
+        assert registry.config_service.load()["wifi_preferred_ssid"] == "Zuhause"
+
+    def test_standard_wlan_entfernen(
+        self,
+        client: FlaskClient,
+        registry: ServiceRegistry,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        mock_wifi(registry, monkeypatch)
+        monkeypatch.setattr(registry.network_service, "saved", lambda: [])
+        config = registry.config_service.load()
+        config["wifi_preferred_ssid"] = "Zuhause"
+        registry.config_service.save(config)
+        token = login(client)
+        response = client.post(
+            "/dashboard/wifi/preferred",
+            data={"preferred_ssid": "", "csrf_token": token},
+        )
+        assert "alert-success" in response.get_data(as_text=True)
+        assert registry.config_service.load()["wifi_preferred_ssid"] == ""
+
+    def test_knopfdruck_verbindet(
+        self,
+        client: FlaskClient,
+        registry: ServiceRegistry,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        mock_wifi(registry, monkeypatch)
+        monkeypatch.setattr(registry.network_service, "saved", lambda: ["Zuhause"])
+        verbunden: list[str] = []
+        monkeypatch.setattr(
+            registry.network_service,
+            "connect_saved",
+            lambda ssid: verbunden.append(ssid),
+        )
+        config = registry.config_service.load()
+        config["wifi_preferred_ssid"] = "Zuhause"
+        registry.config_service.save(config)
+        token = login(client)
+        body = client.get("/dashboard/wifi/").get_data(as_text=True)
+        assert "Mit „Zuhause" in body
+        response = client.post(
+            "/dashboard/wifi/preferred/connect", data={"csrf_token": token}
+        )
+        assert "alert-success" in response.get_data(as_text=True)
+        assert verbunden == ["Zuhause"]
+
+    def test_knopfdruck_meldet_fehler(
+        self,
+        client: FlaskClient,
+        registry: ServiceRegistry,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        mock_wifi(registry, monkeypatch)
+        monkeypatch.setattr(registry.network_service, "saved", lambda: ["Zuhause"])
+
+        def fail(ssid: str) -> None:
+            raise WifiError("kein Profil", reason="not_found")
+
+        monkeypatch.setattr(registry.network_service, "connect_saved", fail)
+        config = registry.config_service.load()
+        config["wifi_preferred_ssid"] = "Zuhause"
+        registry.config_service.save(config)
+        token = login(client)
+        response = client.post(
+            "/dashboard/wifi/preferred/connect", data={"csrf_token": token}
+        )
+        assert "alert-danger" in response.get_data(as_text=True)
+
+
 class TestSettingsBranches:
     """Integrationstests fuer Einstellungs-Sonderpfade."""
 

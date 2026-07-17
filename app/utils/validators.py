@@ -22,6 +22,7 @@ from app.constants import (
     SUPPORTED_LANGUAGES,
     SUPPORTED_THEMES,
     SUPPORTED_UPDATE_SOURCES,
+    WIFI_SSID_MAX_LENGTH,
 )
 from app.exceptions import ValidationError
 
@@ -212,6 +213,11 @@ class ConfigValidator:
         if config["connectivity_check"] == "url" and not config["url"]:
             raise ValidationError(
                 "Die Verbindungspruefung 'url' benoetigt eine konfigurierte Kiosk-URL."
+            )
+        if len(config["wifi_preferred_ssid"]) > WIFI_SSID_MAX_LENGTH:
+            raise ValidationError(
+                f"Der WLAN-Name darf maximal {WIFI_SSID_MAX_LENGTH} Zeichen "
+                "lang sein."
             )
 
 

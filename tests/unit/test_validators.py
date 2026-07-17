@@ -173,6 +173,17 @@ class TestConfigValidator:
         config["connectivity_check"] = "url"
         ConfigValidator().validate(config)
 
+    def test_zu_langer_wlan_name(self) -> None:
+        config = valid_config()
+        config["wifi_preferred_ssid"] = "x" * 33
+        with pytest.raises(ValidationError):
+            ConfigValidator().validate(config)
+
+    def test_gueltiger_wlan_name(self) -> None:
+        config = valid_config()
+        config["wifi_preferred_ssid"] = "Zuhause"
+        ConfigValidator().validate(config)
+
     def test_updatequelle_aus(self) -> None:
         config = valid_config()
         config["update_source"] = "off"

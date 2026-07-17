@@ -2,9 +2,9 @@
 # Lizenz: MIT License (siehe LICENSE)
 """PiKiosk Pro - WLAN-Verwaltung im Dashboard.
 
-Stellt Scan, Verbinden und Trennen als HTMX-Endpunkte fuer die
-WLAN-Kachel bereit. Alle nmcli-Fehler werden als verstaendliche
-Meldungen angezeigt.
+Stellt Scan, Verbinden, Trennen und das Standard-WLAN als
+HTMX-Endpunkte fuer die WLAN-Kachel bereit. Alle nmcli-Fehler
+werden als verstaendliche Meldungen angezeigt.
 """
 
 from typing import Any
@@ -13,7 +13,7 @@ from flask import Blueprint, render_template, request
 from flask_login import login_required
 
 from app.controllers import current_services, current_texts
-from app.exceptions import NetworkError, WifiError
+from app.exceptions import NetworkError, PiKioskError, WifiError
 
 network_blueprint = Blueprint("network", __name__, url_prefix="/dashboard/wifi")
 
@@ -41,6 +41,18 @@ def _connection_info() -> dict[str, Any] | None:
         return None
 
 
+def _saved_profiles() -> list[str]:
+    """Liefert die gespeicherten WLAN-Profile.
+
+    Returns:
+        Namen der gespeicherten Profile, leer bei Fehlern.
+    """
+    try:
+        return current_services().network_service.saved()
+    except NetworkError:
+        return []
+
+
 def _render_tile(**context: Any) -> str:
     """Rendert die WLAN-Kachel.
 
@@ -51,10 +63,13 @@ def _render_tile(**context: Any) -> str:
     Returns:
         Das gerenderte Kachel-Fragment.
     """
+    config = current_services().config_service.load()
     return render_template(
         "dashboard/_wifi_tile.html",
         texts=current_texts(),
         connection=_connection_info(),
+        preferred_ssid=config["wifi_preferred_ssid"],
+        saved_profiles=_saved_profiles(),
         **context,
     )
 
@@ -102,6 +117,53 @@ def connect() -> str:
         message = texts.get(f"wifi_error_{error.reason}", str(error))
         return _render_tile(error=message)
     except NetworkError as error:
+        return _render_tile(error=str(error))
+    return _render_tile(message=texts["wifi_connected"])
+
+
+@network_blueprint.post("/preferred")
+@login_required
+def save_preferred() -> str:
+    """Legt das Standard-WLAN fest.
+
+    Gespeichert wird nur der Name des Profils; das Passwort bleibt
+    ausschliesslich bei NetworkManager.
+
+    Returns:
+        Die aktualisierte WLAN-Kachel.
+    """
+    texts = current_texts()
+    services = current_services()
+    config = services.config_service.load()
+    config["wifi_preferred_ssid"] = request.form.get("preferred_ssid", "").strip()
+    try:
+        services.config_service.save(config)
+    except PiKioskError as error:
+        return _render_tile(error=str(error))
+    if not config["wifi_preferred_ssid"]:
+        return _render_tile(message=texts["wifi_preferred_cleared"])
+    return _render_tile(
+        message=texts["wifi_preferred_saved"].format(ssid=config["wifi_preferred_ssid"])
+    )
+
+
+@network_blueprint.post("/preferred/connect")
+@login_required
+def connect_preferred() -> str:
+    """Verbindet mit dem hinterlegten Standard-WLAN.
+
+    Returns:
+        Die aktualisierte WLAN-Kachel.
+    """
+    texts = current_texts()
+    services = current_services()
+    ssid = str(services.config_service.load()["wifi_preferred_ssid"])
+    try:
+        services.network_service.connect_saved(ssid)
+    except WifiError as error:
+        message = texts.get(f"wifi_error_{error.reason}", str(error))
+        return _render_tile(error=f"{message} ({error})")
+    except PiKioskError as error:
         return _render_tile(error=str(error))
     return _render_tile(message=texts["wifi_connected"])
 

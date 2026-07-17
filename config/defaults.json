@@ -9,5 +9,6 @@
     "first_start": true,
     "update_source": "github",
     "update_url": "",
-    "connectivity_check": "internet"
+    "connectivity_check": "internet",
+    "wifi_preferred_ssid": ""
 }
