@@ -18,8 +18,10 @@ from app.constants import (
     HOSTNAME_MAX_LENGTH,
     PASSWORD_MIN_LENGTH,
     SUPPORTED_BROWSERS,
+    SUPPORTED_CONNECTIVITY_CHECKS,
     SUPPORTED_LANGUAGES,
     SUPPORTED_THEMES,
+    SUPPORTED_UPDATE_SOURCES,
 )
 from app.exceptions import ValidationError
 
@@ -177,6 +179,39 @@ class ConfigValidator:
         if config["browser"] not in SUPPORTED_BROWSERS:
             raise ValidationError(
                 "Unterstuetzte Browser: " + ", ".join(SUPPORTED_BROWSERS)
+            )
+        self._validate_update_and_connectivity(config)
+
+    def _validate_update_and_connectivity(self, config: dict[str, Any]) -> None:
+        """Prueft Updatequelle und Verbindungspruefung.
+
+        Args:
+            config:
+                Konfigurations-Woerterbuch.
+
+        Raises:
+            ValidationError
+        """
+        if config["update_source"] not in SUPPORTED_UPDATE_SOURCES:
+            raise ValidationError(
+                "Unterstuetzte Updatequellen: " + ", ".join(SUPPORTED_UPDATE_SOURCES)
+            )
+        if config["update_source"] == "local":
+            if not config["update_url"]:
+                raise ValidationError(
+                    "Fuer die lokale Updatequelle wird eine Update-URL benoetigt."
+                )
+            self._url_validator.validate(config["update_url"])
+        elif config["update_url"]:
+            self._url_validator.validate(config["update_url"])
+        if config["connectivity_check"] not in SUPPORTED_CONNECTIVITY_CHECKS:
+            raise ValidationError(
+                "Unterstuetzte Verbindungspruefungen: "
+                + ", ".join(SUPPORTED_CONNECTIVITY_CHECKS)
+            )
+        if config["connectivity_check"] == "url" and not config["url"]:
+            raise ValidationError(
+                "Die Verbindungspruefung 'url' benoetigt eine konfigurierte Kiosk-URL."
             )
 
 

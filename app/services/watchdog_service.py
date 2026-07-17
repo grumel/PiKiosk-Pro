@@ -44,8 +44,8 @@ from app.utils.filesystem import write_json_atomic
 from app.utils.helpers import cpu_temperature
 from app.utils.network import (
     check_url_status,
+    connectivity_ok,
     default_gateway,
-    internet_reachable,
     ping_host,
 )
 
@@ -104,7 +104,9 @@ class WatchdogService:
             self._write_status(status)
             return status
         browser = self._check_browser()
-        network = self._check_network(str(config["url"]))
+        network = self._check_network(
+            str(config["url"]), str(config["connectivity_check"])
+        )
         system = self._check_system()
         overall = self._overall(browser, network, system)
         status = self._build_status(overall, browser, network, system)
@@ -170,12 +172,20 @@ class WatchdogService:
         else:
             self._logger.error("Browser-Neustart konnte nicht ausgeloest werden.")
 
-    def _check_network(self, url: str) -> dict[str, Any]:
-        """Prueft Gateway, DNS, Internet und Kiosk-URL.
+    def _check_network(self, url: str, connectivity_check: str) -> dict[str, Any]:
+        """Prueft Gateway, DNS, Verbindung und Kiosk-URL.
+
+        Welche Pruefung ueber online oder offline entscheidet, legt
+        die Betriebsart fest: internet, url, gateway oder off. Damit
+        laesst sich ein Kiosk ohne Internetzugang betreiben, ohne
+        dauerhaft als offline zu gelten.
 
         Args:
             url:
                 Konfigurierte Kiosk-URL, leer wenn nicht gesetzt.
+
+            connectivity_check:
+                Betriebsart der Verbindungspruefung.
 
         Returns:
             Ergebnis der Netzwerkpruefungen.
@@ -192,7 +202,7 @@ class WatchdogService:
         return {
             "gateway": ping_host(gateway) if gateway else False,
             "dns": self._dns_ok(url),
-            "internet": internet_reachable(),
+            "internet": connectivity_ok(connectivity_check, url),
             "url": url_reachable,
         }
 

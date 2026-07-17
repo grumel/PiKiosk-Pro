@@ -272,3 +272,175 @@ class TestWatchdogHttp:
         base, _ = routed_server
         monkeypatch.setattr(watchdog_module, "BROWSER_RESTART_URL", f"{base}/fehlt")
         assert watchdog._request_restart() is False
+
+
+class TestLocalUpdateSource:
+    """Tests fuer die lokale Updatequelle mit echtem Webserver."""
+
+    def use_local_source(self, update_service: UpdateService, base_url: str) -> None:
+        """Stellt die Konfiguration auf die lokale Quelle um.
+
+        Args:
+            update_service:
+                Der zu konfigurierende Dienst.
+
+            base_url:
+                Basis-URL der lokalen Quelle.
+        """
+        config = update_service._config_service.load()
+        config["update_source"] = "local"
+        config["update_url"] = base_url
+        update_service._config_service.save(config)
+
+    def test_update_verfuegbar(
+        self,
+        routed_server: tuple[str, ThreadingHTTPServer],
+        update_service: UpdateService,
+    ) -> None:
+        base, server = routed_server
+        manifest = {
+            "version": "99.0.0",
+            "archive": "PiKiosk-Pro-99.0.0.zip",
+            "notes": "Lokale Notizen",
+        }
+        server.get_routes["/manifest.json"] = (
+            200,
+            json.dumps(manifest).encode("utf-8"),
+        )
+        self.use_local_source(update_service, base)
+        info = update_service.check()
+        assert info["available"] is True
+        assert info["source"] == "local"
+        assert info["latest"] == "99.0.0"
+        assert info["notes"] == "Lokale Notizen"
+        assert info["archive_url"] == f"{base}/PiKiosk-Pro-99.0.0.zip"
+
+    def test_bereits_aktuell(
+        self,
+        routed_server: tuple[str, ThreadingHTTPServer],
+        update_service: UpdateService,
+    ) -> None:
+        base, server = routed_server
+        manifest = {"version": "0.0.1", "archive": "alt.zip"}
+        server.get_routes["/manifest.json"] = (
+            200,
+            json.dumps(manifest).encode("utf-8"),
+        )
+        self.use_local_source(update_service, base)
+        info = update_service.check()
+        assert info["available"] is False
+        assert info["status"] == "up_to_date"
+
+    def test_absolute_archiv_url_bleibt_erhalten(
+        self,
+        routed_server: tuple[str, ThreadingHTTPServer],
+        update_service: UpdateService,
+    ) -> None:
+        base, server = routed_server
+        manifest = {
+            "version": "99.0.0",
+            "archive": "http://anderer.server/paket.zip",
+        }
+        server.get_routes["/manifest.json"] = (
+            200,
+            json.dumps(manifest).encode("utf-8"),
+        )
+        self.use_local_source(update_service, base)
+        info = update_service.check()
+        assert info["archive_url"] == "http://anderer.server/paket.zip"
+
+    def test_unvollstaendiges_manifest(
+        self,
+        routed_server: tuple[str, ThreadingHTTPServer],
+        update_service: UpdateService,
+    ) -> None:
+        base, server = routed_server
+        server.get_routes["/manifest.json"] = (200, b'{"version": "9.9.9"}')
+        self.use_local_source(update_service, base)
+        with pytest.raises(UpdateError):
+            update_service.check()
+
+    def test_ungueltige_version_im_manifest(
+        self,
+        routed_server: tuple[str, ThreadingHTTPServer],
+        update_service: UpdateService,
+    ) -> None:
+        base, server = routed_server
+        server.get_routes["/manifest.json"] = (
+            200,
+            b'{"version": "keine-version", "archive": "x.zip"}',
+        )
+        self.use_local_source(update_service, base)
+        info = update_service.check()
+        assert info["status"] == "invalid_version"
+        assert info["available"] is False
+
+    def test_quelle_nicht_erreichbar(self, update_service: UpdateService) -> None:
+        self.use_local_source(update_service, "http://127.0.0.1:59991")
+        with pytest.raises(UpdateError):
+            update_service.check()
+
+    def test_manifest_fehlt(
+        self,
+        routed_server: tuple[str, ThreadingHTTPServer],
+        update_service: UpdateService,
+    ) -> None:
+        base, _ = routed_server
+        self.use_local_source(update_service, base)
+        with pytest.raises(UpdateError):
+            update_service.check()
+
+    def test_kaputtes_manifest(
+        self,
+        routed_server: tuple[str, ThreadingHTTPServer],
+        update_service: UpdateService,
+    ) -> None:
+        base, server = routed_server
+        server.get_routes["/manifest.json"] = (200, b"kein json")
+        self.use_local_source(update_service, base)
+        with pytest.raises(UpdateError):
+            update_service.check()
+
+    def test_manifest_kein_objekt(
+        self,
+        routed_server: tuple[str, ThreadingHTTPServer],
+        update_service: UpdateService,
+    ) -> None:
+        base, server = routed_server
+        server.get_routes["/manifest.json"] = (200, b"[1, 2]")
+        self.use_local_source(update_service, base)
+        with pytest.raises(UpdateError):
+            update_service.check()
+
+    def test_quelle_aus(self, update_service: UpdateService) -> None:
+        config = update_service._config_service.load()
+        config["update_source"] = "off"
+        update_service._config_service.save(config)
+        info = update_service.check()
+        assert info["status"] == "disabled"
+        assert info["available"] is False
+        assert update_service.source() == "off"
+        with pytest.raises(UpdateError):
+            update_service.apply()
+
+    def test_installation_aus_lokaler_quelle(
+        self,
+        routed_server: tuple[str, ThreadingHTTPServer],
+        update_service: UpdateService,
+        tmp_path: Path,
+    ) -> None:
+        from tests.unit.test_update_service import build_zip
+
+        base, server = routed_server
+        package = build_zip(tmp_path / "paket.zip", "99.0.0")
+        server.get_routes["/manifest.json"] = (
+            200,
+            json.dumps({"version": "99.0.0", "archive": "paket.zip"}).encode("utf-8"),
+        )
+        server.get_routes["/paket.zip"] = (200, package.read_bytes())
+        self.use_local_source(update_service, base)
+        result = update_service.apply()
+        assert result["version"] == "99.0.0"
+        assert (update_service._install_dir / "app" / "constants.py").read_text(
+            encoding="utf-8"
+        ).count("99.0.0") == 1

@@ -25,6 +25,7 @@ EXPECTED_KEYS = {
     "disk_total_gb",
     "browser_status",
     "internet_online",
+    "connectivity_check",
     "watchdog",
     "url",
     "version",

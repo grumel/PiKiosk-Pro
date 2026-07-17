@@ -11,17 +11,9 @@ import pytest
 from app.exceptions import ConfigurationError, ValidationError
 from app.logger import KioskLogger
 from app.services.config_service import ConfigService
+from tests.conftest import project_defaults
 
-DEFAULTS: dict[str, Any] = {
-    "hostname": "PiKiosk",
-    "url": "",
-    "language": "de",
-    "theme": "dark",
-    "fullscreen": True,
-    "watchdog": True,
-    "browser": "chromium",
-    "first_start": True,
-}
+DEFAULTS: dict[str, Any] = project_defaults(first_start=True)
 
 
 @pytest.fixture
@@ -160,3 +152,68 @@ class TestConfigService:
         )
         os.utime(config_file, ns=(1, 1))
         assert service.load()["hostname"] == "Extern"
+
+
+class TestMigration:
+    """Tests fuer die Ergaenzung neuer Konfigurationsschluessel."""
+
+    def test_fehlende_schluessel_werden_ergaenzt(
+        self, service: ConfigService, tmp_path: Path
+    ) -> None:
+        alt = {
+            key: value
+            for key, value in DEFAULTS.items()
+            if key not in ("update_source", "update_url", "connectivity_check")
+        }
+        alt["url"] = "http://192.168.0.50/anzeige"
+        (tmp_path / "config.json").write_text(
+            json.dumps(alt, ensure_ascii=False, indent=4), encoding="utf-8"
+        )
+        config = service.load()
+        assert config["url"] == "http://192.168.0.50/anzeige"
+        assert config["update_source"] == "github"
+        assert config["update_url"] == ""
+        assert config["connectivity_check"] == "internet"
+
+    def test_ergaenzung_wird_gespeichert(
+        self, service: ConfigService, tmp_path: Path
+    ) -> None:
+        alt = {key: value for key, value in DEFAULTS.items() if key != "update_source"}
+        (tmp_path / "config.json").write_text(
+            json.dumps(alt, ensure_ascii=False, indent=4), encoding="utf-8"
+        )
+        service.load()
+        gespeichert = json.loads((tmp_path / "config.json").read_text(encoding="utf-8"))
+        assert gespeichert["update_source"] == "github"
+
+    def test_vorhandene_werte_bleiben_erhalten(
+        self, service: ConfigService, tmp_path: Path
+    ) -> None:
+        alt = dict(DEFAULTS)
+        alt["update_source"] = "off"
+        del alt["connectivity_check"]
+        (tmp_path / "config.json").write_text(
+            json.dumps(alt, ensure_ascii=False, indent=4), encoding="utf-8"
+        )
+        assert service.load()["update_source"] == "off"
+
+    def test_fehlender_standardwert_meldet_fehler(
+        self, tmp_path: Path, test_logger: KioskLogger
+    ) -> None:
+        unvollstaendig = {
+            key: value for key, value in DEFAULTS.items() if key != "update_source"
+        }
+        (tmp_path / "defaults.json").write_text(
+            json.dumps(unvollstaendig), encoding="utf-8"
+        )
+        (tmp_path / "config.json").write_text(
+            json.dumps(unvollstaendig), encoding="utf-8"
+        )
+        service = ConfigService(
+            logger=test_logger,
+            config_file=tmp_path / "config.json",
+            defaults_file=tmp_path / "defaults.json",
+            backup_dir=tmp_path / "backup",
+        )
+        with pytest.raises(ConfigurationError):
+            service.load()

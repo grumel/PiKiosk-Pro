@@ -247,7 +247,7 @@ class TestUpdateBranches:
     ) -> None:
         monkeypatch.setattr(
             registry.update_service,
-            "check_github",
+            "check",
             lambda: (_ for _ in ()).throw(UpdateError("GitHub weg")),
         )
         token = login(client)
@@ -262,11 +262,11 @@ class TestUpdateBranches:
     ) -> None:
         monkeypatch.setattr(
             registry.update_service,
-            "apply_github",
+            "apply",
             lambda: {"version": "9.9.9", "backup": "b.zip", "changed": 1},
         )
         token = login(client)
-        response = client.post("/dashboard/update/github", data={"csrf_token": token})
+        response = client.post("/dashboard/update/install", data={"csrf_token": token})
         assert "alert-success" in response.get_data(as_text=True)
 
     def test_upload_ohne_datei(self, client: FlaskClient) -> None:
@@ -343,3 +343,111 @@ class TestBrowserAndInternalBranches:
         response = client.post("/dashboard/system/shutdown", data={"csrf_token": token})
         assert "alert" in response.get_data(as_text=True)
         assert calls[0][-2:] == ["systemctl", "poweroff"]
+
+
+class TestMonitoringTile:
+    """Integrationstests fuer die Ueberwachungs-Kachel."""
+
+    def test_kachel_zeigt_einstellungen(self, client: FlaskClient) -> None:
+        login(client)
+        body = client.get("/dashboard/monitoring").get_data(as_text=True)
+        assert "Verbindungsprüfung" in body
+        assert "Watchdog aktiv" in body
+
+    def test_verbindungspruefung_umstellen(
+        self, client: FlaskClient, registry: ServiceRegistry
+    ) -> None:
+        config = registry.config_service.load()
+        config["url"] = "http://192.168.0.50/anzeige"
+        registry.config_service.save(config)
+        token = login(client)
+        response = client.post(
+            "/dashboard/monitoring",
+            data={
+                "watchdog": "on",
+                "connectivity_check": "url",
+                "csrf_token": token,
+            },
+        )
+        assert "alert-success" in response.get_data(as_text=True)
+        assert registry.config_service.load()["connectivity_check"] == "url"
+
+    def test_watchdog_abschalten(
+        self, client: FlaskClient, registry: ServiceRegistry
+    ) -> None:
+        token = login(client)
+        response = client.post(
+            "/dashboard/monitoring",
+            data={"connectivity_check": "internet", "csrf_token": token},
+        )
+        assert response.status_code == 200
+        assert registry.config_service.load()["watchdog"] is False
+
+    def test_url_pruefung_ohne_kiosk_url_wird_abgelehnt(
+        self, client: FlaskClient, registry: ServiceRegistry
+    ) -> None:
+        token = login(client)
+        response = client.post(
+            "/dashboard/monitoring",
+            data={
+                "watchdog": "on",
+                "connectivity_check": "url",
+                "csrf_token": token,
+            },
+        )
+        assert "alert-danger" in response.get_data(as_text=True)
+        assert registry.config_service.load()["connectivity_check"] == "internet"
+
+
+class TestUpdateSourceTile:
+    """Integrationstests fuer die Wahl der Updatequelle."""
+
+    def test_kachel_zeigt_quelle(self, client: FlaskClient) -> None:
+        login(client)
+        body = client.get("/dashboard/update/").get_data(as_text=True)
+        assert "Updatequelle" in body
+        assert "Lokale Quelle" in body
+
+    def test_lokale_quelle_speichern(
+        self, client: FlaskClient, registry: ServiceRegistry
+    ) -> None:
+        token = login(client)
+        response = client.post(
+            "/dashboard/update/source",
+            data={
+                "update_source": "local",
+                "update_url": "http://server.local/pikiosk",
+                "csrf_token": token,
+            },
+        )
+        assert "alert-success" in response.get_data(as_text=True)
+        config = registry.config_service.load()
+        assert config["update_source"] == "local"
+        assert config["update_url"] == "http://server.local/pikiosk"
+
+    def test_lokale_quelle_ohne_url_wird_abgelehnt(
+        self, client: FlaskClient, registry: ServiceRegistry
+    ) -> None:
+        token = login(client)
+        response = client.post(
+            "/dashboard/update/source",
+            data={
+                "update_source": "local",
+                "update_url": "",
+                "csrf_token": token,
+            },
+        )
+        assert "alert-danger" in response.get_data(as_text=True)
+        assert registry.config_service.load()["update_source"] == "github"
+
+    def test_quelle_abschalten_und_pruefen(
+        self, client: FlaskClient, registry: ServiceRegistry
+    ) -> None:
+        token = login(client)
+        client.post(
+            "/dashboard/update/source",
+            data={"update_source": "off", "update_url": "", "csrf_token": token},
+        )
+        assert registry.config_service.load()["update_source"] == "off"
+        response = client.post("/dashboard/update/check", data={"csrf_token": token})
+        assert "deaktiviert" in response.get_data(as_text=True)

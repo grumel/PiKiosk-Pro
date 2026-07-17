@@ -5,6 +5,36 @@ dokumentiert. Das Format orientiert sich an
 [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die
 Versionierung folgt [Semantic Versioning](https://semver.org/lang/de/).
 
+## [1.1.0] - 2026-07-17
+
+Offline-Betrieb: PiKiosk Pro laesst sich jetzt vollstaendig ohne
+Internetzugang betreiben – mit lokaler Kiosk-Webseite und lokaler
+Updatequelle.
+
+### Hinzugefügt
+
+- Konfigurierbare Updatequelle: GitHub (Internet), lokale Quelle
+  oder abgeschaltet. Die lokale Quelle ist ein beliebiger Webserver
+  im Netzwerk, der `manifest.json` (version, archive, notes) und das
+  Paket ausliefert; Prüfung, automatische Sicherung und Rollback
+  sind identisch zum GitHub-Weg
+- Konfigurierbare Verbindungsprüfung (`connectivity_check`):
+  Internet, Kiosk-URL, Gateway oder keine Prüfung. Ein Kiosk ohne
+  Internetzugang gilt damit nicht mehr dauerhaft als „Offline"
+- Neue Dashboard-Kachel „Überwachung": Watchdog ein-/ausschalten
+  und Verbindungsprüfung wählen
+- Update-Kachel mit Auswahl der Updatequelle und Update-URL
+- Automatische Migration der Konfiguration: nach einem Update
+  fehlende Schlüssel werden aus den Standardwerten ergänzt,
+  vorhandene Werte bleiben unverändert
+- API: `update_source`, `update_url` und `connectivity_check` über
+  `PUT /api/settings` setzbar; `GET /api/update` nennt die Quelle
+
+### Behoben
+
+- Beschädigte Sicherungen und Update-Pakete führten zu einem
+  unbehandelten zlib-Fehler statt einer verständlichen Meldung
+
 ## [1.0.0] - 2026-07-16
 
 Erstes stabiles Release. PiKiosk Pro verwandelt einen Raspberry

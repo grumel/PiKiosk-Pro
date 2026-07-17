@@ -19,9 +19,11 @@ import tempfile
 import urllib.error
 import urllib.request
 import zipfile
+import zlib
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+from urllib.parse import urljoin
 
 from app.constants import (
     APP_VERSION,
@@ -30,6 +32,7 @@ from app.constants import (
     GITHUB_REPO,
     RELEASES_DIR,
     UPDATE_HTTP_TIMEOUT_SECONDS,
+    UPDATE_MANIFEST_NAME,
     UPDATE_MAX_UNCOMPRESSED_BYTES,
     UPDATE_PACKAGE_MAX_BYTES,
     UPDATE_PROTECTED_PATHS,
@@ -108,7 +111,133 @@ class UpdateService:
         """
         return APP_VERSION
 
-    def check_github(self) -> dict[str, Any]:
+    def source(self) -> str:
+        """Liefert die konfigurierte Updatequelle.
+
+        Returns:
+            github, local oder off.
+        """
+        return str(self._config_service.load()["update_source"])
+
+    def check(self) -> dict[str, Any]:
+        """Prueft die konfigurierte Updatequelle auf ein Update.
+
+        Returns:
+            Ergebnis mit Verfuegbarkeit, aktueller und neuester
+            Version, Notizen, Archiv-URL, Quelle und Statuscode.
+
+        Raises:
+            UpdateError
+        """
+        config = self._config_service.load()
+        source = str(config["update_source"])
+        if source == "off":
+            return self._result(
+                self.current_version(), None, "", None, "disabled", False, source
+            )
+        if source == "local":
+            return self._check_local(str(config["update_url"]))
+        return self._check_github()
+
+    def apply(self) -> dict[str, Any]:
+        """Installiert das Update der konfigurierten Quelle.
+
+        Vor dem Herunterladen wird geprueft, ob ueberhaupt ein
+        neueres Paket bereitsteht.
+
+        Returns:
+            Ergebnis der Installation.
+
+        Raises:
+            UpdateError
+        """
+        info = self.check()
+        if not info["available"] or not info["archive_url"]:
+            raise UpdateError("Es steht kein neueres Update bereit.")
+        archive = self._download(str(info["archive_url"]))
+        try:
+            return self.apply_package(archive)
+        finally:
+            archive.unlink(missing_ok=True)
+
+    def _check_local(self, base_url: str) -> dict[str, Any]:
+        """Prueft eine lokale Updatequelle ueber deren Manifest.
+
+        Erwartet unter <update_url>/manifest.json ein JSON-Objekt
+        mit den Feldern version, archive und optional notes. Der
+        Archivname wird relativ zur Update-URL aufgeloest, eine
+        vollstaendige URL wird unveraendert uebernommen.
+
+        Args:
+            base_url:
+                Basis-URL der lokalen Updatequelle.
+
+        Returns:
+            Das Ergebnisobjekt der Pruefung.
+
+        Raises:
+            UpdateError
+        """
+        current = self.current_version()
+        manifest = self._fetch_local_manifest(base_url)
+        latest = str(manifest.get("version", "")).strip()
+        archive_name = str(manifest.get("archive", "")).strip()
+        if not latest or not archive_name:
+            raise UpdateError(
+                "Das Manifest der Updatequelle ist unvollstaendig "
+                "(version und archive werden benoetigt)."
+            )
+        try:
+            available = is_newer(latest, current)
+        except ValidationError:
+            return self._result(
+                current, latest, "", None, "invalid_version", False, "local"
+            )
+        archive_url = urljoin(base_url.rstrip("/") + "/", archive_name)
+        status = "available" if available else "up_to_date"
+        return self._result(
+            current,
+            latest,
+            str(manifest.get("notes", "")),
+            archive_url,
+            status,
+            available,
+            "local",
+        )
+
+    def _fetch_local_manifest(self, base_url: str) -> dict[str, Any]:
+        """Laedt das Manifest einer lokalen Updatequelle.
+
+        Args:
+            base_url:
+                Basis-URL der Updatequelle.
+
+        Returns:
+            Der Inhalt des Manifests.
+
+        Raises:
+            UpdateError
+        """
+        if not base_url:
+            raise UpdateError("Es ist keine Update-URL konfiguriert.")
+        url = urljoin(base_url.rstrip("/") + "/", UPDATE_MANIFEST_NAME)
+        request = urllib.request.Request(url, headers={"User-Agent": UPDATE_USER_AGENT})
+        try:
+            with urllib.request.urlopen(
+                request, timeout=UPDATE_HTTP_TIMEOUT_SECONDS
+            ) as response:
+                data = json.loads(response.read().decode("utf-8"))
+        except urllib.error.HTTPError as error:
+            raise UpdateError(
+                f"Updatequelle antwortete mit HTTP {error.code}: {url}"
+            ) from error
+        except (urllib.error.URLError, OSError, ValueError) as error:
+            raise UpdateError(f"Updatequelle ist nicht erreichbar: {error}") from error
+        if not isinstance(data, dict):
+            raise UpdateError("Das Manifest der Updatequelle ist ungueltig.")
+        return data
+
+    def _check_github(self) -> dict[str, Any]:
         """Prueft, ob im GitHub-Repository ein Update bereitsteht.
 
         Returns:
@@ -122,39 +251,29 @@ class UpdateService:
         current = self.current_version()
         data = self._github_latest()
         if data is None:
-            return self._github_result(current, None, "", None, "no_release", False)
+            return self._result(current, None, "", None, "no_release", False, "github")
         tag = str(data.get("tag_name", "")).strip()
         latest = tag[1:] if tag.startswith("v") else tag
         try:
             available = is_newer(latest, current)
         except ValidationError:
-            return self._github_result(current, tag, "", None, "invalid_version", False)
+            return self._result(
+                current, tag, "", None, "invalid_version", False, "github"
+            )
         archive = str(
             data.get("tarball_url")
             or f"{GITHUB_API_BASE}/repos/{self._repo}/tarball/{tag}"
         )
         status = "available" if available else "up_to_date"
-        return self._github_result(
-            current, latest, str(data.get("body", "")), archive, status, available
+        return self._result(
+            current,
+            latest,
+            str(data.get("body", "")),
+            archive,
+            status,
+            available,
+            "github",
         )
-
-    def apply_github(self) -> dict[str, Any]:
-        """Laedt das neueste GitHub-Release und installiert es.
-
-        Returns:
-            Ergebnis der Installation.
-
-        Raises:
-            UpdateError
-        """
-        info = self.check_github()
-        if not info["available"] or not info["archive_url"]:
-            raise UpdateError("Es steht kein neueres GitHub-Release bereit.")
-        archive = self._download(str(info["archive_url"]))
-        try:
-            return self.apply_package(archive)
-        finally:
-            archive.unlink(missing_ok=True)
 
     def apply_package(self, package_path: Path) -> dict[str, Any]:
         """Installiert ein lokales Update-Paket.
@@ -244,7 +363,7 @@ class UpdateService:
         self._logger.info(f"Rollback auf Version {restored} durchgefuehrt.")
         return {"version": restored, "restart_required": True}
 
-    def _github_result(
+    def _result(
         self,
         current: str,
         latest: str | None,
@@ -252,8 +371,9 @@ class UpdateService:
         archive_url: str | None,
         status: str,
         available: bool,
+        source: str,
     ) -> dict[str, Any]:
-        """Baut das Ergebnisobjekt der GitHub-Pruefung.
+        """Baut das Ergebnisobjekt einer Updatepruefung.
 
         Args:
             current:
@@ -274,6 +394,9 @@ class UpdateService:
             available:
                 True, wenn ein Update verfuegbar ist.
 
+            source:
+                Verwendete Updatequelle.
+
         Returns:
             Das Ergebnisobjekt.
         """
@@ -284,6 +407,7 @@ class UpdateService:
             "archive_url": archive_url,
             "status": status,
             "available": available,
+            "source": source,
         }
 
     def _github_latest(self) -> dict[str, Any] | None:
@@ -402,17 +526,20 @@ class UpdateService:
         """
         files: dict[str, bytes] = {}
         total = 0
-        with zipfile.ZipFile(path) as archive:
-            if archive.testzip() is not None:
-                raise UpdateError("Das Update-Paket ist beschaedigt.")
-            for info in archive.infolist():
-                if info.is_dir():
-                    continue
-                name = self._safe_member_name(info.filename)
-                total += info.file_size
-                if total > UPDATE_MAX_UNCOMPRESSED_BYTES:
-                    raise UpdateError("Das Update-Paket ist zu gross.")
-                files[name] = archive.read(info)
+        try:
+            with zipfile.ZipFile(path) as archive:
+                if archive.testzip() is not None:
+                    raise UpdateError("Das Update-Paket ist beschaedigt.")
+                for info in archive.infolist():
+                    if info.is_dir():
+                        continue
+                    name = self._safe_member_name(info.filename)
+                    total += info.file_size
+                    if total > UPDATE_MAX_UNCOMPRESSED_BYTES:
+                        raise UpdateError("Das Update-Paket ist zu gross.")
+                    files[name] = archive.read(info)
+        except (zipfile.BadZipFile, zlib.error, EOFError, OSError) as error:
+            raise UpdateError(f"Das Update-Paket ist beschaedigt: {error}") from error
         return files
 
     def _read_tar(self, path: Path) -> dict[str, bytes]:

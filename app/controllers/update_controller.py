@@ -2,8 +2,9 @@
 # Lizenz: MIT License (siehe LICENSE)
 """PiKiosk Pro - Aktualisierung im Dashboard.
 
-Stellt die Suche nach GitHub-Updates, die Installation aus GitHub
-oder einem hochgeladenen Paket sowie den Rollback bereit. Vor jeder
+Stellt die Wahl der Updatequelle (GitHub, lokale Quelle oder aus),
+die Suche nach Updates, die Installation aus der Quelle oder einem
+hochgeladenen Paket sowie den Rollback bereit. Vor jeder
 Installation wird automatisch eine Sicherung erstellt.
 """
 
@@ -35,18 +36,21 @@ def render_update_tile(
             Optionale Fehlermeldung.
 
         info:
-            Optionales Ergebnis der GitHub-Pruefung.
+            Optionales Ergebnis der Updatepruefung.
 
     Returns:
         Das gerenderte Kachel-Fragment.
     """
-    service = current_services().update_service
+    services = current_services()
+    service = services.update_service
+    config = services.config_service.load()
     return render_template(
         "dashboard/_update_tile.html",
         texts=current_texts(),
         current_version=service.current_version(),
         can_rollback=service.can_rollback(),
         rollback_info=service.rollback_info(),
+        config=config,
         info=info,
         message=message,
         error=error,
@@ -64,25 +68,45 @@ def tile() -> str:
     return render_update_tile()
 
 
+@update_blueprint.post("/source")
+@login_required
+def save_source() -> str:
+    """Speichert Updatequelle und Update-URL.
+
+    Returns:
+        Die aktualisierte Update-Kachel.
+    """
+    texts = current_texts()
+    services = current_services()
+    config = services.config_service.load()
+    config["update_source"] = request.form.get("update_source", config["update_source"])
+    config["update_url"] = request.form.get("update_url", "").strip()
+    try:
+        services.config_service.save(config)
+    except PiKioskError as error:
+        return render_update_tile(error=str(error))
+    return render_update_tile(message=texts["update_source_saved"])
+
+
 @update_blueprint.post("/check")
 @login_required
 def check() -> str:
-    """Sucht im GitHub-Repository nach einem Update.
+    """Sucht in der konfigurierten Quelle nach einem Update.
 
     Returns:
         Die aktualisierte Update-Kachel.
     """
     try:
-        info = current_services().update_service.check_github()
+        info = current_services().update_service.check()
     except PiKioskError as error:
         return render_update_tile(error=str(error))
     return render_update_tile(info=info)
 
 
-@update_blueprint.post("/github")
+@update_blueprint.post("/install")
 @login_required
-def install_github() -> str:
-    """Installiert das neueste GitHub-Release.
+def install_source() -> str:
+    """Installiert das Update aus der konfigurierten Quelle.
 
     Returns:
         Die aktualisierte Update-Kachel.
@@ -90,7 +114,7 @@ def install_github() -> str:
     texts = current_texts()
     services = current_services()
     try:
-        result = services.update_service.apply_github()
+        result = services.update_service.apply()
     except PiKioskError as error:
         return render_update_tile(error=str(error))
     return render_update_tile(

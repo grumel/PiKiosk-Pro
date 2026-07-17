@@ -7,8 +7,10 @@ Nach dem Booten meldet sich das Gerät automatisch an, startet Chromium im
 Kioskmodus und zeigt die konfigurierte Webseite an. Die komplette
 Administration erfolgt über eine lokale Weboberfläche – ohne Linux-Kenntnisse.
 
-## Funktionen (Version 1.0.0)
+## Funktionen (Version 1.1.0)
 
+- Offlinefähig: lokale Kiosk-Webseite, lokale Updatequelle und
+  konfigurierbare Verbindungsprüfung – kein Internetzugang nötig
 - Sprache (Deutsch/Englisch) und Theme (Dunkel/Hell/Automatisch)
   direkt im Dashboard umschaltbar; „Automatisch" folgt der
   Systemeinstellung

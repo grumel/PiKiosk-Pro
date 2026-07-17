@@ -54,7 +54,7 @@ Pfade `404 {"error": "not_found"}`.
 | Methode | Pfad            | Beschreibung                         |
 | ------- | --------------- | ------------------------------------ |
 | GET     | `/api/settings` | Aktive Konfiguration                 |
-| PUT     | `/api/settings` | Schlüssel ändern: `url`, `language`, `theme`, `fullscreen`, `watchdog`, `hostname`. Ungültige Werte werden nie gespeichert; eine Hostnameänderung wird sofort angewendet. |
+| PUT     | `/api/settings` | Schlüssel ändern: `url`, `language`, `theme`, `fullscreen`, `watchdog`, `hostname`, `update_source` (`github`/`local`/`off`), `update_url`, `connectivity_check` (`internet`/`url`/`gateway`/`off`). Ungültige Werte werden nie gespeichert; eine Hostnameänderung wird sofort angewendet. |
 
 ### Netzwerk
 
@@ -75,8 +75,8 @@ Pfade `404 {"error": "not_found"}`.
 
 | Methode | Pfad          | Beschreibung                           |
 | ------- | ------------- | -------------------------------------- |
-| GET     | `/api/update` | Aktuelle Version und Rollback-Zustand  |
-| POST    | `/api/update` | `{"action": "check"}` (GitHub prüfen), `{"action": "install"}` (Release installieren, mit automatischer Sicherung), `{"action": "rollback"}` |
+| GET     | `/api/update` | Version, Updatequelle und Rollback-Zustand |
+| POST    | `/api/update` | `{"action": "check"}` (konfigurierte Quelle prüfen), `{"action": "install"}` (installieren, mit automatischer Sicherung), `{"action": "rollback"}` |
 
 ### Sicherung
 
@@ -109,6 +109,22 @@ curl -s -X POST $BASE/api/browser \
   -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
   -d '{"action": "restart"}'
 ```
+
+## Offline-Betrieb einrichten
+
+```bash
+curl -s -X PUT $BASE/api/settings \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"url": "http://server.local/anzeige",
+       "connectivity_check": "url",
+       "update_source": "local",
+       "update_url": "http://server.local/pikiosk"}'
+```
+
+Danach benötigt das Gerät keinen Internetzugang mehr: Die
+Kiosk-Webseite und die Updatequelle liegen im lokalen Netz, und die
+Verbindungsprüfung misst die Erreichbarkeit der Kiosk-URL statt des
+Internets.
 
 ## Mehrgerätefähigkeit
 

@@ -14,6 +14,9 @@ UPDATABLE_KEYS: tuple[str, ...] = (
     "fullscreen",
     "watchdog",
     "hostname",
+    "update_source",
+    "update_url",
+    "connectivity_check",
 )
 
 
@@ -35,8 +38,9 @@ def get_settings() -> Response:
 def put_settings() -> Response | tuple[Response, int]:
     """Aktualisiert einzelne Konfigurationsschluessel.
 
-    Zulaessig sind url, language, theme, fullscreen, watchdog und
-    hostname. Ungueltige Werte werden niemals gespeichert; eine
+    Zulaessig sind url, language, theme, fullscreen, watchdog,
+    hostname, update_source, update_url und connectivity_check.
+    Ungueltige Werte werden niemals gespeichert; eine
     Hostnameaenderung wird sofort auf das System angewendet.
 
     Returns:

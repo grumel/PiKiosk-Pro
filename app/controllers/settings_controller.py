@@ -148,6 +148,59 @@ def hostname_save() -> str:
     return _render_hostname_tile(message=texts["hostname_saved_reboot_hint"])
 
 
+def _render_monitoring_tile(**context: object) -> str:
+    """Rendert die Ueberwachungs-Kachel.
+
+    Args:
+        context:
+            Zusaetzliche Template-Variablen.
+
+    Returns:
+        Das gerenderte Kachel-Fragment.
+    """
+    services = current_services()
+    return render_template(
+        "dashboard/_monitoring_tile.html",
+        texts=current_texts(),
+        config=services.config_service.load(),
+        watchdog_state=services.dashboard_service.watchdog_state(),
+        **context,
+    )
+
+
+@settings_blueprint.get("/monitoring")
+@login_required
+def monitoring_tile() -> str:
+    """Zeigt die Ueberwachungs-Kachel.
+
+    Returns:
+        Das gerenderte Kachel-Fragment.
+    """
+    return _render_monitoring_tile()
+
+
+@settings_blueprint.post("/monitoring")
+@login_required
+def monitoring_save() -> str:
+    """Speichert Watchdog-Schalter und Verbindungspruefung.
+
+    Returns:
+        Die aktualisierte Ueberwachungs-Kachel.
+    """
+    texts = current_texts()
+    services = current_services()
+    config = services.config_service.load()
+    config["watchdog"] = request.form.get("watchdog", "") == "on"
+    config["connectivity_check"] = request.form.get(
+        "connectivity_check", config["connectivity_check"]
+    )
+    try:
+        services.config_service.save(config)
+    except ValidationError as error:
+        return _render_monitoring_tile(error=str(error))
+    return _render_monitoring_tile(message=texts["monitoring_saved"])
+
+
 def _render_appearance_tile(**context: object) -> str:
     """Rendert die Darstellungs-Kachel.
 

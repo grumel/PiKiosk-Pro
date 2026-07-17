@@ -6,6 +6,7 @@ Macht das Projektpaket importierbar und stellt wiederverwendbare
 Fixtures fuer alle Testebenen bereit.
 """
 
+import json
 import sys
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -31,6 +32,27 @@ from app.services.network_service import NetworkService  # noqa: E402
 from app.services.restore_service import RestoreService  # noqa: E402
 from app.services.system_service import SystemService  # noqa: E402
 from app.services.update_service import UpdateService  # noqa: E402
+
+
+def project_defaults(**overrides: object) -> dict[str, object]:
+    """Liefert die Standardkonfiguration des Projekts.
+
+    Die Werte stammen aus config/defaults.json; damit muessen die
+    Tests bei neuen Konfigurationsschluesseln nicht angepasst
+    werden.
+
+    Args:
+        overrides:
+            Abweichende Werte fuer einzelne Schluessel.
+
+    Returns:
+        Die Standardkonfiguration mit den Abweichungen.
+    """
+    defaults = json.loads(
+        (PROJECT_ROOT / "config" / "defaults.json").read_text(encoding="utf-8")
+    )
+    defaults.update(overrides)
+    return defaults
 
 
 @pytest.fixture
