@@ -5,6 +5,10 @@ Weboberfläche. Linux-Kenntnisse sind nicht erforderlich.
 
 ## Anmeldung
 
+In allen Passwortfeldern lässt sich die Eingabe über das Auge
+rechts im Feld sichtbar machen – hilfreich bei langen Passwörtern
+und auf Touchscreens.
+
 Die Verwaltungsoberfläche ist im lokalen Netzwerk erreichbar unter:
 
 ```
@@ -60,6 +64,17 @@ Zeigt die aktive Verbindung mit Signalstärke, IP-Adresse, Gateway
 und DNS. „Netzwerke suchen" listet alle verfügbaren WLANs sortiert
 nach Signalstärke; die Verbindung erfolgt direkt aus der Liste.
 „Trennen" beendet die aktive WLAN-Verbindung.
+
+**Standard-WLAN**: Unten in der Kachel lässt sich eines der bereits
+gespeicherten Netzwerke als Standard festlegen. Danach erscheint
+oben eine Schaltfläche „Mit „<Name>" verbinden" – ein Klick genügt,
+etwa um nach einem Test in einem anderen Netz zurückzuwechseln.
+Andere Netzwerke bleiben weiterhin sichtbar und verbindbar.
+
+Hinterlegt wird nur der Name des Netzwerks. Das Passwort bleibt im
+Profil von NetworkManager – PiKiosk Pro speichert keine
+WLAN-Passwörter. Ein Netzwerk erscheint in der Auswahl, sobald es
+einmal erfolgreich verbunden wurde.
 
 ### System
 

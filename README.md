@@ -7,7 +7,7 @@ Nach dem Booten meldet sich das Gerät automatisch an, startet Chromium im
 Kioskmodus und zeigt die konfigurierte Webseite an. Die komplette
 Administration erfolgt über eine lokale Weboberfläche – ohne Linux-Kenntnisse.
 
-## Funktionen (Version 1.2.0)
+## Funktionen (Version 1.3.0)
 
 - **PiKiosk Center**: zentrale Verwaltung beliebig vieler Geräte –
   Zustand auf einen Blick, Massenaktionen für eine Auswahl

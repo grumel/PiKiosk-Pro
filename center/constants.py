@@ -9,8 +9,10 @@ verwaltet beliebig viele PiKiosk-Geraete ueber deren REST API.
 
 from pathlib import Path
 
+from app.constants import APP_VERSION
+
 CENTER_NAME: str = "PiKiosk Center"
-CENTER_VERSION: str = "1.2.0"
+CENTER_VERSION: str = APP_VERSION
 
 BASE_DIR: Path = Path(__file__).resolve().parent.parent
 CONFIG_DIR: Path = BASE_DIR / "config"

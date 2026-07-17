@@ -38,10 +38,44 @@ sudo systemctl restart pikiosk-watchdog.service
 Zeigt das Badge „Deaktiviert", ist der Watchdog in der
 Konfiguration abgeschaltet (`watchdog: false`).
 
+## „Not authorized to control networking" / keine Berechtigung
+
+Der WLAN-Scan funktioniert, aber jede Verbindung scheitert mit
+„Not authorized to control networking" bzw. „Keine Berechtigung,
+das Netzwerk zu ändern".
+
+**Ursache:** NetworkManager verlangt für Verbindungsänderungen eine
+interaktive Bestätigung durch einen Administrator (polkit,
+`auth_admin_keep`). Ein systemd-Dienst hat keine Sitzung, die diese
+Rückfrage beantworten könnte. Lesen (Scannen) ist davon nicht
+betroffen – deshalb funktioniert nur der Scan.
+
+**Lösung:** Die polkit-Regel installieren, die `install.sh` seit
+Version 1.3.0 mitbringt. Bei einer bestehenden Installation genügt:
+
+```bash
+sudo sed "s/__KIOSK_USER__/$USER/" \
+  /opt/pikiosk-pro/services/pikiosk-networkmanager.rules \
+  | sudo tee /etc/polkit-1/rules.d/50-pikiosk-networkmanager.rules
+sudo systemctl restart polkit
+sudo systemctl restart pikiosk.service
+```
+
+Die Regel erlaubt ausschließlich dem Kioskbenutzer genau die
+NetworkManager-Aktionen, die PiKiosk Pro benötigt (Verbindungen
+anlegen, aktivieren, trennen). Alle übrigen Berechtigungen bleiben
+unverändert. Prüfen lässt sich das mit:
+
+```bash
+ls -l /etc/polkit-1/rules.d/50-pikiosk-networkmanager.rules
+sudo journalctl -u polkit -n 20
+```
+
 ## WLAN verbindet nicht
 
 - Fehlermeldung in der WLAN-Kachel beachten (falsches Passwort,
-  SSID nicht gefunden, DHCP-Fehler, Zeitüberschreitung).
+  SSID nicht gefunden, DHCP-Fehler, Zeitüberschreitung, fehlende
+  Berechtigung – siehe oben).
 - `logs/network.log` prüfen.
 - NetworkManager-Status: `systemctl status NetworkManager`.
 - 5-GHz-Netze erfordern das korrekte WLAN-Land:
