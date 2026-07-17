@@ -250,5 +250,14 @@
     "center_device_not_found": "The device was not found.",
     "center_device_ok": "Device „{name}“ is reachable (version {version}).",
     "center_device_unreachable": "The device is not reachable: {error}",
-    "center_confirm_delete": "Really remove device „{name}“ from management?"
+    "center_confirm_delete": "Really remove device „{name}“ from management?",
+    "password_show": "Show password",
+    "password_hide": "Hide password",
+    "label_preferred_wifi": "Default Wi-Fi",
+    "wifi_preferred_none": "No default Wi-Fi",
+    "wifi_preferred_help": "Choose from the saved networks. The password stays with NetworkManager – PiKiosk does not store Wi-Fi passwords.",
+    "wifi_preferred_saved": "„{ssid}“ is now the default Wi-Fi.",
+    "wifi_preferred_cleared": "The default Wi-Fi has been removed.",
+    "btn_connect_preferred": "Connect to „{ssid}“",
+    "wifi_error_not_authorized": "Not allowed to change the network. The polkit rule for NetworkManager is missing – see troubleshooting."
 }

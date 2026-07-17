@@ -1,0 +1,33 @@
+// Copyright (c) 2026 Holger John
+// Lizenz: MIT License (siehe LICENSE)
+//
+// PiKiosk Pro - polkit-Regel fuer NetworkManager.
+//
+// NetworkManager verlangt fuer das Anlegen und Aktivieren von
+// Verbindungen standardmaessig eine interaktive Bestaetigung durch
+// einen Administrator (auth_admin_keep). Ein systemd-Dienst besitzt
+// keine Sitzung, die diese Rueckfrage beantworten koennte; ohne
+// diese Regel scheitert jede WLAN-Verbindung mit der Meldung
+// "Not authorized to control networking".
+//
+// Die Regel erlaubt ausschliesslich dem Kioskbenutzer und
+// ausschliesslich die Aktionen, die PiKiosk Pro fuer die
+// WLAN-Verwaltung benoetigt. Alle uebrigen polkit-Aktionen bleiben
+// unveraendert.
+//
+// Der Platzhalter __KIOSK_USER__ wird von install.sh ersetzt.
+
+polkit.addRule(function (action, subject) {
+    var erlaubteAktionen = [
+        "org.freedesktop.NetworkManager.network-control",
+        "org.freedesktop.NetworkManager.settings.modify.system",
+        "org.freedesktop.NetworkManager.settings.modify.own",
+        "org.freedesktop.NetworkManager.wifi.scan"
+    ];
+    if (
+        subject.user === "__KIOSK_USER__" &&
+        erlaubteAktionen.indexOf(action.id) !== -1
+    ) {
+        return polkit.Result.YES;
+    }
+});

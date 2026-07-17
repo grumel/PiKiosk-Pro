@@ -131,6 +131,34 @@ class NetworkService:
             )
         self._logger.info(f"Mit WLAN verbunden: {ssid}")
 
+    def connect_saved(self, ssid: str) -> None:
+        """Verbindet mit einem bereits gespeicherten WLAN-Profil.
+
+        Das Passwort wird nicht benoetigt: NetworkManager kennt es
+        aus dem gespeicherten Profil. PiKiosk Pro speichert selbst
+        keine WLAN-Passwoerter.
+
+        Args:
+            ssid:
+                Name des gespeicherten Profils.
+
+        Raises:
+            WifiError
+            NetworkError
+        """
+        if not ssid:
+            raise WifiError("Es ist kein Standard-WLAN hinterlegt.", reason="not_found")
+        if ssid not in self.saved():
+            raise WifiError(
+                f"Fuer '{ssid}' ist kein gespeichertes Profil vorhanden.",
+                reason="not_found",
+            )
+        try:
+            self._run(["connection", "up", "id", ssid])
+        except NetworkError as error:
+            raise self._map_connect_error(ssid, str(error)) from error
+        self._logger.info(f"Mit gespeichertem WLAN verbunden: {ssid}")
+
     def disconnect(self) -> None:
         """Trennt die aktive WLAN-Verbindung.
 
@@ -356,7 +384,11 @@ class NetworkService:
             Ein WifiError mit maschinenlesbarem Grund.
         """
         lowered = details.lower()
-        if "secrets were required" in lowered or "802-11-wireless-security" in lowered:
+        if "not authorized" in lowered or "permission denied" in lowered:
+            reason = "not_authorized"
+        elif (
+            "secrets were required" in lowered or "802-11-wireless-security" in lowered
+        ):
             reason = "wrong_password"
         elif "no network with ssid" in lowered or "not found" in lowered:
             reason = "not_found"
