@@ -1,0 +1,118 @@
+{# Copyright (c) 2026 Holger John - Lizenz: MIT License (siehe LICENSE) #}
+{# Fragment: Geraete aufnehmen, aendern, testen und entfernen. #}
+{% if error %}
+<div class="alert alert-danger" role="alert">{{ error }}</div>
+{% endif %}
+{% if message %}
+<div class="alert alert-success" role="alert">{{ message }}</div>
+{% endif %}
+
+<div class="card mb-4">
+    <div class="card-header">{{ texts['center_add_heading'] }}</div>
+    <div class="card-body">
+        <form id="device-add-form" class="row g-2 align-items-end">
+            <div class="col-12 col-md-3">
+                <label class="form-label" for="add-name">{{ texts['center_col_name'] }}</label>
+                <input class="form-control" type="text" id="add-name" name="name"
+                       autocomplete="off" placeholder="Empfang">
+            </div>
+            <div class="col-12 col-md-3">
+                <label class="form-label" for="add-address">{{ texts['center_col_address'] }}</label>
+                <input class="form-control" type="text" id="add-address" name="address"
+                       autocomplete="off" placeholder="pikiosk-01.local">
+            </div>
+            <div class="col-6 col-md-1">
+                <label class="form-label" for="add-port">{{ texts['center_col_port'] }}</label>
+                <input class="form-control" type="number" id="add-port" name="port"
+                       value="{{ default_port }}" min="1" max="65535">
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label" for="add-username">{{ texts['label_username'] }}</label>
+                <input class="form-control" type="text" id="add-username" name="username"
+                       value="admin" autocomplete="off">
+            </div>
+            <div class="col-12 col-md-2">
+                <label class="form-label" for="add-password">{{ texts['label_password'] }}</label>
+                <input class="form-control" type="password" id="add-password" name="password"
+                       autocomplete="new-password">
+            </div>
+            <div class="col-12 col-md-1 d-grid">
+                <button type="button" class="btn btn-primary"
+                        hx-post="{{ url_for('devices.add') }}"
+                        hx-include="#device-add-form"
+                        hx-target="#device-list">
+                    {{ texts['center_btn_add'] }}
+                </button>
+            </div>
+        </form>
+        <p class="text-body-secondary small mt-2 mb-0">{{ texts['center_add_help'] }}</p>
+    </div>
+</div>
+
+{% if not devices %}
+<div class="alert alert-secondary" role="alert">{{ texts['center_no_devices'] }}</div>
+{% else %}
+{% for device in devices %}
+<div class="card mb-2">
+    <div class="card-body">
+        <form id="device-form-{{ device['id'] }}" class="row g-2 align-items-end">
+            <div class="col-12 col-md-3">
+                <label class="form-label" for="name-{{ device['id'] }}">{{ texts['center_col_name'] }}</label>
+                <input class="form-control" type="text" id="name-{{ device['id'] }}"
+                       name="name" value="{{ device['name'] }}" autocomplete="off">
+            </div>
+            <div class="col-12 col-md-3">
+                <label class="form-label" for="address-{{ device['id'] }}">{{ texts['center_col_address'] }}</label>
+                <input class="form-control" type="text" id="address-{{ device['id'] }}"
+                       name="address" value="{{ device['address'] }}" autocomplete="off">
+            </div>
+            <div class="col-6 col-md-1">
+                <label class="form-label" for="port-{{ device['id'] }}">{{ texts['center_col_port'] }}</label>
+                <input class="form-control" type="number" id="port-{{ device['id'] }}"
+                       name="port" value="{{ device['port'] }}" min="1" max="65535">
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label" for="username-{{ device['id'] }}">{{ texts['label_username'] }}</label>
+                <input class="form-control" type="text" id="username-{{ device['id'] }}"
+                       name="username" value="{{ device['username'] }}" autocomplete="off">
+            </div>
+            <div class="col-12 col-md-2">
+                <label class="form-label" for="password-{{ device['id'] }}">{{ texts['center_new_password'] }}</label>
+                <input class="form-control" type="password" id="password-{{ device['id'] }}"
+                       name="password" autocomplete="new-password"
+                       placeholder="{{ texts['center_password_keep'] }}">
+            </div>
+            <div class="col-12 col-md-1">
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" role="switch"
+                           id="enabled-{{ device['id'] }}" name="enabled"
+                           {% if device['enabled'] %}checked{% endif %}>
+                    <label class="form-check-label small" for="enabled-{{ device['id'] }}">
+                        {{ texts['center_enabled'] }}
+                    </label>
+                </div>
+            </div>
+            <div class="col-12 d-flex flex-wrap gap-2 mt-2">
+                <button type="button" class="btn btn-primary"
+                        hx-post="{{ url_for('devices.update', device_id=device['id']) }}"
+                        hx-include="#device-form-{{ device['id'] }}"
+                        hx-target="#device-list">
+                    {{ texts['btn_save'] }}
+                </button>
+                <button type="button" class="btn btn-outline-primary"
+                        hx-post="{{ url_for('devices.test', device_id=device['id']) }}"
+                        hx-target="#device-list">
+                    {{ texts['center_btn_test'] }}
+                </button>
+                <button type="button" class="btn btn-outline-danger"
+                        hx-post="{{ url_for('devices.delete', device_id=device['id']) }}"
+                        hx-target="#device-list"
+                        hx-confirm="{{ texts['center_confirm_delete'].format(name=device['name']) }}">
+                    {{ texts['center_btn_delete'] }}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endfor %}
+{% endif %}

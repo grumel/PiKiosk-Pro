@@ -73,6 +73,9 @@ dem Gerät. Nach außen kommuniziert das System nur für die
 konfigurierten Zwecke (Kiosk-URL, URL-Prüfung, GitHub-Updates).
 
 **Kann ich mehrere Geräte zentral verwalten?**
-Ja, über die REST API mit JWT-Authentifizierung – Status,
-Konfiguration, Browser, Updates, Sicherungen und Neustart sind
-entfernt steuerbar (siehe [API.md](API.md)).
+Ja – mit PiKiosk Center. Auf einem beliebigen Rechner im Netz
+`sudo ./install_center.sh` ausführen, Geräte dort aufnehmen und den
+Zustand aller Kioske auf einer Seite sehen; Aktionen lassen sich für
+eine Auswahl gleichzeitig ausführen (siehe [Center.md](Center.md)).
+Die Geräte selbst bleiben unverändert – die Zentrale nutzt nur die
+vorhandene [REST API](API.md).

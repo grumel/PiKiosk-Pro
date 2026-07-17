@@ -30,3 +30,8 @@ htmlcov/
 .vscode/
 .idea/
 *.swp
+
+# Laufzeitdaten der Zentrale
+config/center_devices.db
+config/center_users.db
+config/center_key
