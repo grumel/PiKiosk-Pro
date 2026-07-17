@@ -9,7 +9,9 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
-<body class="d-flex flex-column min-vh-100">
+<body class="d-flex flex-column min-vh-100"
+      data-password-show="{{ texts['password_show'] }}"
+      data-password-hide="{{ texts['password_hide'] }}">
     <header class="navbar navbar-expand bg-body-tertiary border-bottom">
         <div class="container-fluid">
             <span class="navbar-brand fw-semibold">{{ texts['center_title'] }}</span>
@@ -23,6 +25,7 @@
         {{ texts['center_footer'] }}
     </footer>
     <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/password.js') }}"></script>
     {% block scripts %}{% endblock %}
 </body>
 </html>
