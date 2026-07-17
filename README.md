@@ -53,7 +53,7 @@ Administration erfolgt über eine lokale Weboberfläche – ohne Linux-Kenntniss
 ## Installation
 
 ```bash
-git clone https://github.com/holgerjohn/PiKiosk-Pro.git
+git clone https://github.com/grumel/PiKiosk-Pro.git
 cd PiKiosk-Pro
 sudo ./install.sh
 ```
