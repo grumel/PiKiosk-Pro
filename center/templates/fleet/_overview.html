@@ -1,0 +1,181 @@
+{# Copyright (c) 2026 Holger John - Lizenz: MIT License (siehe LICENSE) #}
+{# Fragment: Flottenuebersicht mit Auswahl und Massenaktionen. #}
+<form id="fleet-form">
+    <div class="row g-2 mb-3">
+        {% for key in ('total', 'online', 'offline', 'auth_error', 'disabled') %}
+        <div class="col-6 col-md">
+            <div class="card text-center">
+                <div class="card-body py-2">
+                    <div class="fs-4 fw-semibold
+                        {% if key == 'online' %}text-success
+                        {% elif key in ('offline', 'auth_error') and summary[key] %}text-danger
+                        {% endif %}">{{ summary[key] }}</div>
+                    <div class="small text-body-secondary">{{ texts['center_count_' ~ key] }}</div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% if error %}
+    <div class="alert alert-danger" role="alert">{{ error }}</div>
+    {% endif %}
+    {% if message %}
+    <div class="alert alert-success" role="alert">{{ message }}</div>
+    {% endif %}
+    {% if results %}
+    <ul class="list-group mb-3">
+        {% for result in results %}
+        <li class="list-group-item d-flex justify-content-between align-items-center py-2">
+            <span>{{ result['name'] }}</span>
+            {% if result['success'] %}
+            <span class="badge text-bg-success">{{ texts['center_result_ok'] }}</span>
+            {% else %}
+            <span class="text-danger small text-end">{{ result['error'] }}</span>
+            {% endif %}
+        </li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+
+    {% if not devices %}
+    <div class="alert alert-secondary" role="alert">{{ texts['center_no_devices'] }}</div>
+    {% else %}
+    <div class="table-responsive mb-3">
+        <table class="table table-hover align-middle">
+            <thead>
+                <tr>
+                    <th style="width: 3rem;">
+                        <input class="form-check-input" type="checkbox" id="select-all"
+                               aria-label="{{ texts['center_select_all'] }}">
+                    </th>
+                    <th>{{ texts['center_col_device'] }}</th>
+                    <th>{{ texts['center_col_state'] }}</th>
+                    <th>{{ texts['label_browser_status'] }}</th>
+                    <th>{{ texts['label_watchdog'] }}</th>
+                    <th>{{ texts['label_kiosk_url'] }}</th>
+                    <th>{{ texts['label_temperature'] }}</th>
+                    <th>{{ texts['label_version'] }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for device in devices %}
+                <tr>
+                    <td>
+                        <input class="form-check-input device-select" type="checkbox"
+                               name="device_ids" value="{{ device['id'] }}"
+                               {% if not device['enabled'] %}disabled{% endif %}
+                               aria-label="{{ device['name'] }}">
+                    </td>
+                    <td>
+                        <span class="fw-semibold">{{ device['name'] }}</span><br>
+                        <span class="text-body-secondary small">{{ device['address'] }}:{{ device['port'] }}</span>
+                    </td>
+                    <td>
+                        <span class="badge
+                            {% if device['state'] == 'online' %}text-bg-success
+                            {% elif device['state'] == 'offline' %}text-bg-danger
+                            {% elif device['state'] == 'auth_error' %}text-bg-warning
+                            {% else %}text-bg-secondary{% endif %}">
+                            {{ texts['center_state_' ~ device['state']] }}
+                        </span>
+                        {% if device['error'] %}
+                        <div class="text-body-secondary small text-truncate" style="max-width: 16rem;"
+                             title="{{ device['error'] }}">{{ device['error'] }}</div>
+                        {% endif %}
+                    </td>
+                    {% if device['status'] %}
+                    <td>
+                        <span class="badge
+                            {% if device['status']['browser_status'] == 'running' %}text-bg-success
+                            {% elif device['status']['browser_status'] in ('error', 'crashed') %}text-bg-danger
+                            {% else %}text-bg-secondary{% endif %}">
+                            {{ texts['browser_status_' ~ device['status']['browser_status']] }}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="badge
+                            {% if device['status']['watchdog'] == 'online' %}text-bg-success
+                            {% elif device['status']['watchdog'] in ('error', 'offline') %}text-bg-danger
+                            {% elif device['status']['watchdog'] == 'warning' %}text-bg-warning
+                            {% else %}text-bg-secondary{% endif %}">
+                            {{ texts['watchdog_status_' ~ device['status']['watchdog']] }}
+                        </span>
+                    </td>
+                    <td class="text-truncate" style="max-width: 14rem;">
+                        <span class="small">{{ device['status']['url'] or texts['no_url_configured'] }}</span>
+                    </td>
+                    <td class="small">
+                        {% if device['status']['temperature'] is not none %}
+                        {{ device['status']['temperature'] }} °C
+                        {% else %}-{% endif %}
+                    </td>
+                    <td class="small">{{ device['status']['version'] }}</td>
+                    {% else %}
+                    <td colspan="5" class="text-body-secondary small">{{ texts['center_no_data'] }}</td>
+                    {% endif %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="card">
+        <div class="card-header">{{ texts['center_bulk_heading'] }}</div>
+        <div class="card-body">
+            <p class="text-body-secondary small">{{ texts['center_bulk_help'] }}</p>
+            <div class="d-flex flex-wrap gap-2 mb-3">
+                <button type="button" class="btn btn-primary"
+                        hx-post="{{ url_for('fleet.action') }}"
+                        hx-vals='{"action": "browser_restart"}'
+                        hx-include="#fleet-form"
+                        hx-target="#fleet-overview">
+                    {{ texts['center_btn_browser_restart'] }}
+                </button>
+                <button type="button" class="btn btn-outline-primary"
+                        hx-post="{{ url_for('fleet.action') }}"
+                        hx-vals='{"action": "browser_start"}'
+                        hx-include="#fleet-form"
+                        hx-target="#fleet-overview">
+                    {{ texts['center_btn_browser_start'] }}
+                </button>
+                <button type="button" class="btn btn-outline-primary"
+                        hx-post="{{ url_for('fleet.action') }}"
+                        hx-vals='{"action": "browser_stop"}'
+                        hx-include="#fleet-form"
+                        hx-target="#fleet-overview">
+                    {{ texts['center_btn_browser_stop'] }}
+                </button>
+                <button type="button" class="btn btn-warning"
+                        hx-post="{{ url_for('fleet.action') }}"
+                        hx-vals='{"action": "reboot"}'
+                        hx-include="#fleet-form"
+                        hx-target="#fleet-overview"
+                        hx-confirm="{{ texts['center_confirm_reboot'] }}">
+                    {{ texts['btn_reboot'] }}
+                </button>
+                <button type="button" class="btn btn-danger"
+                        hx-post="{{ url_for('fleet.action') }}"
+                        hx-vals='{"action": "shutdown"}'
+                        hx-include="#fleet-form"
+                        hx-target="#fleet-overview"
+                        hx-confirm="{{ texts['center_confirm_shutdown'] }}">
+                    {{ texts['btn_shutdown'] }}
+                </button>
+            </div>
+            <label class="form-label" for="fleet-url">{{ texts['center_bulk_url'] }}</label>
+            <div class="input-group">
+                <input class="form-control" type="url" id="fleet-url" name="url"
+                       autocomplete="off" placeholder="http://server.local/anzeige">
+                <button type="button" class="btn btn-outline-primary"
+                        hx-post="{{ url_for('fleet.set_url') }}"
+                        hx-include="#fleet-form"
+                        hx-target="#fleet-overview"
+                        hx-confirm="{{ texts['center_confirm_url'] }}">
+                    {{ texts['btn_save'] }}
+                </button>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</form>

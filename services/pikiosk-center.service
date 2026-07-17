@@ -1,0 +1,23 @@
+# Copyright (c) 2026 Holger John
+# Lizenz: MIT License (siehe LICENSE)
+#
+# PiKiosk Center - systemd-Dienst der Verwaltungszentrale.
+# Laeuft auf einem beliebigen Rechner im Netzwerk und verwaltet von
+# dort alle PiKiosk-Geraete. Die Platzhalter __CENTER_USER__ und
+# __INSTALL_DIR__ werden von install_center.sh ersetzt.
+
+[Unit]
+Description=PiKiosk Center Verwaltungszentrale
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=__CENTER_USER__
+WorkingDirectory=__INSTALL_DIR__
+ExecStart=__INSTALL_DIR__/.venv/bin/python -m center.app
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

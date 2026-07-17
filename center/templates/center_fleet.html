@@ -1,0 +1,60 @@
+{# Copyright (c) 2026 Holger John - Lizenz: MIT License (siehe LICENSE) #}
+{# Hauptseite der Zentrale: Flottenuebersicht und Geraeteverwaltung. #}
+{% extends "center_base.html" %}
+
+{% block title %}{{ texts['center_fleet_heading'] }}{% endblock %}
+
+{% block navbar_actions %}
+<div class="ms-auto d-flex align-items-center gap-3">
+    <span class="text-body-secondary small">{{ center_version }}</span>
+    <form method="post" action="{{ url_for('center_auth.logout') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button type="submit" class="btn btn-outline-secondary">
+            {{ texts['logout_button'] }}
+        </button>
+    </form>
+</div>
+{% endblock %}
+
+{% block content %}
+<div hx-headers='{"X-CSRF-Token": "{{ csrf_token }}"}'>
+    <ul class="nav nav-tabs mb-3" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" data-bs-toggle="tab"
+                    data-bs-target="#tab-fleet" type="button" role="tab">
+                {{ texts['center_fleet_heading'] }}
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab"
+                    data-bs-target="#tab-devices" type="button" role="tab"
+                    hx-get="{{ url_for('devices.index') }}"
+                    hx-target="#device-list"
+                    hx-trigger="click once">
+                {{ texts['center_devices_heading'] }}
+            </button>
+        </li>
+    </ul>
+    <div class="tab-content">
+        <div class="tab-pane fade show active" id="tab-fleet" role="tabpanel">
+            <div id="fleet-overview"
+                 hx-get="{{ url_for('fleet.overview') }}"
+                 hx-trigger="load, every 15s"
+                 hx-swap="innerHTML">
+                <div class="text-body-secondary">
+                    <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                    {{ texts['center_loading'] }}
+                </div>
+            </div>
+        </div>
+        <div class="tab-pane fade" id="tab-devices" role="tabpanel">
+            <div id="device-list"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/htmx.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/center.js') }}"></script>
+{% endblock %}

@@ -30,7 +30,7 @@ keine globalen Variablen.
  Raspberry Pi OS
 ```
 
-## Module (Version 1.1.0)
+## Module (Version 1.2.0)
 
 | Modul                              | Aufgabe                                        |
 | ---------------------------------- | ---------------------------------------------- |
@@ -215,6 +215,32 @@ Neue Konfigurationsschluessel werden beim Laden automatisch aus
 `config/defaults.json` ergaenzt (Migration im ConfigService),
 damit bestehende Installationen nach einem Update ohne Eingriff
 weiterlaufen.
+
+## Zentrale Verwaltung (PiKiosk Center)
+
+Die Zentrale ist eine eigene Flask-Anwendung im Verzeichnis
+`center/` mit eigenem Port (8090), eigener Datenbank und eigenem
+Administratorkonto. Sie fragt die Geraete ueber deren REST API ab
+(Pull); auf den Geraeten ist keine Aenderung noetig.
+
+| Modul                              | Aufgabe                                    |
+| ---------------------------------- | ------------------------------------------ |
+| `center/__init__.py`               | Anwendungsfabrik der Zentrale              |
+| `center/app.py`                    | Einstiegspunkt (Port 8090)                 |
+| `center/models/device_model.py`    | Geraetetabelle (SQLite)                    |
+| `center/services/device_service.py`| Geraeteliste, Validierung, Verschluesselung |
+| `center/services/device_client.py` | Client der Geraete-API, Token-Zwischenspeicher |
+| `center/services/fleet_service.py` | Parallele Abfrage, Massenaktionen          |
+| `center/controllers/`              | Anmeldung, Uebersicht, Geraeteverwaltung   |
+
+Die Zugangsdaten der Geraete werden mit Fernet verschluesselt
+gespeichert (`app/utils/crypto.py`), der Schluessel liegt in
+`config/center_key` mit Rechten 600. Die Anmeldung an der Zentrale
+nutzt dieselben Bausteine wie das Geraete-Dashboard (Flask-Login,
+bcrypt, AuthService, UserModel) mit eigener Datenbank. Alle Geraete
+werden ueber einen Thread-Pool parallel abgefragt; ein nicht
+erreichbares Geraet beeinflusst die uebrigen nicht. Details:
+[Center.md](Center.md).
 
 ## Zukunftssicherheit
 

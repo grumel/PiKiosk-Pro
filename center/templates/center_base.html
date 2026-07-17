@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+{# Copyright (c) 2026 Holger John - Lizenz: MIT License (siehe LICENSE) #}
+{# Basistemplate der Zentrale: Navigation, Theme, Bootstrap. #}
+<html lang="{{ texts['html_lang'] }}" data-bs-theme="dark">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}{{ texts['center_title'] }}{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="d-flex flex-column min-vh-100">
+    <header class="navbar navbar-expand bg-body-tertiary border-bottom">
+        <div class="container-fluid">
+            <span class="navbar-brand fw-semibold">{{ texts['center_title'] }}</span>
+            {% block navbar_actions %}{% endblock %}
+        </div>
+    </header>
+    <main class="container-fluid py-4 flex-grow-1">
+        {% block content %}{% endblock %}
+    </main>
+    <footer class="border-top py-3 text-center text-body-secondary small">
+        {{ texts['center_footer'] }}
+    </footer>
+    <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

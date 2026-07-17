@@ -5,6 +5,36 @@ dokumentiert. Das Format orientiert sich an
 [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die
 Versionierung folgt [Semantic Versioning](https://semver.org/lang/de/).
 
+## [1.2.0] - 2026-07-17
+
+Zentrale Verwaltung: Mit PiKiosk Center lassen sich beliebig viele
+Geräte von einem Rechner aus überwachen und steuern.
+
+### Hinzugefügt
+
+- PiKiosk Center als eigenständige Anwendung (Port 8090) mit
+  eigenem Administratorkonto, Ersteinrichtung beim ersten Aufruf,
+  Anmeldung, CSRF-Schutz und Session-Timeout
+- Flottenübersicht: alle Geräte werden parallel abgefragt
+  (Aktualisierung alle 15 Sekunden) und mit Zustand (Online,
+  Offline, Anmeldefehler, Deaktiviert), Browserstatus, Watchdog,
+  Kiosk-URL, Temperatur und Version angezeigt
+- Massenaktionen für eine Auswahl von Geräten: Browser neu starten,
+  starten, stoppen, Neustart, Herunterfahren sowie Kiosk-URL für
+  alle ausgewählten Geräte setzen; Ergebnisse je Gerät im Klartext
+- Geräteverwaltung: aufnehmen (mit sofortiger Verbindungsprüfung),
+  ändern, Verbindung testen, deaktivieren und entfernen
+- Gerätezugangsdaten werden verschlüsselt gespeichert (Fernet,
+  Schlüsseldatei mit Rechten 600); Tokens werden je Gerät bis kurz
+  vor Ablauf zwischengespeichert
+- install_center.sh und pikiosk-center.service für die Installation
+  der Zentrale auf einem beliebigen Rechner im Netzwerk
+- Dokumentation der Zentrale (docs/Center.md)
+
+Die Geräte selbst bleiben unverändert: Die Zentrale nutzt
+ausschließlich die vorhandene REST API, jedes Gerät läuft autark
+weiter, auch wenn die Zentrale ausfällt.
+
 ## [1.1.0] - 2026-07-17
 
 Offline-Betrieb: PiKiosk Pro laesst sich jetzt vollstaendig ohne
