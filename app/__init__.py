@@ -30,6 +30,7 @@ from werkzeug.wrappers import Response
 
 from app.api import api_blueprint
 from app.constants import (
+    APP_VERSION,
     BASE_DIR,
     BROWSER_LOG_FILE,
     MAX_UPLOAD_BYTES,
@@ -231,7 +232,7 @@ def _register_csrf_protection(app: Flask) -> None:
 
     @app.context_processor
     def inject_csrf_token() -> dict[str, str]:
-        return {"csrf_token": ensure_csrf_token()}
+        return {"csrf_token": ensure_csrf_token(), "asset_version": APP_VERSION}
 
 
 def _register_setup_gate(app: Flask) -> None:

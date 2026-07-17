@@ -7,6 +7,8 @@
 {% block content %}
 <div id="setup-wizard"
      class="row justify-content-center"
+     data-error-server="{{ texts['setup_error_server'] }}"
+     data-error-network="{{ texts['setup_error_network'] }}"
      hx-headers='{"X-CSRF-Token": "{{ csrf_token }}"}'>
     <div class="col-12 col-md-10 col-lg-8">
         <div class="card shadow-sm">
@@ -20,5 +22,6 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="{{ url_for('static', filename='js/htmx.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/htmx.min.js') }}?v={{ asset_version }}"></script>
+<script src="{{ url_for('static', filename='js/setup.js') }}?v={{ asset_version }}"></script>
 {% endblock %}

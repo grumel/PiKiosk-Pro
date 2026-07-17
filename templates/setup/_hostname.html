@@ -8,7 +8,7 @@
 {% if success %}
 <div class="alert alert-success" role="alert">{{ texts['hostname_valid'] }}</div>
 {% endif %}
-<form hx-post="{{ url_for('setup.save_hostname') }}" hx-target="#step-content">
+<form>
     <div class="mb-4">
         <label class="form-label" for="hostname">{{ texts['label_hostname'] }}</label>
         <input class="form-control form-control-lg" type="text" id="hostname"
@@ -22,7 +22,11 @@
             {{ texts['btn_back'] }}
         </button>
         <div class="d-flex gap-2">
-            <button type="submit" class="btn btn-outline-primary px-4">
+            <button type="button" class="btn btn-outline-primary px-4"
+                    data-default-action
+                    hx-post="{{ url_for('setup.save_hostname') }}"
+                    hx-target="#step-content"
+                    hx-include="closest form">
                 {{ texts['btn_check'] }}
             </button>
             {% if state.get('hostname') %}

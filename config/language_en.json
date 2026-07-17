@@ -18,6 +18,8 @@
     "error_message": "Please try again. Details have been logged for the administrator.",
     "footer_text": "PiKiosk Pro – Professional open source kiosk system",
     "setup_title": "Setup wizard",
+    "setup_error_server": "The server rejected the request. Please reload the page (Ctrl+Shift+R) and try again.",
+    "setup_error_network": "No connection to the device. Please check the network connection and try again.",
     "btn_next": "Next",
     "btn_back": "Back",
     "btn_check": "Check",

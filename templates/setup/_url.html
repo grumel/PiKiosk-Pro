@@ -10,7 +10,7 @@
     {{ texts['url_valid'] }} ({{ texts['label_http_status'] }} {{ status }})
 </div>
 {% endif %}
-<form hx-post="{{ url_for('setup.save_url') }}" hx-target="#step-content">
+<form>
     <div class="mb-4">
         <label class="form-label" for="kiosk-url">{{ texts['label_kiosk_url'] }}</label>
         <input class="form-control form-control-lg" type="url" id="kiosk-url"
@@ -24,7 +24,11 @@
             {{ texts['btn_back'] }}
         </button>
         <div class="d-flex gap-2">
-            <button type="submit" class="btn btn-outline-primary px-4">
+            <button type="button" class="btn btn-outline-primary px-4"
+                    data-default-action
+                    hx-post="{{ url_for('setup.save_url') }}"
+                    hx-target="#step-content"
+                    hx-include="closest form">
                 {{ texts['btn_check'] }}
             </button>
             {% if state.get('url') %}

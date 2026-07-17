@@ -5,7 +5,7 @@
 {% elif not networks %}
 <div class="alert alert-secondary" role="alert">{{ texts['wifi_no_networks'] }}</div>
 {% else %}
-<form hx-post="{{ url_for('setup.wifi_connect') }}" hx-target="#step-content">
+<form>
     <div class="list-group mb-3">
         {% for network in networks %}
         <label class="list-group-item d-flex align-items-center gap-3">
@@ -24,7 +24,11 @@
         <input class="form-control form-control-lg" type="password"
                id="wifi-password" name="password" autocomplete="off">
     </div>
-    <button type="submit" class="btn btn-primary px-4">
+    <button type="button" class="btn btn-primary px-4"
+            data-default-action
+            hx-post="{{ url_for('setup.wifi_connect') }}"
+            hx-target="#step-content"
+            hx-include="closest form">
         {{ texts['btn_connect'] }}
     </button>
 </form>

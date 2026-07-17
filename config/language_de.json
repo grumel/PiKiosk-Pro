@@ -18,6 +18,8 @@
     "error_message": "Bitte versuchen Sie es erneut. Die Details wurden für den Administrator protokolliert.",
     "footer_text": "PiKiosk Pro – Professionelles Open-Source-Kiosk-System",
     "setup_title": "Einrichtungsassistent",
+    "setup_error_server": "Der Server hat die Anfrage abgelehnt. Bitte die Seite neu laden (Strg+Umschalt+R) und erneut versuchen.",
+    "setup_error_network": "Keine Verbindung zum Gerät. Bitte die Netzwerkverbindung prüfen und erneut versuchen.",
     "btn_next": "Weiter",
     "btn_back": "Zurück",
     "btn_check": "Prüfen",

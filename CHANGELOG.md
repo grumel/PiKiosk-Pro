@@ -5,6 +5,29 @@ dokumentiert. Das Format orientiert sich an
 [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die
 Versionierung folgt [Semantic Versioning](https://semver.org/lang/de/).
 
+## [1.3.1] - 2026-07-17
+
+### Behoben
+
+- **Einrichtungsassistent: „Prüfen" reagierte in Chromium nicht** (in
+  Firefox funktionierte es). Ursache war ein möglicher nativer
+  Formular-Absendevorgang: Chromium blockiert das Absenden von
+  Passwortfeldern über HTTP, wodurch scheinbar nichts passierte. Die
+  Schaltflächen der Wizard-Schritte lösen die Prüfung jetzt
+  ausschließlich per HTMX aus (kein nativer Submit mehr); die
+  Eingabetaste funktioniert weiterhin.
+- **Getrennte Browser-Caches führten zu unterschiedlichem Verhalten.**
+  Statische Dateien (CSS/JS) werden nun mit der Programmversion
+  ausgeliefert (`?v=<Version>`), sodass nach jedem Update garantiert
+  die aktuelle Fassung geladen wird und kein Browser eine veraltete
+  JavaScript-Datei aus dem Zwischenspeicher verwendet.
+
+### Hinzugefügt
+
+- Schlägt eine Anfrage im Einrichtungsassistenten fehl (Serverfehler
+  oder keine Verbindung), erscheint jetzt eine sichtbare Meldung
+  statt eines wirkungslosen Klicks.
+
 ## [1.3.0] - 2026-07-17
 
 ### Behoben
