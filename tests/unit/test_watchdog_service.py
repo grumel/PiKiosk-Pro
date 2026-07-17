@@ -18,17 +18,9 @@ from app.logger import KioskLogger
 from app.services import watchdog_service as watchdog_module
 from app.services.config_service import ConfigService
 from app.services.watchdog_service import WatchdogService
+from tests.conftest import project_defaults
 
-DEFAULTS: dict[str, Any] = {
-    "hostname": "PiKiosk",
-    "url": "",
-    "language": "de",
-    "theme": "dark",
-    "fullscreen": True,
-    "watchdog": True,
-    "browser": "chromium",
-    "first_start": False,
-}
+DEFAULTS: dict[str, Any] = project_defaults(first_start=False)
 
 
 @pytest.fixture
@@ -245,7 +237,7 @@ class TestCheckOnce:
         monkeypatch.setattr(
             service,
             "_check_network",
-            lambda url: {
+            lambda url, mode: {
                 "gateway": True,
                 "dns": True,
                 "internet": True,
@@ -318,8 +310,10 @@ class TestNetworkChecks:
     ) -> None:
         monkeypatch.setattr(watchdog_module, "default_gateway", lambda: "192.0.2.1")
         monkeypatch.setattr(watchdog_module, "ping_host", lambda host: True)
-        monkeypatch.setattr(watchdog_module, "internet_reachable", lambda: True)
-        network = service._check_network(f"{http_status_server}/ok")
+        monkeypatch.setattr(
+            watchdog_module, "connectivity_ok", lambda mode, url="": True
+        )
+        network = service._check_network(f"{http_status_server}/ok", "internet")
         assert network == {
             "gateway": True,
             "dns": True,
@@ -331,8 +325,10 @@ class TestNetworkChecks:
         self, service: WatchdogService, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         monkeypatch.setattr(watchdog_module, "default_gateway", lambda: "")
-        monkeypatch.setattr(watchdog_module, "internet_reachable", lambda: False)
-        network = service._check_network("")
+        monkeypatch.setattr(
+            watchdog_module, "connectivity_ok", lambda mode, url="": False
+        )
+        network = service._check_network("", "internet")
         assert network["gateway"] is False
         assert network["url"] is None
         assert network["dns"] is True
@@ -341,8 +337,10 @@ class TestNetworkChecks:
         self, service: WatchdogService, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         monkeypatch.setattr(watchdog_module, "default_gateway", lambda: "")
-        monkeypatch.setattr(watchdog_module, "internet_reachable", lambda: True)
-        network = service._check_network("http://127.0.0.1:59995/")
+        monkeypatch.setattr(
+            watchdog_module, "connectivity_ok", lambda mode, url="": True
+        )
+        network = service._check_network("http://127.0.0.1:59995/", "internet")
         assert network["url"] is False
 
     def test_dns_pruefung(

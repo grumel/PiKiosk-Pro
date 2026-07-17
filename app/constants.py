@@ -11,7 +11,7 @@ zu, damit keine doppelten Definitionen entstehen.
 from pathlib import Path
 
 APP_NAME: str = "PiKiosk Pro"
-APP_VERSION: str = "1.0.0"
+APP_VERSION: str = "1.1.0"
 
 BASE_DIR: Path = Path(__file__).resolve().parent.parent
 CONFIG_DIR: Path = BASE_DIR / "config"
@@ -56,6 +56,13 @@ ALLOWED_URL_SCHEMES: tuple[str, ...] = ("http", "https")
 SUPPORTED_LANGUAGES: tuple[str, ...] = ("de", "en")
 SUPPORTED_THEMES: tuple[str, ...] = ("dark", "light", "auto")
 SUPPORTED_BROWSERS: tuple[str, ...] = ("chromium",)
+SUPPORTED_UPDATE_SOURCES: tuple[str, ...] = ("github", "local", "off")
+SUPPORTED_CONNECTIVITY_CHECKS: tuple[str, ...] = (
+    "internet",
+    "url",
+    "gateway",
+    "off",
+)
 
 USERS_DB_FILE: Path = CONFIG_DIR / "users.db"
 SECRET_KEY_FILE: Path = CONFIG_DIR / "secret_key"
@@ -134,6 +141,7 @@ USB_MOUNT_ROOTS: tuple[Path, ...] = (Path("/media"), Path("/run/media"))
 USB_BACKUP_GLOB: str = "PiKiosk_Backup*.zip"
 MAX_UPLOAD_BYTES: int = 50 * 1024 * 1024
 
+UPDATE_MANIFEST_NAME: str = "manifest.json"
 GITHUB_REPO: str = "grumel/PiKiosk-Pro"
 GITHUB_API_BASE: str = "https://api.github.com"
 UPDATE_HTTP_TIMEOUT_SECONDS: float = 15.0
@@ -171,4 +179,7 @@ CONFIG_SCHEMA: dict[str, type] = {
     "watchdog": bool,
     "browser": str,
     "first_start": bool,
+    "update_source": str,
+    "update_url": str,
+    "connectivity_check": str,
 }

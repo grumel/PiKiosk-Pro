@@ -94,14 +94,79 @@ def internet_reachable() -> bool:
     Returns:
         True, wenn das Internet erreichbar ist.
     """
+    return host_reachable(INTERNET_CHECK_HOST, INTERNET_CHECK_PORT)
+
+
+def host_reachable(
+    host: str,
+    port: int,
+    timeout: float = INTERNET_CHECK_TIMEOUT_SECONDS,
+) -> bool:
+    """Prueft, ob ein Host auf einem Port erreichbar ist.
+
+    Args:
+        host:
+            Hostname oder IP-Adresse.
+
+        port:
+            TCP-Port.
+
+        timeout:
+            Timeout in Sekunden.
+
+    Returns:
+        True, wenn eine Verbindung aufgebaut werden konnte.
+    """
+    if not host:
+        return False
     try:
-        with socket.create_connection(
-            (INTERNET_CHECK_HOST, INTERNET_CHECK_PORT),
-            timeout=INTERNET_CHECK_TIMEOUT_SECONDS,
-        ):
+        with socket.create_connection((host, port), timeout=timeout):
             return True
     except OSError:
         return False
+
+
+def url_host_reachable(url: str) -> bool:
+    """Prueft die Erreichbarkeit des Hosts einer URL.
+
+    Es wird nur eine TCP-Verbindung aufgebaut, kein HTTP-Aufruf
+    ausgefuehrt; die Pruefung ist damit auch fuer haeufige
+    Wiederholungen guenstig.
+
+    Args:
+        url:
+            Zu pruefende URL.
+
+    Returns:
+        True, wenn der Host der URL erreichbar ist.
+    """
+    parts = urlsplit(url)
+    if not parts.hostname:
+        return False
+    port = parts.port or (443 if parts.scheme == "https" else 80)
+    return host_reachable(parts.hostname, port)
+
+
+def connectivity_ok(mode: str, url: str = "") -> bool:
+    """Prueft die Verbindung gemaess der konfigurierten Betriebsart.
+
+    Args:
+        mode:
+            Betriebsart: internet, url, gateway oder off.
+
+        url:
+            Konfigurierte Kiosk-URL, nur fuer die Betriebsart url.
+
+    Returns:
+        True, wenn die Verbindung als in Ordnung gilt.
+    """
+    if mode == "off":
+        return True
+    if mode == "gateway":
+        return ping_host(default_gateway())
+    if mode == "url":
+        return url_host_reachable(url)
+    return internet_reachable()
 
 
 def default_gateway() -> str:

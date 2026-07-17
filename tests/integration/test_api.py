@@ -476,7 +476,7 @@ class TestApiBranches:
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         monkeypatch.setattr(
-            registry.update_service, "apply_github", lambda: {"version": "9.9.9"}
+            registry.update_service, "apply", lambda: {"version": "9.9.9"}
         )
         monkeypatch.setattr(
             registry.update_service, "rollback", lambda: {"version": "0.1.0"}

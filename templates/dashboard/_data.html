@@ -69,7 +69,13 @@
                     </span>
                 </li>
                 <li class="list-group-item d-flex justify-content-between">
-                    <span>{{ texts['label_internet_status'] }}</span>
+                    <span>
+                        {%- if data['connectivity_check'] == 'internet' -%}
+                        {{ texts['label_internet_status'] }}
+                        {%- else -%}
+                        {{ texts['label_connectivity_status'] }}
+                        {%- endif -%}
+                    </span>
                     <span class="badge align-self-center
                         {{ 'text-bg-success' if data['internet_online'] else 'text-bg-danger' }}">
                         {{ texts['internet_online'] if data['internet_online'] else texts['internet_offline'] }}

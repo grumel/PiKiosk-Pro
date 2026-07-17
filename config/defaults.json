@@ -6,5 +6,8 @@
     "fullscreen": true,
     "watchdog": true,
     "browser": "chromium",
-    "first_start": true
+    "first_start": true,
+    "update_source": "github",
+    "update_url": "",
+    "connectivity_check": "internet"
 }

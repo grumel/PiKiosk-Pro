@@ -23,19 +23,11 @@ from app.logger import KioskLogger
 from app.services.backup_service import BackupService
 from app.services.config_service import ConfigService
 from app.services.update_service import UpdateService
+from tests.conftest import project_defaults
 
 CURRENT = APP_VERSION
 NEWER = "9.9.0"
-DEFAULTS: dict[str, Any] = {
-    "hostname": "PiKiosk",
-    "url": "",
-    "language": "de",
-    "theme": "dark",
-    "fullscreen": True,
-    "watchdog": True,
-    "browser": "chromium",
-    "first_start": False,
-}
+DEFAULTS: dict[str, Any] = project_defaults(first_start=False)
 
 
 def constants_source(version: str) -> str:
@@ -290,7 +282,7 @@ class TestGithub:
                 "tarball_url": "https://example.org/archive.tar.gz",
             },
         )
-        info = service.check_github()
+        info = service.check()
         assert info["available"] is True
         assert info["latest"] == NEWER
         assert info["status"] == "available"
@@ -302,7 +294,7 @@ class TestGithub:
         monkeypatch.setattr(
             service, "_github_latest", lambda: {"tag_name": f"v{CURRENT}"}
         )
-        info = service.check_github()
+        info = service.check()
         assert info["available"] is False
         assert info["status"] == "up_to_date"
 
@@ -310,7 +302,7 @@ class TestGithub:
         self, service: UpdateService, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         monkeypatch.setattr(service, "_github_latest", lambda: None)
-        info = service.check_github()
+        info = service.check()
         assert info["available"] is False
         assert info["status"] == "no_release"
 
@@ -320,7 +312,7 @@ class TestGithub:
         monkeypatch.setattr(
             service, "_github_latest", lambda: {"tag_name": "release-xyz"}
         )
-        info = service.check_github()
+        info = service.check()
         assert info["available"] is False
         assert info["status"] == "invalid_version"
 
@@ -337,7 +329,7 @@ class TestGithub:
             },
         )
         monkeypatch.setattr(service, "_download", lambda url: package)
-        result = service.apply_github()
+        result = service.apply()
         assert result["version"] == NEWER
 
     def test_apply_github_ohne_update(
@@ -347,4 +339,4 @@ class TestGithub:
             service, "_github_latest", lambda: {"tag_name": f"v{CURRENT}"}
         )
         with pytest.raises(UpdateError):
-            service.apply_github()
+            service.apply()

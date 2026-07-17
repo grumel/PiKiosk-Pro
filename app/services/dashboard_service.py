@@ -25,7 +25,7 @@ from app.services.browser_service import BrowserService
 from app.services.config_service import ConfigService
 from app.utils.filesystem import read_json_file
 from app.utils.helpers import cpu_temperature, device_model, local_ip_address
-from app.utils.network import internet_reachable
+from app.utils.network import connectivity_ok
 
 
 class DashboardService:
@@ -76,7 +76,10 @@ class DashboardService:
             "disk_free_gb": round(disk.free / (1024**3), 1),
             "disk_total_gb": round(disk.total / (1024**3), 1),
             "browser_status": self._browser_service.status().value,
-            "internet_online": internet_reachable(),
+            "internet_online": connectivity_ok(
+                str(config["connectivity_check"]), str(config["url"])
+            ),
+            "connectivity_check": config["connectivity_check"],
             "watchdog": self.watchdog_state(),
             "url": config["url"],
             "version": APP_VERSION,

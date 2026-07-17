@@ -17,11 +17,12 @@ def get_update() -> Response:
     """Liefert Version und Rollback-Zustand.
 
     Returns:
-        JSON mit aktueller Version und Rollback-Informationen.
+        JSON mit Version, Updatequelle und Rollback-Informationen.
     """
     update = current_services().update_service
     return jsonify(
         current=update.current_version(),
+        source=update.source(),
         can_rollback=update.can_rollback(),
         rollback=update.rollback_info(),
     )
@@ -43,7 +44,7 @@ def control_update() -> Response | tuple[Response, int]:
         return api_error(400, "invalid_action")
     update = current_services().update_service
     if action == "check":
-        return jsonify(update.check_github())
+        return jsonify(update.check())
     if action == "install":
-        return jsonify(update.apply_github())
+        return jsonify(update.apply())
     return jsonify(update.rollback())

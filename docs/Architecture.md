@@ -30,7 +30,7 @@ keine globalen Variablen.
  Raspberry Pi OS
 ```
 
-## Module (Version 1.0.0)
+## Module (Version 1.1.0)
 
 | Modul                              | Aufgabe                                        |
 | ---------------------------------- | ---------------------------------------------- |
@@ -195,6 +195,26 @@ Konfiguration gespeichert und lassen sich im Dashboard (Kachel
 Systemeinstellung. Konfiguration und Sprachdateien werden je
 Aenderungsstand (mtime) zwischengespeichert, damit sie nicht bei
 jeder Anfrage neu gelesen werden.
+
+## Offline-Betrieb
+
+Ein Kiosk ohne Internetzugang wird ueber zwei Konfigurations-
+schluessel eingerichtet:
+
+- `update_source` (`github`, `local`, `off`) und `update_url`:
+  Bei `local` fragt der UpdateService `<update_url>/manifest.json`
+  ab (Felder version, archive, notes) und laedt das Paket relativ
+  zur Update-URL. Paketpruefung, automatische Sicherung und
+  Rollback sind mit dem GitHub-Weg identisch.
+- `connectivity_check` (`internet`, `url`, `gateway`, `off`):
+  Legt fest, was Dashboard und Watchdog als „online" werten.
+  Ohne Internetzugang ist `url` sinnvoll – dann entscheidet die
+  Erreichbarkeit der Kiosk-URL (TCP-Verbindung zum Host).
+
+Neue Konfigurationsschluessel werden beim Laden automatisch aus
+`config/defaults.json` ergaenzt (Migration im ConfigService),
+damit bestehende Installationen nach einem Update ohne Eingriff
+weiterlaufen.
 
 ## Zukunftssicherheit
 

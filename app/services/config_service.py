@@ -13,7 +13,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from app.constants import BACKUP_DIR, CONFIG_FILE, DEFAULTS_FILE
+from app.constants import BACKUP_DIR, CONFIG_FILE, CONFIG_SCHEMA, DEFAULTS_FILE
 from app.exceptions import ConfigurationError
 from app.logger import KioskLogger
 from app.utils.filesystem import read_json_file, write_json_atomic
@@ -74,11 +74,48 @@ class ConfigService:
         mtime_ns = self._config_file.stat().st_mtime_ns
         if self._cache is not None and mtime_ns == self._cache_mtime_ns:
             return dict(self._cache)
-        config = read_json_file(self._config_file)
+        config = self._migrate(read_json_file(self._config_file))
         self.validate(config)
         self._cache = dict(config)
-        self._cache_mtime_ns = mtime_ns
+        self._cache_mtime_ns = self._config_file.stat().st_mtime_ns
         return config
+
+    def _migrate(self, config: dict[str, Any]) -> dict[str, Any]:
+        """Ergaenzt fehlende Schluessel aus den Standardwerten.
+
+        Nach einem Update kann eine bestehende Konfiguration neue
+        Schluessel noch nicht enthalten. Diese werden aus den
+        Standardwerten ergaenzt und die Konfiguration wird einmalig
+        gespeichert. Vorhandene Werte bleiben unveraendert.
+
+        Args:
+            config:
+                Gelesene Konfiguration.
+
+        Returns:
+            Die vollstaendige Konfiguration.
+
+        Raises:
+            ConfigurationError
+            ValidationError
+        """
+        missing = sorted(set(CONFIG_SCHEMA) - set(config))
+        if not missing:
+            return config
+        defaults = read_json_file(self._defaults_file)
+        migrated = dict(config)
+        for key in missing:
+            if key not in defaults:
+                raise ConfigurationError(
+                    f"Der Standardwert fuer '{key}' fehlt in {self._defaults_file}."
+                )
+            migrated[key] = defaults[key]
+        self.validate(migrated)
+        write_json_atomic(self._config_file, migrated)
+        self._logger.info(
+            "Konfiguration ergaenzt um neue Schluessel: " + ", ".join(missing)
+        )
+        return migrated
 
     def save(self, config: dict[str, Any]) -> None:
         """Validiert und speichert eine Konfiguration atomar.
