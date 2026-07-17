@@ -5,6 +5,11 @@
 Implementiert JSON Web Tokens (JWT, HS256) fuer die REST API mit
 Bordmitteln der Standardbibliothek. Signaturen werden zeitkonstant
 verglichen, abgelaufene oder manipulierte Tokens werden abgelehnt.
+
+Zusaetzlich wird die symmetrische Verschluesselung von Geheimnissen
+(Fernet) bereitgestellt. Sie schuetzt gespeicherte Zugangsdaten vor
+dem Auslesen aus Datenbank oder Sicherung; der Schluessel liegt in
+einer eigenen Datei mit Rechten 600.
 """
 
 import base64
@@ -12,9 +17,12 @@ import hashlib
 import hmac
 import json
 import time
+from pathlib import Path
 from typing import Any
 
-from app.exceptions import AuthenticationError
+from cryptography.fernet import Fernet, InvalidToken
+
+from app.exceptions import AuthenticationError, ConfigurationError
 
 JWT_HEADER: dict[str, str] = {"alg": "HS256", "typ": "JWT"}
 
@@ -153,3 +161,81 @@ def _decode_json(part: str) -> dict[str, Any]:
     if not isinstance(content, dict):
         raise AuthenticationError("Ungueltiges Token: kein JSON-Objekt.")
     return content
+
+
+def load_or_create_fernet_key(key_file: Path) -> bytes:
+    """Laedt den Verschluesselungsschluessel oder erzeugt ihn.
+
+    Args:
+        key_file:
+            Pfad der Schluesseldatei.
+
+    Returns:
+        Der Fernet-Schluessel.
+
+    Raises:
+        ConfigurationError
+    """
+    try:
+        if key_file.exists():
+            key = key_file.read_bytes().strip()
+            if key:
+                return key
+        key = Fernet.generate_key()
+        key_file.parent.mkdir(parents=True, exist_ok=True)
+        key_file.write_bytes(key + b"\n")
+        key_file.chmod(0o600)
+        return key
+    except OSError as error:
+        raise ConfigurationError(
+            f"Schluesseldatei nicht verfuegbar: {key_file}: {error}"
+        ) from error
+
+
+def encrypt_secret(plaintext: str, key: bytes) -> str:
+    """Verschluesselt ein Geheimnis symmetrisch.
+
+    Args:
+        plaintext:
+            Zu verschluesselnder Text.
+
+        key:
+            Fernet-Schluessel.
+
+    Returns:
+        Das verschluesselte Geheimnis als Zeichenkette.
+
+    Raises:
+        ConfigurationError
+    """
+    try:
+        return Fernet(key).encrypt(plaintext.encode("utf-8")).decode("ascii")
+    except (ValueError, TypeError) as error:
+        raise ConfigurationError(
+            f"Das Geheimnis konnte nicht verschluesselt werden: {error}"
+        ) from error
+
+
+def decrypt_secret(token: str, key: bytes) -> str:
+    """Entschluesselt ein zuvor verschluesseltes Geheimnis.
+
+    Args:
+        token:
+            Verschluesseltes Geheimnis.
+
+        key:
+            Fernet-Schluessel.
+
+    Returns:
+        Der entschluesselte Text.
+
+    Raises:
+        AuthenticationError
+    """
+    try:
+        return Fernet(key).decrypt(token.encode("ascii")).decode("utf-8")
+    except (InvalidToken, ValueError, TypeError) as error:
+        raise AuthenticationError(
+            "Die gespeicherten Zugangsdaten konnten nicht entschluesselt "
+            "werden. Wurde die Schluesseldatei ersetzt?"
+        ) from error

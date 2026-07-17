@@ -18,7 +18,14 @@ import pytest
 
 from app.exceptions import NetworkError
 from app.utils import network as network_module
-from app.utils.network import DevToolsClient, default_gateway, ping_host
+from app.utils.network import (
+    DevToolsClient,
+    connectivity_ok,
+    default_gateway,
+    host_reachable,
+    ping_host,
+    url_host_reachable,
+)
 
 
 def _read_until(connection: socket.socket, marker: bytes) -> bytes:
@@ -244,3 +251,72 @@ class TestDefaultGateway:
     ) -> None:
         monkeypatch.setattr(network_module, "PROC_ROUTE_FILE", tmp_path / "fehlt")
         assert default_gateway() == ""
+
+
+class TestConnectivityCheck:
+    """Tests fuer die konfigurierbare Verbindungspruefung."""
+
+    def test_pruefung_aus_ist_immer_online(self) -> None:
+        assert connectivity_ok("off") is True
+        assert connectivity_ok("off", "http://gibt-es-nicht.invalid/") is True
+
+    def test_gateway_pruefung(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setattr(network_module, "default_gateway", lambda: "192.0.2.1")
+        monkeypatch.setattr(
+            network_module, "ping_host", lambda host: host == "192.0.2.1"
+        )
+        assert connectivity_ok("gateway") is True
+        monkeypatch.setattr(network_module, "default_gateway", lambda: "")
+        assert connectivity_ok("gateway") is False
+
+    def test_url_pruefung_mit_erreichbarem_host(self) -> None:
+        listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        listener.bind(("127.0.0.1", 0))
+        listener.listen(1)
+        port = listener.getsockname()[1]
+        try:
+            assert connectivity_ok("url", f"http://127.0.0.1:{port}/anzeige") is True
+        finally:
+            listener.close()
+
+    def test_url_pruefung_mit_totem_host(self) -> None:
+        assert connectivity_ok("url", "http://127.0.0.1:59990/") is False
+
+    def test_url_pruefung_ohne_url(self) -> None:
+        assert connectivity_ok("url", "") is False
+
+    def test_standardbetrieb_prueft_internet(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        aufrufe: list[bool] = []
+        monkeypatch.setattr(
+            network_module,
+            "internet_reachable",
+            lambda: aufrufe.append(True) or True,
+        )
+        assert connectivity_ok("internet") is True
+        assert aufrufe == [True]
+
+
+class TestHostReachable:
+    """Tests fuer die TCP-Erreichbarkeitspruefung."""
+
+    def test_offener_port(self) -> None:
+        listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        listener.bind(("127.0.0.1", 0))
+        listener.listen(1)
+        port = listener.getsockname()[1]
+        try:
+            assert host_reachable("127.0.0.1", port) is True
+        finally:
+            listener.close()
+
+    def test_geschlossener_port(self) -> None:
+        assert host_reachable("127.0.0.1", 59989, timeout=0.5) is False
+
+    def test_leerer_host(self) -> None:
+        assert host_reachable("", 80) is False
+
+    def test_standardports_der_url(self) -> None:
+        assert url_host_reachable("http://127.0.0.1:59988/") is False
+        assert url_host_reachable("kein-schema") is False

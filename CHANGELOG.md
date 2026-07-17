@@ -5,6 +5,130 @@ dokumentiert. Das Format orientiert sich an
 [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die
 Versionierung folgt [Semantic Versioning](https://semver.org/lang/de/).
 
+## [1.3.0] - 2026-07-17
+
+### Behoben
+
+- **WLAN-Verbindungen scheiterten mit „Not authorized to control
+  networking".** NetworkManager verlangt für Verbindungsänderungen
+  eine polkit-Bestätigung, die ein systemd-Dienst mangels Sitzung
+  nicht beantworten kann; nur der Scan funktionierte. install.sh
+  installiert jetzt eine polkit-Regel, die ausschließlich dem
+  Kioskbenutzer genau die benötigten NetworkManager-Aktionen
+  erlaubt (services/pikiosk-networkmanager.rules). Bestehende
+  Installationen: siehe docs/Troubleshooting.md
+- Fehlende Berechtigungen werden jetzt als verständliche Meldung
+  angezeigt statt als nmcli-Fehlertext
+
+### Hinzugefügt
+
+- Standard-WLAN: Ein gespeichertes Netzwerk lässt sich als Standard
+  hinterlegen und per Knopfdruck verbinden; andere Netzwerke bleiben
+  sicht- und verbindbar. Gespeichert wird nur der Name – das
+  Passwort bleibt bei NetworkManager
+- Passwortfelder haben ein Auge zum Ein- und Ausblenden der
+  Eingabe (Geräte-Oberfläche, Setup-Wizard und Zentrale)
+- API: `wifi_preferred_ssid` über `PUT /api/settings` setzbar
+
+### Geändert
+
+- Die Zentrale trägt dieselbe Versionsnummer wie die Anwendung
+
+## [1.2.0] - 2026-07-17
+
+Zentrale Verwaltung: Mit PiKiosk Center lassen sich beliebig viele
+Geräte von einem Rechner aus überwachen und steuern.
+
+### Hinzugefügt
+
+- PiKiosk Center als eigenständige Anwendung (Port 8090) mit
+  eigenem Administratorkonto, Ersteinrichtung beim ersten Aufruf,
+  Anmeldung, CSRF-Schutz und Session-Timeout
+- Flottenübersicht: alle Geräte werden parallel abgefragt
+  (Aktualisierung alle 15 Sekunden) und mit Zustand (Online,
+  Offline, Anmeldefehler, Deaktiviert), Browserstatus, Watchdog,
+  Kiosk-URL, Temperatur und Version angezeigt
+- Massenaktionen für eine Auswahl von Geräten: Browser neu starten,
+  starten, stoppen, Neustart, Herunterfahren sowie Kiosk-URL für
+  alle ausgewählten Geräte setzen; Ergebnisse je Gerät im Klartext
+- Geräteverwaltung: aufnehmen (mit sofortiger Verbindungsprüfung),
+  ändern, Verbindung testen, deaktivieren und entfernen
+- Gerätezugangsdaten werden verschlüsselt gespeichert (Fernet,
+  Schlüsseldatei mit Rechten 600); Tokens werden je Gerät bis kurz
+  vor Ablauf zwischengespeichert
+- install_center.sh und pikiosk-center.service für die Installation
+  der Zentrale auf einem beliebigen Rechner im Netzwerk
+- Dokumentation der Zentrale (docs/Center.md)
+
+Die Geräte selbst bleiben unverändert: Die Zentrale nutzt
+ausschließlich die vorhandene REST API, jedes Gerät läuft autark
+weiter, auch wenn die Zentrale ausfällt.
+
+## [1.1.0] - 2026-07-17
+
+Offline-Betrieb: PiKiosk Pro laesst sich jetzt vollstaendig ohne
+Internetzugang betreiben – mit lokaler Kiosk-Webseite und lokaler
+Updatequelle.
+
+### Hinzugefügt
+
+- Konfigurierbare Updatequelle: GitHub (Internet), lokale Quelle
+  oder abgeschaltet. Die lokale Quelle ist ein beliebiger Webserver
+  im Netzwerk, der `manifest.json` (version, archive, notes) und das
+  Paket ausliefert; Prüfung, automatische Sicherung und Rollback
+  sind identisch zum GitHub-Weg
+- Konfigurierbare Verbindungsprüfung (`connectivity_check`):
+  Internet, Kiosk-URL, Gateway oder keine Prüfung. Ein Kiosk ohne
+  Internetzugang gilt damit nicht mehr dauerhaft als „Offline"
+- Neue Dashboard-Kachel „Überwachung": Watchdog ein-/ausschalten
+  und Verbindungsprüfung wählen
+- Update-Kachel mit Auswahl der Updatequelle und Update-URL
+- Automatische Migration der Konfiguration: nach einem Update
+  fehlende Schlüssel werden aus den Standardwerten ergänzt,
+  vorhandene Werte bleiben unverändert
+- API: `update_source`, `update_url` und `connectivity_check` über
+  `PUT /api/settings` setzbar; `GET /api/update` nennt die Quelle
+
+### Behoben
+
+- Beschädigte Sicherungen und Update-Pakete führten zu einem
+  unbehandelten zlib-Fehler statt einer verständlichen Meldung
+
+## [1.0.0] - 2026-07-16
+
+Erstes stabiles Release. PiKiosk Pro verwandelt einen Raspberry
+Pi 4 in ein wartungsarmes Kiosksystem: Nach `sudo ./install.sh`
+und einem Neustart führt der Setup-Wizard durch Hostname, WLAN,
+Administratorkonto und Kiosk-URL – danach startet Chromium
+automatisch im Kioskmodus. Die komplette Verwaltung läuft über
+das Dashboard, die Fernverwaltung über die REST API.
+
+### Funktionsumfang
+
+- Setup-Wizard mit Sofortprüfung aller Eingaben (v0.2)
+- Dashboard mit Login, Systeminformationen und Kacheln für
+  Browser, URL, Hostname, WLAN, System, Logs (v0.3)
+- Watchdog als eigener systemd-Dienst mit Browser-Neustart,
+  Netzwerk- und Systemüberwachung (v0.4)
+- Sicherung/Wiederherstellung als ZIP inkl. USB-Import (v0.5)
+- Update-System mit GitHub-Releases, Paket-Upload und Rollback (v0.6)
+- REST API mit JWT für die Remote-Verwaltung (v0.7)
+- Mehrsprachigkeit (de/en) und Themes inkl. Automatik (v0.8)
+- Beta-Härtung: 95 % Testabdeckung, vollständige Dokumentation (v0.9)
+
+### Behoben
+
+- SQLite-Verbindungen der Benutzerdatenbank wurden nie geschlossen
+  (Ressourcenleck); sie werden jetzt nach jeder Transaktion sicher
+  geschlossen
+
+### Hinzugefügt
+
+- GitHub-Actions-CI: Black, isort, ruff, mypy und pytest
+  (mit Mindestabdeckung 90 %) bei jedem Push; bei Versions-Tags
+  wird automatisch ein Release-Archiv gebaut und veröffentlicht
+- Abnahme-Checkliste für den Gerätetest in docs/Installation.md
+
 ## [0.9.0] - 2026-07-16
 
 ### Behoben

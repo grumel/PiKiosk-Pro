@@ -30,7 +30,7 @@ keine globalen Variablen.
  Raspberry Pi OS
 ```
 
-## Module (Version 0.9.0)
+## Module (Version 1.3.0)
 
 | Modul                              | Aufgabe                                        |
 | ---------------------------------- | ---------------------------------------------- |
@@ -196,7 +196,75 @@ Systemeinstellung. Konfiguration und Sprachdateien werden je
 Aenderungsstand (mtime) zwischengespeichert, damit sie nicht bei
 jeder Anfrage neu gelesen werden.
 
-## Ausblick
+## Systemrechte
 
-Es folgen die Stabilisierungsversionen v0.9 (Beta: Fehlerbehebung,
-Tests, Dokumentation) und v1.0 (Release).
+PiKiosk Pro laeuft als unprivilegierter Dienst. Fuer die wenigen
+Aufgaben mit Systemrechten gibt es eng begrenzte Ausnahmen, die
+install.sh einrichtet:
+
+| Aufgabe | Mechanismus |
+| ------- | ----------- |
+| Hostname setzen | sudo-Regel fuer `scripts/hostname_apply.py` |
+| Neustart, Herunterfahren | sudo-Regeln fuer `systemctl reboot/poweroff` |
+| WLAN verbinden, trennen, Profile aendern | polkit-Regel `50-pikiosk-networkmanager.rules` |
+
+Die polkit-Regel ist noetig, weil NetworkManager Verbindungs-
+aenderungen mit `auth_admin_keep` schuetzt: Ohne Sitzung (systemd-
+Dienst) kann die Rueckfrage nicht beantwortet werden. Die Regel
+erlaubt ausschliesslich dem Kioskbenutzer die vier benoetigten
+Aktionen (network-control, settings.modify.system,
+settings.modify.own, wifi.scan).
+
+## Offline-Betrieb
+
+Ein Kiosk ohne Internetzugang wird ueber zwei Konfigurations-
+schluessel eingerichtet:
+
+- `update_source` (`github`, `local`, `off`) und `update_url`:
+  Bei `local` fragt der UpdateService `<update_url>/manifest.json`
+  ab (Felder version, archive, notes) und laedt das Paket relativ
+  zur Update-URL. Paketpruefung, automatische Sicherung und
+  Rollback sind mit dem GitHub-Weg identisch.
+- `connectivity_check` (`internet`, `url`, `gateway`, `off`):
+  Legt fest, was Dashboard und Watchdog als „online" werten.
+  Ohne Internetzugang ist `url` sinnvoll – dann entscheidet die
+  Erreichbarkeit der Kiosk-URL (TCP-Verbindung zum Host).
+
+Neue Konfigurationsschluessel werden beim Laden automatisch aus
+`config/defaults.json` ergaenzt (Migration im ConfigService),
+damit bestehende Installationen nach einem Update ohne Eingriff
+weiterlaufen.
+
+## Zentrale Verwaltung (PiKiosk Center)
+
+Die Zentrale ist eine eigene Flask-Anwendung im Verzeichnis
+`center/` mit eigenem Port (8090), eigener Datenbank und eigenem
+Administratorkonto. Sie fragt die Geraete ueber deren REST API ab
+(Pull); auf den Geraeten ist keine Aenderung noetig.
+
+| Modul                              | Aufgabe                                    |
+| ---------------------------------- | ------------------------------------------ |
+| `center/__init__.py`               | Anwendungsfabrik der Zentrale              |
+| `center/app.py`                    | Einstiegspunkt (Port 8090)                 |
+| `center/models/device_model.py`    | Geraetetabelle (SQLite)                    |
+| `center/services/device_service.py`| Geraeteliste, Validierung, Verschluesselung |
+| `center/services/device_client.py` | Client der Geraete-API, Token-Zwischenspeicher |
+| `center/services/fleet_service.py` | Parallele Abfrage, Massenaktionen          |
+| `center/controllers/`              | Anmeldung, Uebersicht, Geraeteverwaltung   |
+
+Die Zugangsdaten der Geraete werden mit Fernet verschluesselt
+gespeichert (`app/utils/crypto.py`), der Schluessel liegt in
+`config/center_key` mit Rechten 600. Die Anmeldung an der Zentrale
+nutzt dieselben Bausteine wie das Geraete-Dashboard (Flask-Login,
+bcrypt, AuthService, UserModel) mit eigener Datenbank. Alle Geraete
+werden ueber einen Thread-Pool parallel abgefragt; ein nicht
+erreichbares Geraet beeinflusst die uebrigen nicht. Details:
+[Center.md](Center.md).
+
+## Zukunftssicherheit
+
+Die Architektur ist vorbereitet auf: zentrale Verwaltung vieler
+Geraete ueber die REST API, OTA-Updates (Update-System mit
+Rollback), ein Plugin-System (modulare Service-Schicht mit
+Dependency Injection), weitere Sprachen (JSON-Sprachdateien) und
+zusaetzliche Themes.

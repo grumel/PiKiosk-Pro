@@ -1,0 +1,69 @@
+# Copyright (c) 2026 Holger John
+# Lizenz: MIT License (siehe LICENSE)
+#
+# PiKiosk Pro - CI-Pipeline.
+# Push -> Lint -> Tests -> Build -> Release (bei Versions-Tags).
+
+name: CI
+
+on:
+  push:
+    branches: [main, develop, "release/**"]
+    tags: ["v*"]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  quality:
+    name: Lint und Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Quellcode auschecken
+        uses: actions/checkout@v4
+
+      - name: Python 3.13 einrichten
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Abhaengigkeiten installieren
+        run: pip install -r requirements-dev.txt
+
+      - name: Black
+        run: black --check app scripts tests
+
+      - name: isort
+        run: isort --profile black --check-only app scripts tests
+
+      - name: Ruff
+        run: ruff check app scripts tests
+
+      - name: mypy
+        run: mypy --python-version 3.13 --ignore-missing-imports app scripts
+
+      - name: Tests mit Abdeckung
+        run: pytest --cov=app --cov-report=term --cov-fail-under=90
+
+  release:
+    name: Build und Release
+    needs: quality
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Quellcode auschecken
+        uses: actions/checkout@v4
+
+      - name: Release-Archiv bauen
+        run: |
+          git archive --format=zip \
+            --prefix="PiKiosk-Pro-${GITHUB_REF_NAME}/" \
+            -o "PiKiosk-Pro-${GITHUB_REF_NAME}.zip" "${GITHUB_REF_NAME}"
+
+      - name: GitHub-Release erstellen
+        uses: softprops/action-gh-release@v2
+        with:
+          files: PiKiosk-Pro-${{ github.ref_name }}.zip
+          generate_release_notes: true

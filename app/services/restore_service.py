@@ -15,6 +15,7 @@ import os
 import sqlite3
 import tempfile
 import zipfile
+import zlib
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -80,13 +81,18 @@ class RestoreService:
             raise RestoreError(f"Die Sicherung wurde nicht gefunden: {backup_path}")
         if not zipfile.is_zipfile(backup_path):
             raise RestoreError("Die Datei ist keine gueltige ZIP-Sicherung.")
-        with zipfile.ZipFile(backup_path) as archive:
-            if archive.testzip() is not None:
-                raise RestoreError("Die Sicherung ist beschaedigt.")
-            manifest = self._read_manifest(archive)
-            if BACKUP_CONFIG_MEMBER not in archive.namelist():
-                raise RestoreError("Die Sicherung enthaelt keine Konfigurationsdatei.")
-            self._merged_config(archive)
+        try:
+            with zipfile.ZipFile(backup_path) as archive:
+                if archive.testzip() is not None:
+                    raise RestoreError("Die Sicherung ist beschaedigt.")
+                manifest = self._read_manifest(archive)
+                if BACKUP_CONFIG_MEMBER not in archive.namelist():
+                    raise RestoreError(
+                        "Die Sicherung enthaelt keine Konfigurationsdatei."
+                    )
+                self._merged_config(archive)
+        except (zipfile.BadZipFile, zlib.error, EOFError, OSError) as error:
+            raise RestoreError(f"Die Sicherung ist beschaedigt: {error}") from error
         return manifest
 
     def restore(self, backup_path: Path) -> dict[str, Any]:
@@ -103,11 +109,14 @@ class RestoreService:
             RestoreError
         """
         manifest = self.validate(backup_path)
-        with zipfile.ZipFile(backup_path) as archive:
-            config = self._merged_config(archive)
-            if BACKUP_USERS_MEMBER in archive.namelist():
-                self._restore_users_database(archive)
-            self._config_service.save(config)
+        try:
+            with zipfile.ZipFile(backup_path) as archive:
+                config = self._merged_config(archive)
+                if BACKUP_USERS_MEMBER in archive.namelist():
+                    self._restore_users_database(archive)
+                self._config_service.save(config)
+        except (zipfile.BadZipFile, zlib.error, EOFError) as error:
+            raise RestoreError(f"Die Sicherung ist beschaedigt: {error}") from error
         self._logger.info(f"Sicherung wiederhergestellt: {backup_path.name}")
         return manifest
 

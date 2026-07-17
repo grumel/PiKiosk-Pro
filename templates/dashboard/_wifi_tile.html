@@ -35,6 +35,15 @@
             </li>
         </ul>
         {% endif %}
+        {% if preferred_ssid %}
+        <div class="d-grid mb-3">
+            <button type="button" class="btn btn-success"
+                    hx-post="{{ url_for('network.connect_preferred') }}"
+                    hx-target="#wifi-tile">
+                {{ texts['btn_connect_preferred'].format(ssid=preferred_ssid) }}
+            </button>
+        </div>
+        {% endif %}
         <div class="d-flex flex-wrap gap-2 mb-3">
             <button type="button" class="btn btn-outline-primary"
                     hx-post="{{ url_for('network.scan') }}"
@@ -72,7 +81,28 @@
             <button type="submit" class="btn btn-primary">{{ texts['btn_connect'] }}</button>
         </form>
         {% elif networks is defined %}
-        <div class="alert alert-secondary mb-0" role="alert">{{ texts['wifi_no_networks'] }}</div>
+        <div class="alert alert-secondary" role="alert">{{ texts['wifi_no_networks'] }}</div>
         {% endif %}
+        <hr>
+        <form>
+            <label class="form-label" for="preferred-select">{{ texts['label_preferred_wifi'] }}</label>
+            <div class="input-group">
+                <select class="form-select" id="preferred-select" name="preferred_ssid">
+                    <option value="">{{ texts['wifi_preferred_none'] }}</option>
+                    {% for profile in saved_profiles %}
+                    <option value="{{ profile }}" {% if profile == preferred_ssid %}selected{% endif %}>
+                        {{ profile }}
+                    </option>
+                    {% endfor %}
+                </select>
+                <button type="button" class="btn btn-outline-primary"
+                        hx-post="{{ url_for('network.save_preferred') }}"
+                        hx-include="closest form"
+                        hx-target="#wifi-tile">
+                    {{ texts['btn_save'] }}
+                </button>
+            </div>
+            <div class="form-text">{{ texts['wifi_preferred_help'] }}</div>
+        </form>
     </div>
 </div>

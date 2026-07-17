@@ -15,6 +15,7 @@ set -euo pipefail
 
 INSTALL_DIR="/opt/pikiosk-pro"
 SERVICE_NAMES=("pikiosk.service" "pikiosk-watchdog.service")
+POLKIT_RULE_FILE="/etc/polkit-1/rules.d/50-pikiosk-networkmanager.rules"
 SOURCE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LOG_FILE="${SOURCE_DIR}/logs/install.log"
 
@@ -113,6 +114,21 @@ EOF
     log "sudo-Regeln installiert."
 }
 
+install_polkit_rule() {
+    log "polkit-Regel fuer NetworkManager wird installiert."
+    if [[ ! -d /etc/polkit-1/rules.d ]]; then
+        log "WARNUNG: /etc/polkit-1/rules.d fehlt, WLAN-Aenderungen koennten scheitern."
+        return
+    fi
+    sed "s|__KIOSK_USER__|${KIOSK_USER}|g" \
+        "${INSTALL_DIR}/services/pikiosk-networkmanager.rules" \
+        >"${POLKIT_RULE_FILE}"
+    chmod 644 "${POLKIT_RULE_FILE}"
+    systemctl restart polkit >>"${LOG_FILE}" 2>&1 \
+        || log "WARNUNG: polkit konnte nicht neu gestartet werden."
+    log "polkit-Regel installiert: ${POLKIT_RULE_FILE}"
+}
+
 enable_autologin() {
     if command -v raspi-config >/dev/null 2>&1; then
         log "Autologin (Desktop) wird aktiviert."
@@ -142,6 +158,7 @@ main() {
     create_virtualenv
     install_service
     install_sudoers
+    install_polkit_rule
     enable_autologin
     start_service
 }

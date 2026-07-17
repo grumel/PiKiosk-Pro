@@ -1,0 +1,48 @@
+{# Copyright (c) 2026 Holger John - Lizenz: MIT License (siehe LICENSE) #}
+{# Ersteinrichtung der Zentrale: Administratorkonto anlegen. #}
+{% extends "center_base.html" %}
+
+{% block title %}{{ texts['center_setup_heading'] }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12 col-md-8 col-lg-5">
+        <div class="card shadow-sm">
+            <div class="card-header fs-5">{{ texts['center_setup_heading'] }}</div>
+            <div class="card-body">
+                <p class="text-body-secondary">{{ texts['center_setup_text'] }}</p>
+                {% if error %}
+                <div class="alert alert-danger" role="alert">{{ error }}</div>
+                {% endif %}
+                <form method="post" action="{{ url_for('center_auth.setup_submit') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <div class="mb-3">
+                        <label class="form-label" for="username">{{ texts['label_username'] }}</label>
+                        <input class="form-control form-control-lg" type="text"
+                               id="username" name="username" value="admin" autocomplete="username">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="password">{{ texts['label_password'] }}</label>
+                        <input class="form-control form-control-lg" type="password"
+                               id="password" name="password" autocomplete="new-password">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="password-repeat">{{ texts['label_password_repeat'] }}</label>
+                        <input class="form-control form-control-lg" type="password"
+                               id="password-repeat" name="password_repeat" autocomplete="new-password">
+                    </div>
+                    <p class="mb-1">{{ texts['password_rules_heading'] }}</p>
+                    <ul class="text-body-secondary small mb-4">
+                        {% for rule in ('min_length', 'uppercase', 'lowercase', 'digit', 'special') %}
+                        <li>{{ texts['rule_' ~ rule] }}</li>
+                        {% endfor %}
+                    </ul>
+                    <button type="submit" class="btn btn-primary w-100">
+                        {{ texts['center_setup_button'] }}
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

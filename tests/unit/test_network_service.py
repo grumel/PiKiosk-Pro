@@ -201,6 +201,23 @@ class TestNetworkService:
             service.connect("Zuhause", "falsch")
         assert info.value.reason == "wrong_password"
 
+    def test_connect_ohne_berechtigung(
+        self, service: NetworkService, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        scripted(
+            service,
+            monkeypatch,
+            [
+                NetworkError(
+                    "Error: Failed to add/activate new connection: "
+                    "Not authorized to control networking."
+                )
+            ],
+        )
+        with pytest.raises(WifiError) as info:
+            service.connect("Zuhause", "geheim")
+        assert info.value.reason == "not_authorized"
+
     def test_connect_ssid_nicht_gefunden(
         self, service: NetworkService, monkeypatch: pytest.MonkeyPatch
     ) -> None:
@@ -262,3 +279,40 @@ class TestNetworkService:
         service._run(["device"])
         assert captured["env"]["LC_ALL"] == "C"
         assert captured["command"][0] == "nmcli"
+
+
+class TestConnectSaved:
+    """Tests fuer die Verbindung mit gespeicherten Profilen."""
+
+    def test_verbindet_ohne_passwort(
+        self, service: NetworkService, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        runner = scripted(service, monkeypatch, [CONNECTIONS_OUTPUT, ""])
+        service.connect_saved("Zuhause")
+        assert runner.calls[1] == ["connection", "up", "id", "Zuhause"]
+
+    def test_unbekanntes_profil(
+        self, service: NetworkService, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        scripted(service, monkeypatch, [CONNECTIONS_OUTPUT])
+        with pytest.raises(WifiError) as info:
+            service.connect_saved("Fremd")
+        assert info.value.reason == "not_found"
+
+    def test_ohne_ssid(self, service: NetworkService) -> None:
+        with pytest.raises(WifiError):
+            service.connect_saved("")
+
+    def test_fehler_wird_uebersetzt(
+        self, service: NetworkService, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        scripted(
+            service,
+            monkeypatch,
+            [
+                CONNECTIONS_OUTPUT,
+                NetworkError("Error: Not authorized to control networking."),
+            ],
+        )
+        with pytest.raises(WifiError):
+            service.connect_saved("Zuhause")

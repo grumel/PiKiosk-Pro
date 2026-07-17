@@ -13,6 +13,7 @@ from app.utils.validators import (
     PasswordValidator,
     URLValidator,
 )
+from tests.conftest import project_defaults
 
 
 def valid_config() -> dict[str, Any]:
@@ -21,16 +22,7 @@ def valid_config() -> dict[str, Any]:
     Returns:
         Gueltige Konfiguration.
     """
-    return {
-        "hostname": "PiKiosk",
-        "url": "https://example.org/",
-        "language": "de",
-        "theme": "dark",
-        "fullscreen": True,
-        "watchdog": True,
-        "browser": "chromium",
-        "first_start": False,
-    }
+    return project_defaults(url="https://example.org/", first_start=False)
 
 
 class TestHostnameValidator:
@@ -136,6 +128,66 @@ class TestConfigValidator:
     def test_kein_woerterbuch(self) -> None:
         with pytest.raises(ValidationError):
             ConfigValidator().validate([])  # type: ignore[arg-type]
+
+    def test_ungueltige_updatequelle(self) -> None:
+        config = valid_config()
+        config["update_source"] = "ftp"
+        with pytest.raises(ValidationError):
+            ConfigValidator().validate(config)
+
+    def test_lokale_quelle_ohne_url(self) -> None:
+        config = valid_config()
+        config["update_source"] = "local"
+        config["update_url"] = ""
+        with pytest.raises(ValidationError):
+            ConfigValidator().validate(config)
+
+    def test_lokale_quelle_mit_url(self) -> None:
+        config = valid_config()
+        config["update_source"] = "local"
+        config["update_url"] = "http://server.local/pikiosk"
+        ConfigValidator().validate(config)
+
+    def test_ungueltige_update_url(self) -> None:
+        config = valid_config()
+        config["update_source"] = "local"
+        config["update_url"] = "ftp://server.local/pikiosk"
+        with pytest.raises(ValidationError):
+            ConfigValidator().validate(config)
+
+    def test_ungueltige_verbindungspruefung(self) -> None:
+        config = valid_config()
+        config["connectivity_check"] = "telepathie"
+        with pytest.raises(ValidationError):
+            ConfigValidator().validate(config)
+
+    def test_url_pruefung_ohne_kiosk_url(self) -> None:
+        config = valid_config()
+        config["connectivity_check"] = "url"
+        config["url"] = ""
+        with pytest.raises(ValidationError):
+            ConfigValidator().validate(config)
+
+    def test_url_pruefung_mit_kiosk_url(self) -> None:
+        config = valid_config()
+        config["connectivity_check"] = "url"
+        ConfigValidator().validate(config)
+
+    def test_zu_langer_wlan_name(self) -> None:
+        config = valid_config()
+        config["wifi_preferred_ssid"] = "x" * 33
+        with pytest.raises(ValidationError):
+            ConfigValidator().validate(config)
+
+    def test_gueltiger_wlan_name(self) -> None:
+        config = valid_config()
+        config["wifi_preferred_ssid"] = "Zuhause"
+        ConfigValidator().validate(config)
+
+    def test_updatequelle_aus(self) -> None:
+        config = valid_config()
+        config["update_source"] = "off"
+        ConfigValidator().validate(config)
 
 
 class TestPasswordValidator:

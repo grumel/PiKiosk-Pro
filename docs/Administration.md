@@ -5,6 +5,10 @@ Weboberfläche. Linux-Kenntnisse sind nicht erforderlich.
 
 ## Anmeldung
 
+In allen Passwortfeldern lässt sich die Eingabe über das Auge
+rechts im Feld sichtbar machen – hilfreich bei langen Passwörtern
+und auf Touchscreens.
+
 Die Verwaltungsoberfläche ist im lokalen Netzwerk erreichbar unter:
 
 ```
@@ -61,11 +65,38 @@ und DNS. „Netzwerke suchen" listet alle verfügbaren WLANs sortiert
 nach Signalstärke; die Verbindung erfolgt direkt aus der Liste.
 „Trennen" beendet die aktive WLAN-Verbindung.
 
+**Standard-WLAN**: Unten in der Kachel lässt sich eines der bereits
+gespeicherten Netzwerke als Standard festlegen. Danach erscheint
+oben eine Schaltfläche „Mit „<Name>" verbinden" – ein Klick genügt,
+etwa um nach einem Test in einem anderen Netz zurückzuwechseln.
+Andere Netzwerke bleiben weiterhin sichtbar und verbindbar.
+
+Hinterlegt wird nur der Name des Netzwerks. Das Passwort bleibt im
+Profil von NetworkManager – PiKiosk Pro speichert keine
+WLAN-Passwörter. Ein Netzwerk erscheint in der Auswahl, sobald es
+einmal erfolgreich verbunden wurde.
+
 ### System
 
 „Neustart" und „Herunterfahren" beenden zuerst den Browser sauber
 und führen die Aktion anschließend über systemd aus. Beide Aktionen
 müssen bestätigt werden.
+
+### Überwachung
+
+Hier lässt sich der Watchdog ein- und ausschalten und festlegen,
+was als „Online" gilt (Verbindungsprüfung):
+
+| Einstellung | Bedeutung |
+| ----------- | --------- |
+| Internet erreichbar | Standard: prüft eine Verbindung ins Internet (1.1.1.1) |
+| Kiosk-URL erreichbar | Für Geräte **ohne Internetzugang**: prüft den Host der konfigurierten Kiosk-URL |
+| Gateway erreichbar | Prüft das Standardgateway per Ping |
+| Keine Prüfung | Verbindung gilt immer als in Ordnung |
+
+Ohne Umstellung meldet ein Kiosk ohne Internetzugang dauerhaft
+„Offline" – für lokale Installationen daher „Kiosk-URL erreichbar"
+wählen.
 
 ### Darstellung
 
@@ -94,8 +125,34 @@ in der Kachel und können mit einem Klick importiert werden.
 
 ### Aktualisierung
 
-„Nach Updates suchen" prüft das GitHub-Repository auf ein neueres
-Release. Ist eines verfügbar, kann es mit „Update installieren"
+**Updatequelle** wählen:
+
+- **GitHub (Internet)**: Standard; holt das neueste Release aus dem
+  Projekt-Repository.
+- **Lokale Quelle**: Für Geräte ohne Internetzugang. Unter
+  „Update-URL" die Basisadresse eines Webservers im Netzwerk
+  eintragen, z. B. `http://server.local/pikiosk`. Dort werden
+  erwartet:
+  - `manifest.json` mit den Feldern `version` (z. B. `1.2.0`),
+    `archive` (Dateiname des Pakets) und optional `notes`
+  - das Paket selbst (ZIP oder tar.gz)
+- **Aus**: Es wird nicht nach Updates gesucht.
+
+Beispiel für ein Manifest:
+
+```json
+{
+    "version": "1.2.0",
+    "archive": "PiKiosk-Pro-1.2.0.zip",
+    "notes": "Neue Funktionen …"
+}
+```
+
+Prüfung, automatische Sicherung und Rollback laufen bei allen
+Quellen identisch ab.
+
+„Nach Updates suchen" prüft die gewählte Quelle auf eine neuere
+Version. Ist eine verfügbar, kann sie mit „Update installieren"
 eingespielt werden. Alternativ lässt sich ein Update-Paket (ZIP oder
 tar.gz) hochladen und installieren.
 

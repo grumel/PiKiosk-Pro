@@ -7,8 +7,13 @@ Nach dem Booten meldet sich das Gerät automatisch an, startet Chromium im
 Kioskmodus und zeigt die konfigurierte Webseite an. Die komplette
 Administration erfolgt über eine lokale Weboberfläche – ohne Linux-Kenntnisse.
 
-## Funktionen (Version 0.9.0)
+## Funktionen (Version 1.3.0)
 
+- **PiKiosk Center**: zentrale Verwaltung beliebig vieler Geräte –
+  Zustand auf einen Blick, Massenaktionen für eine Auswahl
+  ([docs/Center.md](docs/Center.md))
+- Offlinefähig: lokale Kiosk-Webseite, lokale Updatequelle und
+  konfigurierbare Verbindungsprüfung – kein Internetzugang nötig
 - Sprache (Deutsch/Englisch) und Theme (Dunkel/Hell/Automatisch)
   direkt im Dashboard umschaltbar; „Automatisch" folgt der
   Systemeinstellung
@@ -53,7 +58,7 @@ Administration erfolgt über eine lokale Weboberfläche – ohne Linux-Kenntniss
 ## Installation
 
 ```bash
-git clone https://github.com/holgerjohn/PiKiosk-Pro.git
+git clone https://github.com/grumel/PiKiosk-Pro.git
 cd PiKiosk-Pro
 sudo ./install.sh
 ```
@@ -67,6 +72,18 @@ systemd-Dienst und den Autologin ein. Details stehen in
 ```bash
 sudo ./update.sh
 ```
+
+## Zentrale Verwaltung (optional)
+
+Zur Verwaltung mehrerer Geräte lässt sich auf einem beliebigen
+Rechner im Netzwerk die Zentrale installieren:
+
+```bash
+sudo ./install_center.sh
+```
+
+Danach erreichbar unter `http://<adresse>:8090/` – Details in
+[docs/Center.md](docs/Center.md).
 
 ## Entwicklung
 
@@ -88,6 +105,7 @@ Beiträge stehen in [CONTRIBUTING.md](CONTRIBUTING.md).
 - [Installation](docs/Installation.md)
 - [Administration](docs/Administration.md)
 - [REST API](docs/API.md)
+- [Zentrale Verwaltung](docs/Center.md)
 - [Architektur](docs/Architecture.md)
 - [Entwicklerhandbuch](docs/DeveloperGuide.md)
 - [FAQ](docs/FAQ.md)

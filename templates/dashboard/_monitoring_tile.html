@@ -1,0 +1,58 @@
+{# Copyright (c) 2026 Holger John - Lizenz: MIT License (siehe LICENSE) #}
+{# Dashboard-Kachel: Watchdog und Verbindungspruefung. #}
+<div class="card h-100">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span>{{ texts['tile_monitoring'] }}</span>
+        <span class="badge
+            {% if watchdog_state == 'online' %}text-bg-success
+            {% elif watchdog_state in ('error', 'offline') %}text-bg-danger
+            {% elif watchdog_state == 'warning' %}text-bg-warning
+            {% else %}text-bg-secondary{% endif %}">
+            {{ texts['watchdog_status_' ~ watchdog_state] }}
+        </span>
+    </div>
+    <div class="card-body">
+        {% if error %}
+        <div class="alert alert-danger" role="alert">{{ error }}</div>
+        {% endif %}
+        {% if message %}
+        <div class="alert alert-success" role="alert">{{ message }}</div>
+        {% endif %}
+        <form>
+            <div class="form-check form-switch mb-3">
+                <input class="form-check-input" type="checkbox" role="switch"
+                       id="watchdog-switch" name="watchdog"
+                       {% if config['watchdog'] %}checked{% endif %}>
+                <label class="form-check-label" for="watchdog-switch">
+                    {{ texts['label_watchdog_enabled'] }}
+                </label>
+            </div>
+            <div class="mb-3">
+                <label class="form-label" for="connectivity-select">
+                    {{ texts['label_connectivity_check'] }}
+                </label>
+                <select class="form-select" id="connectivity-select" name="connectivity_check">
+                    <option value="internet" {% if config['connectivity_check'] == 'internet' %}selected{% endif %}>
+                        {{ texts['connectivity_internet'] }}
+                    </option>
+                    <option value="url" {% if config['connectivity_check'] == 'url' %}selected{% endif %}>
+                        {{ texts['connectivity_url'] }}
+                    </option>
+                    <option value="gateway" {% if config['connectivity_check'] == 'gateway' %}selected{% endif %}>
+                        {{ texts['connectivity_gateway'] }}
+                    </option>
+                    <option value="off" {% if config['connectivity_check'] == 'off' %}selected{% endif %}>
+                        {{ texts['connectivity_off'] }}
+                    </option>
+                </select>
+                <div class="form-text">{{ texts['connectivity_help'] }}</div>
+            </div>
+            <button type="button" class="btn btn-primary"
+                    hx-post="{{ url_for('settings.monitoring_save') }}"
+                    hx-include="closest form"
+                    hx-target="#monitoring-tile">
+                {{ texts['btn_save'] }}
+            </button>
+        </form>
+    </div>
+</div>

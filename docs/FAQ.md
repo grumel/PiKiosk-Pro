@@ -43,6 +43,19 @@ enthält Konfiguration und Benutzerkonten und lässt sich
 herunterladen, hochladen oder per USB-Stick auf ein anderes Gerät
 übertragen (Datei auf dem Stick: `PiKiosk_Backup*.zip`).
 
+**Kann ich den Kiosk ganz ohne Internet betreiben?**
+Ja. Kiosk-URL auf eine lokale Adresse setzen, in der Kachel
+„Überwachung" die Verbindungsprüfung auf „Kiosk-URL erreichbar"
+stellen (sonst meldet das Gerät dauerhaft „Offline") und in der
+Kachel „Aktualisierung" die Updatequelle auf „Lokale Quelle" mit der
+Adresse eines Webservers im Netz umstellen. Details in
+[Administration.md](Administration.md).
+
+**Wie stelle ich eine lokale Updatequelle bereit?**
+Ein beliebiger Webserver im Netz genügt. Dort `manifest.json`
+(`version`, `archive`, optional `notes`) und das Paket ablegen –
+mehr braucht es nicht. Alle Geräte holen sich das Update von dort.
+
 **Wie aktualisiere ich PiKiosk Pro?**
 Dashboard-Kachel „Aktualisierung" → „Nach Update suchen" (lädt das
 neueste GitHub-Release) oder ein Update-Paket hochladen. Vor jedem
@@ -60,6 +73,9 @@ dem Gerät. Nach außen kommuniziert das System nur für die
 konfigurierten Zwecke (Kiosk-URL, URL-Prüfung, GitHub-Updates).
 
 **Kann ich mehrere Geräte zentral verwalten?**
-Ja, über die REST API mit JWT-Authentifizierung – Status,
-Konfiguration, Browser, Updates, Sicherungen und Neustart sind
-entfernt steuerbar (siehe [API.md](API.md)).
+Ja – mit PiKiosk Center. Auf einem beliebigen Rechner im Netz
+`sudo ./install_center.sh` ausführen, Geräte dort aufnehmen und den
+Zustand aller Kioske auf einer Seite sehen; Aktionen lassen sich für
+eine Auswahl gleichzeitig ausführen (siehe [Center.md](Center.md)).
+Die Geräte selbst bleiben unverändert – die Zentrale nutzt nur die
+vorhandene [REST API](API.md).

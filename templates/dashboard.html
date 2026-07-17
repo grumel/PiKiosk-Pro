@@ -36,6 +36,18 @@
         <div class="col-12 col-md-6 col-xl-4" id="appearance-tile">
             {% include "dashboard/_appearance_tile.html" %}
         </div>
+        <div class="col-12 col-md-6 col-xl-4" id="monitoring-tile"
+             hx-get="{{ url_for('settings.monitoring_tile') }}"
+             hx-trigger="load"
+             hx-swap="innerHTML">
+            <div class="card h-100">
+                <div class="card-header">{{ texts['tile_monitoring'] }}</div>
+                <div class="card-body text-body-secondary">
+                    <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                    {{ texts['monitoring_loading'] }}
+                </div>
+            </div>
+        </div>
         <div class="col-12 col-md-6 col-xl-4" id="wifi-tile"
              hx-get="{{ url_for('network.status') }}"
              hx-trigger="load"
