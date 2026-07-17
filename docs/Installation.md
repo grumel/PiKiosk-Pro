@@ -13,7 +13,7 @@ einem Raspberry Pi 4.
 ## Schritt 1: Projekt herunterladen
 
 ```bash
-git clone https://github.com/holgerjohn/PiKiosk-Pro.git
+git clone https://github.com/grumel/PiKiosk-Pro.git
 cd PiKiosk-Pro
 ```
 
