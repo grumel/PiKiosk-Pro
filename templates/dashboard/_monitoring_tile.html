@@ -18,6 +18,58 @@
         {% if message %}
         <div class="alert alert-success" role="alert">{{ message }}</div>
         {% endif %}
+        {% if watchdog_details %}
+        {% set network = watchdog_details['network'] %}
+        {% set system = watchdog_details['system'] %}
+        {% set browser = watchdog_details['browser'] %}
+        <p class="mb-1 small text-body-secondary">{{ texts['monitoring_checks_heading'] }}</p>
+        <ul class="list-group list-group-flush mb-3 small">
+            <li class="list-group-item d-flex justify-content-between px-0 py-1">
+                <span>{{ texts['label_browser_status'] }}</span>
+                <span class="badge {% if browser['status'] == 'running' %}text-bg-success{% else %}text-bg-warning{% endif %}">
+                    {{ texts.get('browser_status_' ~ browser['status'], browser['status']) }}
+                </span>
+            </li>
+            {% for key in ('gateway', 'dns', 'internet') %}
+            <li class="list-group-item d-flex justify-content-between px-0 py-1">
+                <span>{{ texts['check_' ~ key] }}</span>
+                {% if network[key] %}
+                <span class="badge text-bg-success">{{ texts['check_ok'] }}</span>
+                {% else %}
+                <span class="badge text-bg-warning">{{ texts['check_fail'] }}</span>
+                {% endif %}
+            </li>
+            {% endfor %}
+            <li class="list-group-item d-flex justify-content-between px-0 py-1">
+                <span>{{ texts['label_kiosk_url'] }}</span>
+                {% if network['url'] is none %}
+                <span class="badge text-bg-secondary">&ndash;</span>
+                {% elif network['url'] %}
+                <span class="badge text-bg-success">{{ texts['check_ok'] }}</span>
+                {% else %}
+                <span class="badge text-bg-warning">{{ texts['check_fail'] }}</span>
+                {% endif %}
+            </li>
+            <li class="list-group-item d-flex justify-content-between px-0 py-1">
+                <span>{{ texts['label_temperature'] }}</span>
+                <span class="badge {% if 'temperature_critical' in system['warnings'] %}text-bg-danger{% elif 'temperature_warning' in system['warnings'] %}text-bg-warning{% else %}text-bg-success{% endif %}">
+                    {% if system['temperature'] is not none %}{{ system['temperature'] }} °C{% else %}&ndash;{% endif %}
+                </span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between px-0 py-1">
+                <span>{{ texts['label_ram'] }}</span>
+                <span class="badge {% if 'ram_warning' in system['warnings'] %}text-bg-warning{% else %}text-bg-success{% endif %}">
+                    {{ system['ram_percent'] }} %
+                </span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between px-0 py-1">
+                <span>{{ texts['label_disk'] }}</span>
+                <span class="badge {% if 'disk_warning' in system['warnings'] %}text-bg-warning{% else %}text-bg-success{% endif %}">
+                    {{ system['disk_percent'] }} %
+                </span>
+            </li>
+        </ul>
+        {% endif %}
         <form>
             <div class="form-check form-switch mb-3">
                 <input class="form-check-input" type="checkbox" role="switch"

@@ -110,6 +110,31 @@ class DashboardService:
         allowed = ("online", "warning", "error", "offline", "disabled")
         return overall if overall in allowed else "inactive"
 
+    def watchdog_details(self) -> dict[str, Any] | None:
+        """Liest die Einzelpruefungen des Watchdogs aus der Statusdatei.
+
+        Damit kann die Oberflaeche zeigen, welche Pruefung eine
+        Warnung oder einen Fehler ausloest, statt nur den
+        Gesamtzustand.
+
+        Returns:
+            Woerterbuch mit den Bereichen browser, network und
+            system oder None, wenn keine aktuelle Statusdatei
+            vorliegt oder der Watchdog deaktiviert ist.
+        """
+        if self.watchdog_state() in ("inactive", "disabled"):
+            return None
+        try:
+            status = read_json_file(WATCHDOG_STATUS_FILE)
+        except ConfigurationError:
+            return None
+        browser = status.get("browser")
+        network = status.get("network")
+        system = status.get("system")
+        if not all(isinstance(part, dict) for part in (browser, network, system)):
+            return None
+        return {"browser": browser, "network": network, "system": system}
+
     def _mac_address(self) -> str:
         """Ermittelt die MAC-Adresse der aktiven Netzwerkschnittstelle.
 

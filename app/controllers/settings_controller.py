@@ -164,6 +164,7 @@ def _render_monitoring_tile(**context: object) -> str:
         texts=current_texts(),
         config=services.config_service.load(),
         watchdog_state=services.dashboard_service.watchdog_state(),
+        watchdog_details=services.dashboard_service.watchdog_details(),
         **context,
     )
 

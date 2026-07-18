@@ -5,6 +5,17 @@ dokumentiert. Das Format orientiert sich an
 [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die
 Versionierung folgt [Semantic Versioning](https://semver.org/lang/de/).
 
+## [1.6.3] - 2026-07-18
+
+### Hinzugefügt
+
+- **Überwachungs-Kachel zeigt die Einzelprüfungen des Watchdogs.**
+  Bisher war nur der Gesamtzustand („Warnung"/„Fehler") sichtbar –
+  nicht die Ursache. Die Kachel listet jetzt die letzte Prüfung
+  auf: Browser, Gateway, DNS, Internet, Kiosk-URL sowie Temperatur,
+  Arbeitsspeicher und Festplatte mit Werten; die auslösende
+  Prüfung ist am Warn-Badge direkt erkennbar.
+
 ## [1.6.2] - 2026-07-18
 
 ### Behoben

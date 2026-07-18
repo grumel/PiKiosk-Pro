@@ -264,5 +264,13 @@
     "wifi_preferred_saved": "„{ssid}“ is now the default Wi-Fi.",
     "wifi_preferred_cleared": "The default Wi-Fi has been removed.",
     "btn_connect_preferred": "Connect to „{ssid}“",
-    "wifi_error_not_authorized": "Not allowed to change the network. The polkit rule for NetworkManager is missing – see troubleshooting."
+    "wifi_error_not_authorized": "Not allowed to change the network. The polkit rule for NetworkManager is missing – see troubleshooting.",
+    "monitoring_checks_heading": "Latest watchdog check:",
+    "check_gateway": "Gateway",
+    "check_dns": "DNS",
+    "check_internet": "Internet",
+    "check_ok": "OK",
+    "check_fail": "Not OK",
+    "browser_status_app_offline": "Application offline",
+    "browser_status_unknown": "Unknown"
 }

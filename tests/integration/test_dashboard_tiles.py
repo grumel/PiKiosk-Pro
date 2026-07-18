@@ -7,6 +7,7 @@ sowie Browser-, Update- und interne Endpunkte ab. Alle
 Netzwerkzugriffe sind durch Ersatzobjekte ersetzt.
 """
 
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -455,6 +456,68 @@ class TestMonitoringTile:
         body = client.get("/dashboard/monitoring").get_data(as_text=True)
         assert "Verbindungsprüfung" in body
         assert "Watchdog aktiv" in body
+
+    def test_kachel_zeigt_einzelpruefungen(
+        self,
+        client: FlaskClient,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        import json as json_module
+        from datetime import datetime, timezone
+
+        from app.services import dashboard_service as dashboard_module
+
+        status_file = tmp_path / "watchdog_status.json"
+        status_file.write_text(
+            json_module.dumps(
+                {
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "overall": "warning",
+                    "browser": {
+                        "status": "running",
+                        "failed": False,
+                        "restarts_in_window": 0,
+                    },
+                    "network": {
+                        "gateway": False,
+                        "dns": True,
+                        "internet": True,
+                        "url": None,
+                    },
+                    "system": {
+                        "cpu_percent": 12.0,
+                        "ram_percent": 91.5,
+                        "disk_percent": 40.0,
+                        "temperature": 62.0,
+                        "warnings": ["ram_warning"],
+                    },
+                }
+            ),
+            encoding="utf-8",
+        )
+        monkeypatch.setattr(dashboard_module, "WATCHDOG_STATUS_FILE", status_file)
+        login(client)
+        body = client.get("/dashboard/monitoring").get_data(as_text=True)
+        assert "Letzte Prüfung" in body
+        assert "Nicht OK" in body
+        assert "91.5" in body
+        assert "62.0" in body
+
+    def test_kachel_ohne_statusdatei_zeigt_keine_pruefungen(
+        self,
+        client: FlaskClient,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        from app.services import dashboard_service as dashboard_module
+
+        monkeypatch.setattr(
+            dashboard_module, "WATCHDOG_STATUS_FILE", tmp_path / "fehlt.json"
+        )
+        login(client)
+        body = client.get("/dashboard/monitoring").get_data(as_text=True)
+        assert "Letzte Prüfung" not in body
 
     def test_verbindungspruefung_umstellen(
         self, client: FlaskClient, registry: ServiceRegistry

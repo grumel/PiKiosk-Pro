@@ -264,5 +264,13 @@
     "wifi_preferred_saved": "„{ssid}“ ist jetzt das Standard-WLAN.",
     "wifi_preferred_cleared": "Das Standard-WLAN wurde entfernt.",
     "btn_connect_preferred": "Mit „{ssid}“ verbinden",
-    "wifi_error_not_authorized": "Keine Berechtigung, das Netzwerk zu ändern. Die polkit-Regel für NetworkManager fehlt – siehe Troubleshooting."
+    "wifi_error_not_authorized": "Keine Berechtigung, das Netzwerk zu ändern. Die polkit-Regel für NetworkManager fehlt – siehe Troubleshooting.",
+    "monitoring_checks_heading": "Letzte Prüfung des Watchdogs:",
+    "check_gateway": "Gateway",
+    "check_dns": "DNS",
+    "check_internet": "Internet",
+    "check_ok": "OK",
+    "check_fail": "Nicht OK",
+    "browser_status_app_offline": "Anwendung offline",
+    "browser_status_unknown": "Unbekannt"
 }
