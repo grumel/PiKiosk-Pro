@@ -356,6 +356,19 @@ class WatchdogService:
         except ConfigurationError as error:
             self._logger.error(f"Statusdatei nicht schreibbar: {error}")
 
+    def _health_url(self) -> str:
+        """Bestimmt die URL des Health-Endpunkts der Hauptanwendung.
+
+        Mit aktivem TLS wird der lokale HTTP-Listener verwendet,
+        damit der Aufruf ohne Zertifikatspruefung auskommt.
+
+        Returns:
+            Die URL des Health-Endpunkts.
+        """
+        if tls_files() is None:
+            return HEALTH_CHECK_URL
+        return local_base_url().rstrip("/") + "/health"
+
     def _fetch_health(self) -> dict[str, Any] | None:
         """Fragt den Health-Endpunkt der Hauptanwendung ab.
 
@@ -364,7 +377,7 @@ class WatchdogService:
         """
         try:
             with urllib.request.urlopen(
-                HEALTH_CHECK_URL, timeout=WATCHDOG_HTTP_TIMEOUT_SECONDS
+                self._health_url(), timeout=WATCHDOG_HTTP_TIMEOUT_SECONDS
             ) as response:
                 payload = json.loads(response.read().decode("utf-8"))
         except (urllib.error.URLError, OSError, ValueError):

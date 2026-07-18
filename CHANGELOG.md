@@ -5,6 +5,25 @@ dokumentiert. Das Format orientiert sich an
 [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die
 Versionierung folgt [Semantic Versioning](https://semver.org/lang/de/).
 
+## [1.6.2] - 2026-07-18
+
+### Behoben
+
+- **Watchdog meldete auf TLS-Installationen dauerhaft „Fehler".**
+  Der Watchdog fragte den Health-Endpunkt der Hauptanwendung über
+  `http://127.0.0.1:8080` ab – mit aktivem TLS läuft dort aber
+  HTTPS, die Abfrage scheiterte, und der Watchdog stufte die
+  Anwendung unabhängig von der eingestellten Verbindungsprüfung als
+  offline ein. Der Health-Check nutzt jetzt (wie der
+  Browser-Neustart) den lokalen HTTP-Listener auf 127.0.0.1:8081.
+- **Gateway-Prüfung unter der gehärteten Watchdog-Unit.**
+  `NoNewPrivileges` blockierte das setuid-/capability-basierte
+  `ping`-Binary – die Gateway-Prüfung schlug damit immer fehl. Die
+  Watchdog-Unit verzichtet jetzt auf `NoNewPrivileges` und
+  `RestrictSUIDSGID` (im Unit-File begründet); die übrige Härtung
+  bleibt bestehen. Neue Unit-Dateien werden von `sudo ./install.sh`
+  installiert.
+
 ## [1.6.1] - 2026-07-18
 
 ### Behoben

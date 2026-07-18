@@ -19,15 +19,16 @@ ExecStart=__INSTALL_DIR__/.venv/bin/python -m app.watchdog
 Restart=always
 RestartSec=5
 
-# Haertung: Watchdog braucht weder Sonderrechte noch X11.
-NoNewPrivileges=yes
+# Haertung: Watchdog braucht kein X11 und keine Schreibrechte
+# ausserhalb des Installationsverzeichnisses. Bewusst OHNE
+# NoNewPrivileges und RestrictSUIDSGID: die Gateway-Pruefung ruft
+# das ping-Binary auf, das setuid bzw. cap_net_raw benoetigt.
 PrivateTmp=yes
 ProtectSystem=strict
 ReadWritePaths=__INSTALL_DIR__
 ProtectHome=yes
 ProtectKernelTunables=yes
 ProtectControlGroups=yes
-RestrictSUIDSGID=yes
 
 [Install]
 WantedBy=multi-user.target

@@ -274,6 +274,26 @@ class TestWatchdogHttp:
         monkeypatch.setattr(watchdog_module, "BROWSER_RESTART_URL", f"{base}/fehlt")
         assert watchdog._request_restart() is False
 
+    def test_urls_ohne_tls_nutzen_konstanten(
+        self, watchdog: WatchdogService, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setattr(watchdog_module, "tls_files", lambda: None)
+        assert watchdog._health_url() == watchdog_module.HEALTH_CHECK_URL
+        assert watchdog._restart_url() == watchdog_module.BROWSER_RESTART_URL
+
+    def test_urls_mit_tls_nutzen_loopback(
+        self, watchdog: WatchdogService, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        pair = (tmp_path / "cert.pem", tmp_path / "key.pem")
+        monkeypatch.setattr(watchdog_module, "tls_files", lambda: pair)
+        monkeypatch.setattr(
+            watchdog_module, "local_base_url", lambda: "http://127.0.0.1:8081/"
+        )
+        assert watchdog._health_url() == "http://127.0.0.1:8081/health"
+        assert (
+            watchdog._restart_url() == "http://127.0.0.1:8081/internal/browser/restart"
+        )
+
 
 class TestLocalUpdateSource:
     """Tests fuer die lokale Updatequelle mit echtem Webserver."""
