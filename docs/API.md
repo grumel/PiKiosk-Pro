@@ -8,7 +8,7 @@ alle Endpunkte (außer der Token-Ausgabe) sind authentifiziert.
 ## Authentifizierung
 
 Die API verwendet JSON Web Tokens (JWT, HS256). Ein Token wird mit
-den Anmeldedaten des Administrators ausgestellt und ist 24 Stunden
+den Anmeldedaten des Administrators ausgestellt und ist 4 Stunden
 gültig.
 
 ```bash
@@ -20,7 +20,7 @@ curl -k -X POST https://<geraet>:8080/api/token \
 Antwort:
 
 ```json
-{"token": "<jwt>", "token_type": "Bearer", "expires_in": 86400}
+{"token": "<jwt>", "token_type": "Bearer", "expires_in": 14400}
 ```
 
 Läuft das Gerät noch ohne TLS-Zertifikat, gilt `http://` statt

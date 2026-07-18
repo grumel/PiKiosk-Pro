@@ -10,6 +10,7 @@ Konfiguration, Benutzerdatenbank und Logs bleiben beim Update
 unangetastet.
 """
 
+import hashlib
 import json
 import os
 import re
@@ -46,6 +47,8 @@ from app.services.backup_service import BackupService
 from app.services.config_service import ConfigService
 from app.utils.filesystem import read_json_file, write_json_atomic
 from app.utils.version import is_newer
+
+SHA256_PATTERN: re.Pattern[str] = re.compile(r"[0-9a-f]{64}")
 
 CONSTANTS_MEMBER: str = "app/constants.py"
 VERSION_IN_SOURCE: re.Pattern[str] = re.compile(
@@ -156,17 +159,51 @@ class UpdateService:
             raise UpdateError("Es steht kein neueres Update bereit.")
         archive = self._download(str(info["archive_url"]))
         try:
+            expected = info.get("sha256")
+            if expected:
+                self._verify_checksum(archive, str(expected))
+            else:
+                self._logger.warning(
+                    "Update-Archiv ohne Pruefsumme (aelteres Release), "
+                    "Integritaet nur durch HTTPS gesichert."
+                )
             return self.apply_package(archive)
         finally:
             archive.unlink(missing_ok=True)
+
+    def _verify_checksum(self, path: Path, expected: str) -> None:
+        """Prueft die SHA-256-Pruefsumme eines Archivs.
+
+        Args:
+            path:
+                Pfad des heruntergeladenen Archivs.
+
+            expected:
+                Erwartete Pruefsumme.
+
+        Raises:
+            UpdateError
+        """
+        digest = hashlib.sha256()
+        with path.open("rb") as handle:
+            for chunk in iter(lambda: handle.read(65536), b""):
+                digest.update(chunk)
+        actual = digest.hexdigest()
+        if actual != expected.lower():
+            raise UpdateError(
+                "Die Pruefsumme des Update-Archivs stimmt nicht mit dem "
+                "Manifest ueberein. Das Update wurde verworfen."
+            )
+        self._logger.info("Pruefsumme des Update-Archivs bestaetigt.")
 
     def _check_local(self, base_url: str) -> dict[str, Any]:
         """Prueft eine lokale Updatequelle ueber deren Manifest.
 
         Erwartet unter <update_url>/manifest.json ein JSON-Objekt
-        mit den Feldern version, archive und optional notes. Der
-        Archivname wird relativ zur Update-URL aufgeloest, eine
-        vollstaendige URL wird unveraendert uebernommen.
+        mit den Feldern version, archive, sha256 (Pruefsumme des
+        Archivs) und optional notes. Der Archivname wird relativ
+        zur Update-URL aufgeloest, eine vollstaendige URL wird
+        unveraendert uebernommen.
 
         Args:
             base_url:
@@ -187,6 +224,12 @@ class UpdateService:
                 "Das Manifest der Updatequelle ist unvollstaendig "
                 "(version und archive werden benoetigt)."
             )
+        sha256 = str(manifest.get("sha256", "")).strip().lower()
+        if not SHA256_PATTERN.fullmatch(sha256):
+            raise UpdateError(
+                "Das Manifest der Updatequelle benoetigt eine gueltige "
+                "sha256-Pruefsumme des Archivs (64 Hexadezimalzeichen)."
+            )
         try:
             available = is_newer(latest, current)
         except ValidationError:
@@ -203,6 +246,7 @@ class UpdateService:
             status,
             available,
             "local",
+            sha256=sha256,
         )
 
     def _fetch_local_manifest(self, base_url: str) -> dict[str, Any]:
@@ -260,10 +304,7 @@ class UpdateService:
             return self._result(
                 current, tag, "", None, "invalid_version", False, "github"
             )
-        archive = str(
-            data.get("tarball_url")
-            or f"{GITHUB_API_BASE}/repos/{self._repo}/tarball/{tag}"
-        )
+        archive, sha256 = self._github_archive(data, tag)
         status = "available" if available else "up_to_date"
         return self._result(
             current,
@@ -273,7 +314,80 @@ class UpdateService:
             status,
             available,
             "github",
+            sha256=sha256,
         )
+
+    def _github_archive(self, data: dict[str, Any], tag: str) -> tuple[str, str | None]:
+        """Waehlt Archiv-URL und Pruefsumme eines GitHub-Releases.
+
+        Bevorzugt wird das von der CI gebaute ZIP-Asset samt seiner
+        .sha256-Pruefsummendatei. Aeltere Releases ohne Assets
+        fallen auf den Quell-Tarball zurueck (nur HTTPS-geschuetzt,
+        ohne Pruefsumme).
+
+        Args:
+            data:
+                Release-Daten der GitHub-API.
+
+            tag:
+                Tag des Releases.
+
+        Returns:
+            Tupel aus Archiv-URL und Pruefsumme (oder None).
+        """
+        assets = data.get("assets", [])
+        zip_asset: dict[str, Any] | None = None
+        checksum_url: str | None = None
+        if isinstance(assets, list):
+            for asset in assets:
+                if not isinstance(asset, dict):
+                    continue
+                name = str(asset.get("name", ""))
+                if zip_asset is None and name.endswith(".zip"):
+                    zip_asset = asset
+            if zip_asset is not None:
+                expected_name = str(zip_asset.get("name", "")) + ".sha256"
+                for asset in assets:
+                    if (
+                        isinstance(asset, dict)
+                        and str(asset.get("name", "")) == expected_name
+                    ):
+                        checksum_url = str(asset.get("browser_download_url", ""))
+        if zip_asset is not None:
+            archive = str(zip_asset.get("browser_download_url", ""))
+            sha256 = self._fetch_checksum(checksum_url) if checksum_url else None
+            return archive, sha256
+        fallback = str(
+            data.get("tarball_url")
+            or f"{GITHUB_API_BASE}/repos/{self._repo}/tarball/{tag}"
+        )
+        return fallback, None
+
+    def _fetch_checksum(self, url: str) -> str | None:
+        """Laedt eine SHA-256-Pruefsummendatei.
+
+        Args:
+            url:
+                URL der Pruefsummendatei (Format von sha256sum:
+                Pruefsumme und Dateiname).
+
+        Returns:
+            Die Pruefsumme oder None, wenn sie nicht lesbar ist.
+        """
+        request = urllib.request.Request(url, headers={"User-Agent": UPDATE_USER_AGENT})
+        try:
+            with urllib.request.urlopen(
+                request, timeout=UPDATE_HTTP_TIMEOUT_SECONDS
+            ) as response:
+                content = response.read(4096).decode("ascii", errors="replace")
+        except (urllib.error.URLError, OSError) as error:
+            self._logger.warning(f"Pruefsummendatei nicht lesbar: {error}")
+            return None
+        token = content.split()[0].lower() if content.split() else ""
+        if SHA256_PATTERN.fullmatch(token):
+            return token
+        self._logger.warning("Pruefsummendatei hat ein unerwartetes Format.")
+        return None
 
     def apply_package(self, package_path: Path) -> dict[str, Any]:
         """Installiert ein lokales Update-Paket.
@@ -372,6 +486,7 @@ class UpdateService:
         status: str,
         available: bool,
         source: str,
+        sha256: str | None = None,
     ) -> dict[str, Any]:
         """Baut das Ergebnisobjekt einer Updatepruefung.
 
@@ -397,6 +512,10 @@ class UpdateService:
             source:
                 Verwendete Updatequelle.
 
+            sha256:
+                Erwartete SHA-256-Pruefsumme des Archivs oder None,
+                wenn keine Pruefung moeglich ist.
+
         Returns:
             Das Ergebnisobjekt.
         """
@@ -404,6 +523,7 @@ class UpdateService:
             "current": current,
             "latest": latest,
             "notes": notes,
+            "sha256": sha256,
             "archive_url": archive_url,
             "status": status,
             "available": available,

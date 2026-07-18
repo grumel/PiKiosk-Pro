@@ -21,5 +21,9 @@ ExecStart=__INSTALL_DIR__/.venv/bin/python -m app.app
 Restart=on-failure
 RestartSec=5
 
+# Bewusst ohne Sandbox-Haertung: der Dienst startet den Kioskbrowser
+# (X11-Zugriff, /tmp/.X11-unix) und nutzt sudo fuer Hostname,
+# Neustart und Herunterfahren (NoNewPrivileges wuerde das brechen).
+
 [Install]
 WantedBy=graphical.target

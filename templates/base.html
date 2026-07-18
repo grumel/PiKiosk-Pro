@@ -13,7 +13,9 @@
 </head>
 <body class="d-flex flex-column min-vh-100"
       data-password-show="{{ texts['password_show'] }}"
-      data-password-hide="{{ texts['password_hide'] }}">
+      data-password-hide="{{ texts['password_hide'] }}"
+      data-error-server="{{ texts['setup_error_server'] }}"
+      data-error-network="{{ texts['setup_error_network'] }}">
     <header class="navbar navbar-expand bg-body-tertiary border-bottom">
         <div class="container-fluid">
             <span class="navbar-brand fw-semibold">{{ texts['app_title'] }}</span>
@@ -29,6 +31,7 @@
     <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}?v={{ asset_version }}"></script>
     <script src="{{ url_for('static', filename='js/theme.js') }}?v={{ asset_version }}"></script>
     <script src="{{ url_for('static', filename='js/password.js') }}?v={{ asset_version }}"></script>
+    <script src="{{ url_for('static', filename='js/errors.js') }}?v={{ asset_version }}"></script>
     {% block scripts %}{% endblock %}
 </body>
 </html>

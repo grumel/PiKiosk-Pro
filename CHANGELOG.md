@@ -5,6 +5,47 @@ dokumentiert. Das Format orientiert sich an
 [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die
 Versionierung folgt [Semantic Versioning](https://semver.org/lang/de/).
 
+## [1.5.0] - 2026-07-18
+
+### Hinzugefügt
+
+- **Updates mit Integritätsprüfung.** Die CI veröffentlicht zu jedem
+  Release eine SHA-256-Prüfsummendatei; das Gerät prüft
+  heruntergeladene Update-Archive dagegen und verwirft sie bei
+  Abweichung. Lokale Updatequellen benötigen jetzt ein
+  `sha256`-Feld im Manifest (Pflicht – siehe Administration.md);
+  ältere GitHub-Releases ohne Prüfsummendatei bleiben installierbar
+  (nur HTTPS-geschützt, mit Warnung im Log).
+- **Ende-zu-Ende-Rauchtests mit echtem Chromium** (Playwright):
+  Einrichtungsassistent und Anmeldung werden im echten Browser
+  durchgeklickt – genau die Fehlerklasse, die den
+  Chromium-Fehler aus 1.3.1 unbemerkt ließ. Eigener CI-Job; lokal
+  werden die Tests ohne installiertes Playwright übersprungen.
+- **Sichtbare Fehlermeldungen in der gesamten Oberfläche.**
+  Fehlgeschlagene Anfragen (Serverfehler, keine Verbindung) zeigen
+  jetzt auch im Dashboard und in der Zentrale eine Meldung statt
+  eines wirkungslosen Klicks (bisher nur im Assistenten).
+
+### Geändert
+
+- **JWT über PyJWT statt Eigenbau** – gleiche Tokens (HS256),
+  aber gepflegte Bibliothek mit Sicherheitsprozess. API-Tokens
+  werden jetzt mit einem eigenen Schlüssel signiert
+  (`config/api_key`), getrennt vom Sitzungsschlüssel, und sind
+  4 Stunden statt 24 Stunden gültig.
+- **Reproduzierbare Installationen:** `requirements.lock` schreibt
+  alle Abhängigkeitsversionen fest; Installer und update.sh
+  verwenden die Datei automatisch.
+- **systemd-Härtung:** Zentrale und Watchdog laufen jetzt mit
+  NoNewPrivileges, PrivateTmp, ProtectSystem=strict und
+  ProtectHome. Der Gerätedienst bleibt bewusst ungehärtet
+  (X11-Zugriff für den Kioskbrowser, sudo für Neustart/Hostname) –
+  im Unit-File dokumentiert.
+- **CI verschärft:** Prüfschwelle für Testabdeckung gilt jetzt auch
+  für die Zentrale (`--cov=center`), alle Linter prüfen den
+  Center-Code mit, ShellCheck prüft die Shell-Skripte.
+- Cache-Busting (`?v=<Version>`) jetzt auch in der Zentrale.
+
 ## [1.4.0] - 2026-07-18
 
 ### Hinzugefügt

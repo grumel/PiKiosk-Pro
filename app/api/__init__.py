@@ -12,14 +12,28 @@ Geraete; die lokale Weboberflaeche bleibt davon unberuehrt.
 from functools import wraps
 from typing import Any, Callable
 
-from flask import Blueprint, Response, current_app, g, jsonify, request
+from flask import Blueprint, Response, g, jsonify, request
 
-from app.constants import API_TOKEN_TTL_SECONDS
+from app.constants import API_KEY_FILE, API_TOKEN_TTL_SECONDS
 from app.controllers import current_services
 from app.exceptions import AuthenticationError, PiKioskError, ValidationError
 from app.utils.crypto import create_jwt, verify_jwt
+from app.utils.helpers import load_or_create_secret_key
 
 api_blueprint = Blueprint("api", __name__, url_prefix="/api")
+
+
+def api_secret() -> str:
+    """Liefert den Signaturschluessel der API-Tokens.
+
+    Der Schluessel ist vom Flask-Sitzungsschluessel getrennt, damit
+    Sitzungs- und API-Vertrauensbereich unabhaengig bleiben.
+
+    Returns:
+        Der Signaturschluessel.
+    """
+    return load_or_create_secret_key(API_KEY_FILE)
+
 
 ApiView = Callable[..., Response | tuple[Response, int]]
 
@@ -67,9 +81,7 @@ def api_auth_required(view: ApiView) -> ApiView:
         if not header.startswith("Bearer "):
             return api_error(401, "unauthorized")
         try:
-            claims = verify_jwt(
-                header[len("Bearer ") :], str(current_app.config["SECRET_KEY"])
-            )
+            claims = verify_jwt(header[len("Bearer ") :], api_secret())
         except AuthenticationError:
             return api_error(401, "unauthorized")
         user = current_services().auth_service.load_user(str(claims.get("sub", "")))
@@ -128,7 +140,7 @@ def issue_token() -> Response | tuple[Response, int]:
         return api_error(401, "invalid_credentials")
     token = create_jwt(
         {"sub": user.get_id(), "username": user.username},
-        str(current_app.config["SECRET_KEY"]),
+        api_secret(),
         API_TOKEN_TTL_SECONDS,
     )
     return jsonify(token=token, token_type="Bearer", expires_in=API_TOKEN_TTL_SECONDS)

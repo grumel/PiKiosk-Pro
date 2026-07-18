@@ -19,5 +19,15 @@ ExecStart=__INSTALL_DIR__/.venv/bin/python -m center.app
 Restart=on-failure
 RestartSec=5
 
+# Haertung: reiner Webdienst ohne Sonderrechte.
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ReadWritePaths=__INSTALL_DIR__
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+
 [Install]
 WantedBy=multi-user.target

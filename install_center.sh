@@ -70,10 +70,16 @@ copy_project() {
 create_virtualenv() {
     log "Python-Umgebung wird erstellt."
     sudo -u "${CENTER_USER}" python3 -m venv "${INSTALL_DIR}/.venv"
+    # shellcheck disable=SC2024  # Skript laeuft als root, Logdatei gehoert root.
     sudo -u "${CENTER_USER}" "${INSTALL_DIR}/.venv/bin/pip" install \
         --upgrade pip >>"${LOG_FILE}" 2>&1
+    local requirements="${INSTALL_DIR}/requirements.txt"
+    if [[ -f "${INSTALL_DIR}/requirements.lock" ]]; then
+        requirements="${INSTALL_DIR}/requirements.lock"
+    fi
+    # shellcheck disable=SC2024  # Skript laeuft als root, Logdatei gehoert root.
     sudo -u "${CENTER_USER}" "${INSTALL_DIR}/.venv/bin/pip" install \
-        -r "${INSTALL_DIR}/requirements.txt" >>"${LOG_FILE}" 2>&1
+        -r "${requirements}" >>"${LOG_FILE}" 2>&1
     log "Python-Umgebung erstellt."
 }
 

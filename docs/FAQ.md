@@ -53,7 +53,8 @@ Adresse eines Webservers im Netz umstellen. Details in
 
 **Wie stelle ich eine lokale Updatequelle bereit?**
 Ein beliebiger Webserver im Netz genügt. Dort `manifest.json`
-(`version`, `archive`, optional `notes`) und das Paket ablegen –
+(`version`, `archive`, `sha256` – die Prüfsumme des Pakets aus
+`sha256sum <paket>` – und optional `notes`) und das Paket ablegen –
 mehr braucht es nicht. Alle Geräte holen sich das Update von dort.
 
 **Wie aktualisiere ich PiKiosk Pro?**

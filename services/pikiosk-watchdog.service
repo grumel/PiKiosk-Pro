@@ -19,5 +19,15 @@ ExecStart=__INSTALL_DIR__/.venv/bin/python -m app.watchdog
 Restart=always
 RestartSec=5
 
+# Haertung: Watchdog braucht weder Sonderrechte noch X11.
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ReadWritePaths=__INSTALL_DIR__
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+
 [Install]
 WantedBy=multi-user.target

@@ -11,7 +11,7 @@ import pytest
 from app.exceptions import AuthenticationError
 from app.utils.crypto import create_jwt, verify_jwt
 
-SECRET = "test-geheimnis"
+SECRET = "test-geheimnis-mit-mindestens-32-byte-laenge!"
 
 
 class TestJwt:
@@ -32,7 +32,7 @@ class TestJwt:
     def test_falsches_geheimnis(self) -> None:
         token = create_jwt({"sub": "1"}, SECRET, 60)
         with pytest.raises(AuthenticationError):
-            verify_jwt(token, "anderes-geheimnis")
+            verify_jwt(token, "anderes-geheimnis-mit-mindestens-32-byte!")
 
     def test_manipulierte_nutzdaten(self) -> None:
         token = create_jwt({"sub": "1"}, SECRET, 60)

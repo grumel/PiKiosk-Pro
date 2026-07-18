@@ -141,8 +141,12 @@ in der Kachel und können mit einem Klick importiert werden.
   eintragen, z. B. `http://server.local/pikiosk`. Dort werden
   erwartet:
   - `manifest.json` mit den Feldern `version` (z. B. `1.2.0`),
-    `archive` (Dateiname des Pakets) und optional `notes`
+    `archive` (Dateiname des Pakets), `sha256` (Prüfsumme des
+    Pakets, `sha256sum <paket>`) und optional `notes`
   - das Paket selbst (ZIP oder tar.gz)
+
+  Die Prüfsumme ist Pflicht: Ein Paket, dessen Prüfsumme nicht zum
+  Manifest passt, wird verworfen und niemals installiert.
 - **Aus**: Es wird nicht nach Updates gesucht.
 
 Beispiel für ein Manifest:
@@ -151,6 +155,7 @@ Beispiel für ein Manifest:
 {
     "version": "1.2.0",
     "archive": "PiKiosk-Pro-1.2.0.zip",
+    "sha256": "d94d3f0e6c8a…(64 Hexadezimalzeichen)…b1c2",
     "notes": "Neue Funktionen …"
 }
 ```

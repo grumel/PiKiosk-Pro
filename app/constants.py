@@ -11,7 +11,7 @@ zu, damit keine doppelten Definitionen entstehen.
 from pathlib import Path
 
 APP_NAME: str = "PiKiosk Pro"
-APP_VERSION: str = "1.4.0"
+APP_VERSION: str = "1.5.0"
 
 BASE_DIR: Path = Path(__file__).resolve().parent.parent
 CONFIG_DIR: Path = BASE_DIR / "config"
@@ -105,7 +105,8 @@ SETUP_STEPS: tuple[str, ...] = (
 
 SESSION_TIMEOUT_MINUTES: int = 30
 REMEMBER_COOKIE_DAYS: int = 7
-API_TOKEN_TTL_SECONDS: int = 24 * 3600
+API_TOKEN_TTL_SECONDS: int = 4 * 3600
+API_KEY_FILE: Path = CONFIG_DIR / "api_key"
 
 INTERNET_CHECK_HOST: str = "1.1.1.1"
 INTERNET_CHECK_PORT: int = 53

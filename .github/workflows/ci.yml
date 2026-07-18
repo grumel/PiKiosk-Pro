@@ -31,19 +31,45 @@ jobs:
         run: pip install -r requirements-dev.txt
 
       - name: Black
-        run: black --check app scripts tests
+        run: black --check app center scripts tests
 
       - name: isort
-        run: isort --profile black --check-only app scripts tests
+        run: isort --profile black --check-only app center scripts tests
 
       - name: Ruff
-        run: ruff check app scripts tests
+        run: ruff check app center scripts tests
 
       - name: mypy
-        run: mypy --python-version 3.13 --ignore-missing-imports app scripts
+        run: mypy --python-version 3.13 --ignore-missing-imports app center scripts
+
+      - name: ShellCheck
+        run: shellcheck install.sh install_center.sh update.sh
 
       - name: Tests mit Abdeckung
-        run: pytest --cov=app --cov-report=term --cov-fail-under=90
+        run: pytest --cov=app --cov=center --cov-report=term --cov-fail-under=90
+
+  e2e:
+    name: Ende-zu-Ende (Chromium)
+    needs: quality
+    runs-on: ubuntu-latest
+    steps:
+      - name: Quellcode auschecken
+        uses: actions/checkout@v4
+
+      - name: Python 3.13 einrichten
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Abhaengigkeiten installieren
+        run: |
+          pip install -r requirements-dev.txt
+          pip install playwright
+          playwright install chromium
+
+      - name: Rauchtests im echten Browser
+        run: pytest tests/e2e -q
 
   release:
     name: Build und Release
@@ -62,8 +88,15 @@ jobs:
             --prefix="PiKiosk-Pro-${GITHUB_REF_NAME}/" \
             -o "PiKiosk-Pro-${GITHUB_REF_NAME}.zip" "${GITHUB_REF_NAME}"
 
+      - name: Pruefsumme erzeugen
+        run: |
+          sha256sum "PiKiosk-Pro-${GITHUB_REF_NAME}.zip" \
+            > "PiKiosk-Pro-${GITHUB_REF_NAME}.zip.sha256"
+
       - name: GitHub-Release erstellen
         uses: softprops/action-gh-release@v2
         with:
-          files: PiKiosk-Pro-${{ github.ref_name }}.zip
+          files: |
+            PiKiosk-Pro-${{ github.ref_name }}.zip
+            PiKiosk-Pro-${{ github.ref_name }}.zip.sha256
           generate_release_notes: true

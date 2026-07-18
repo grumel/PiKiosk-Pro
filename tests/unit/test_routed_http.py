@@ -7,6 +7,7 @@ Netzwerkzugriffe von UpdateService (GitHub-Abfrage, Download) und
 WatchdogService (Health-Endpunkt, Neustart-Endpunkt).
 """
 
+import hashlib
 import json
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -301,6 +302,7 @@ class TestLocalUpdateSource:
         manifest = {
             "version": "99.0.0",
             "archive": "PiKiosk-Pro-99.0.0.zip",
+            "sha256": "a" * 64,
             "notes": "Lokale Notizen",
         }
         server.get_routes["/manifest.json"] = (
@@ -321,7 +323,7 @@ class TestLocalUpdateSource:
         update_service: UpdateService,
     ) -> None:
         base, server = routed_server
-        manifest = {"version": "0.0.1", "archive": "alt.zip"}
+        manifest = {"version": "0.0.1", "archive": "alt.zip", "sha256": "b" * 64}
         server.get_routes["/manifest.json"] = (
             200,
             json.dumps(manifest).encode("utf-8"),
@@ -340,6 +342,7 @@ class TestLocalUpdateSource:
         manifest = {
             "version": "99.0.0",
             "archive": "http://anderer.server/paket.zip",
+            "sha256": "c" * 64,
         }
         server.get_routes["/manifest.json"] = (
             200,
@@ -368,7 +371,13 @@ class TestLocalUpdateSource:
         base, server = routed_server
         server.get_routes["/manifest.json"] = (
             200,
-            b'{"version": "keine-version", "archive": "x.zip"}',
+            json.dumps(
+                {
+                    "version": "keine-version",
+                    "archive": "x.zip",
+                    "sha256": "d" * 64,
+                }
+            ).encode("utf-8"),
         )
         self.use_local_source(update_service, base)
         info = update_service.check()
@@ -433,14 +442,55 @@ class TestLocalUpdateSource:
 
         base, server = routed_server
         package = build_zip(tmp_path / "paket.zip", "99.0.0")
+        payload = package.read_bytes()
+        checksum = hashlib.sha256(payload).hexdigest()
         server.get_routes["/manifest.json"] = (
             200,
-            json.dumps({"version": "99.0.0", "archive": "paket.zip"}).encode("utf-8"),
+            json.dumps(
+                {"version": "99.0.0", "archive": "paket.zip", "sha256": checksum}
+            ).encode("utf-8"),
         )
-        server.get_routes["/paket.zip"] = (200, package.read_bytes())
+        server.get_routes["/paket.zip"] = (200, payload)
         self.use_local_source(update_service, base)
         result = update_service.apply()
         assert result["version"] == "99.0.0"
         assert (update_service._install_dir / "app" / "constants.py").read_text(
             encoding="utf-8"
         ).count("99.0.0") == 1
+
+    def test_manifest_ohne_pruefsumme_wird_abgelehnt(
+        self,
+        routed_server: tuple[str, ThreadingHTTPServer],
+        update_service: UpdateService,
+    ) -> None:
+        base, server = routed_server
+        manifest = {"version": "99.0.0", "archive": "paket.zip"}
+        server.get_routes["/manifest.json"] = (
+            200,
+            json.dumps(manifest).encode("utf-8"),
+        )
+        self.use_local_source(update_service, base)
+        with pytest.raises(UpdateError):
+            update_service.check()
+
+    def test_falsche_pruefsumme_verwirft_das_update(
+        self,
+        routed_server: tuple[str, ThreadingHTTPServer],
+        update_service: UpdateService,
+        tmp_path: Path,
+    ) -> None:
+        from tests.unit.test_update_service import build_zip
+
+        base, server = routed_server
+        package = build_zip(tmp_path / "paket.zip", "99.0.0")
+        server.get_routes["/manifest.json"] = (
+            200,
+            json.dumps(
+                {"version": "99.0.0", "archive": "paket.zip", "sha256": "e" * 64}
+            ).encode("utf-8"),
+        )
+        server.get_routes["/paket.zip"] = (200, package.read_bytes())
+        self.use_local_source(update_service, base)
+        with pytest.raises(UpdateError, match="Pruefsumme"):
+            update_service.apply()
+        assert not (update_service._install_dir / "app" / "constants.py").exists()

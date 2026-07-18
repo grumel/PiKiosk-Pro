@@ -49,8 +49,12 @@ main() {
     git -C "${INSTALL_DIR}" pull --ff-only >>"${LOG_FILE}" 2>&1 \
         || fail "Git-Aktualisierung fehlgeschlagen."
     log "Quellcode aktualisiert."
+    local requirements="${INSTALL_DIR}/requirements.txt"
+    if [[ -f "${INSTALL_DIR}/requirements.lock" ]]; then
+        requirements="${INSTALL_DIR}/requirements.lock"
+    fi
     "${INSTALL_DIR}/.venv/bin/pip" install \
-        -r "${INSTALL_DIR}/requirements.txt" >>"${LOG_FILE}" 2>&1 \
+        -r "${requirements}" >>"${LOG_FILE}" 2>&1 \
         || fail "Python-Abhaengigkeiten konnten nicht aktualisiert werden."
     log "Abhaengigkeiten aktualisiert."
     for service_name in "${SERVICE_NAMES[@]}"; do

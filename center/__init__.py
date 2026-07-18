@@ -27,6 +27,7 @@ from center.constants import (
     CENTER_LOG_FILE,
     CENTER_TEMPLATE_DIR,
     CENTER_USERS_DB_FILE,
+    CENTER_VERSION,
     STATIC_DIR,
 )
 from center.controllers import SESSION_CSRF_KEY, center_texts, ensure_csrf_token
@@ -194,7 +195,7 @@ def _register_csrf_protection(app: Flask) -> None:
 
     @app.context_processor
     def inject_csrf_token() -> dict[str, str]:
-        return {"csrf_token": ensure_csrf_token()}
+        return {"csrf_token": ensure_csrf_token(), "asset_version": CENTER_VERSION}
 
 
 def _register_error_handlers(app: Flask, registry: CenterRegistry) -> None:
