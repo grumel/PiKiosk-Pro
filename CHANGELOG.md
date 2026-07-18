@@ -5,6 +5,19 @@ dokumentiert. Das Format orientiert sich an
 [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die
 Versionierung folgt [Semantic Versioning](https://semver.org/lang/de/).
 
+## [1.6.1] - 2026-07-18
+
+### Behoben
+
+- **Neuinstallation setzte das Gerät zurück.** `install.sh` und
+  `install_center.sh` kopierten mit `rsync --delete` und entfernten
+  dabei die Laufzeitdaten einer bestehenden Installation –
+  Konfiguration, Benutzerdatenbank, Schlüssel, TLS-Zertifikate und
+  Sicherungen. Nach jedem erneuten `sudo ./install.sh` landete das
+  Gerät deshalb wieder im Einrichtungsassistenten. Diese Pfade sind
+  jetzt vom Abgleich ausgenommen; eine Neuinstallation über eine
+  bestehende Installation erhält alle Einstellungen.
+
 ## [1.6.0] - 2026-07-18
 
 ### Hinzugefügt

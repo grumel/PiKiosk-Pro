@@ -59,12 +59,22 @@ copy_project() {
     fi
     log "Projekt wird nach ${INSTALL_DIR} kopiert."
     mkdir -p "${INSTALL_DIR}"
+    # Laufzeitdaten einer bestehenden Installation bleiben erhalten.
     rsync -a --delete \
         --exclude ".venv" \
         --exclude "logs/*.log" \
+        --exclude "config/config.json" \
+        --exclude "config/users.db" \
+        --exclude "config/secret_key" \
+        --exclude "config/api_key" \
+        --exclude "config/tls" \
+        --exclude "config/center_devices.db" \
+        --exclude "config/center_users.db" \
+        --exclude "config/center_key" \
+        --exclude "backup" \
         "${SOURCE_DIR}/" "${INSTALL_DIR}/"
     chown -R "${CENTER_USER}:${CENTER_USER}" "${INSTALL_DIR}"
-    log "Projekt kopiert."
+    log "Projekt kopiert (Konfiguration und Schluessel bleiben erhalten)."
 }
 
 create_virtualenv() {
