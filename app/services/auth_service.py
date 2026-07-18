@@ -6,16 +6,112 @@ Verwaltet Administratorkonto und Anmeldung. Passwoerter werden
 ausschliesslich mit bcrypt gehasht und niemals im Klartext
 gespeichert oder protokolliert. Die Anmeldung erfolgt ueber
 Flask-Login, LoginUser kapselt dafuer einen Datenbankbenutzer.
+Die LoginThrottle bremst Passwort-Rateversuche: Nach zu vielen
+Fehlversuchen aus derselben Quelle wird die Anmeldung fuer eine
+begrenzte Zeit gesperrt.
 """
+
+import threading
+import time
+from collections import deque
+from typing import Callable
 
 import bcrypt
 from flask_login import UserMixin
 
-from app.constants import ADMIN_ROLE
+from app.constants import (
+    ADMIN_ROLE,
+    LOGIN_ATTEMPT_WINDOW_SECONDS,
+    LOGIN_LOCKOUT_SECONDS,
+    LOGIN_MAX_ATTEMPTS,
+)
 from app.exceptions import AuthenticationError
 from app.logger import KioskLogger
 from app.models.user_model import User, UserModel
 from app.utils.validators import PasswordValidator
+
+
+class LoginThrottle:
+    """Begrenzt Anmelde-Fehlversuche je Quelle.
+
+    Erreicht eine Quelle innerhalb des Zeitfensters die maximale
+    Zahl an Fehlversuchen, wird sie fuer die Sperrdauer blockiert.
+    Weitere Fehlversuche waehrend der Sperre verlaengern sie.
+    Erfolgreiche Anmeldungen setzen die Quelle zurueck.
+
+    Args:
+        max_attempts:
+            Fehlversuche, bis die Sperre greift.
+
+        window_seconds:
+            Zeitfenster, in dem Fehlversuche gezaehlt werden.
+
+        lockout_seconds:
+            Dauer der Sperre in Sekunden.
+
+        clock:
+            Zeitquelle; nur fuer Tests austauschbar.
+    """
+
+    def __init__(
+        self,
+        max_attempts: int = LOGIN_MAX_ATTEMPTS,
+        window_seconds: float = LOGIN_ATTEMPT_WINDOW_SECONDS,
+        lockout_seconds: float = LOGIN_LOCKOUT_SECONDS,
+        clock: Callable[[], float] = time.monotonic,
+    ) -> None:
+        self._max_attempts = max_attempts
+        self._window_seconds = window_seconds
+        self._lockout_seconds = lockout_seconds
+        self._clock = clock
+        self._lock = threading.Lock()
+        self._failures: dict[str, deque[float]] = {}
+        self._blocked_until: dict[str, float] = {}
+
+    def blocked_seconds(self, source: str) -> int:
+        """Liefert die verbleibende Sperrzeit einer Quelle.
+
+        Args:
+            source:
+                Kennung der Quelle, etwa die IP-Adresse.
+
+        Returns:
+            Verbleibende Sekunden, aufgerundet; 0 ohne Sperre.
+        """
+        now = self._clock()
+        with self._lock:
+            until = self._blocked_until.get(source, 0.0)
+            if until <= now:
+                self._blocked_until.pop(source, None)
+                return 0
+            return int(until - now) + 1
+
+    def register_failure(self, source: str) -> None:
+        """Registriert einen Fehlversuch einer Quelle.
+
+        Args:
+            source:
+                Kennung der Quelle, etwa die IP-Adresse.
+        """
+        now = self._clock()
+        with self._lock:
+            attempts = self._failures.setdefault(source, deque())
+            attempts.append(now)
+            while attempts and attempts[0] <= now - self._window_seconds:
+                attempts.popleft()
+            if len(attempts) >= self._max_attempts:
+                self._blocked_until[source] = now + self._lockout_seconds
+
+    def register_success(self, source: str) -> None:
+        """Setzt eine Quelle nach erfolgreicher Anmeldung zurueck.
+
+        Args:
+            source:
+                Kennung der Quelle, etwa die IP-Adresse.
+        """
+        with self._lock:
+            self._failures.pop(source, None)
+            self._blocked_until.pop(source, None)
 
 
 class LoginUser(UserMixin):
@@ -56,12 +152,49 @@ class AuthService:
 
         user_model:
             Datenbankzugriff auf die Benutzertabelle.
+
+        throttle:
+            Optionale Anmeldebremse; ohne Angabe wird eine mit den
+            Standardwerten erzeugt.
     """
 
-    def __init__(self, logger: KioskLogger, user_model: UserModel) -> None:
+    def __init__(
+        self,
+        logger: KioskLogger,
+        user_model: UserModel,
+        throttle: LoginThrottle | None = None,
+    ) -> None:
         self._logger = logger
         self._user_model = user_model
         self._password_validator = PasswordValidator()
+        self._throttle = throttle if throttle is not None else LoginThrottle()
+
+    @property
+    def throttle(self) -> LoginThrottle:
+        """Liefert die Anmeldebremse dieses Dienstes.
+
+        Returns:
+            Die LoginThrottle-Instanz.
+        """
+        return self._throttle
+
+    def blocked_seconds(self, source: str) -> int:
+        """Liefert die verbleibende Anmeldesperre einer Quelle.
+
+        Args:
+            source:
+                Kennung der Quelle, etwa die IP-Adresse.
+
+        Returns:
+            Verbleibende Sekunden; 0 ohne Sperre.
+        """
+        remaining = self._throttle.blocked_seconds(source)
+        if remaining:
+            self._logger.warning(
+                f"Anmeldung gesperrt fuer Quelle {source} "
+                f"({remaining} Sekunden verbleibend)."
+            )
+        return remaining
 
     def hash_password(self, password: str) -> str:
         """Erzeugt einen bcrypt-Hash fuer ein validiertes Passwort.
@@ -125,7 +258,9 @@ class AuthService:
         """
         return self._user_model.count_users() > 0
 
-    def authenticate(self, username: str, password: str) -> LoginUser | None:
+    def authenticate(
+        self, username: str, password: str, source: str | None = None
+    ) -> LoginUser | None:
         """Prueft Anmeldedaten und meldet den Benutzer an.
 
         Args:
@@ -135,6 +270,11 @@ class AuthService:
             password:
                 Klartextpasswort.
 
+            source:
+                Optionale Kennung der Quelle (etwa die IP-Adresse);
+                Fehlversuche werden dann in der Anmeldebremse
+                gezaehlt, Erfolge setzen sie zurueck.
+
         Returns:
             Der angemeldete Benutzer oder None bei ungueltigen
             Anmeldedaten oder deaktiviertem Konto.
@@ -143,16 +283,24 @@ class AuthService:
         if user is None or not user.enabled:
             self._logger.warning(
                 f"Anmeldung fehlgeschlagen fuer Benutzer: {username.strip()!r}"
+                + (f" von {source}" if source else "")
             )
+            if source:
+                self._throttle.register_failure(source)
             return None
         if not bcrypt.checkpw(
             password.encode("utf-8"), user.password_hash.encode("ascii")
         ):
             self._logger.warning(
                 f"Anmeldung mit falschem Passwort fuer: {user.username}"
+                + (f" von {source}" if source else "")
             )
+            if source:
+                self._throttle.register_failure(source)
             return None
         self._user_model.update_last_login(user.id)
+        if source:
+            self._throttle.register_success(source)
         self._logger.info(f"Benutzer angemeldet: {user.username}")
         return LoginUser(user)
 

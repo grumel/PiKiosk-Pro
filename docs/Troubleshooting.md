@@ -98,7 +98,21 @@ Installation ohne `install.sh` fehlt diese Datei.
 
 - „Anmeldename oder Passwort ist falsch": Groß-/Kleinschreibung
   prüfen; Fehlversuche stehen in `logs/system.log`.
+- „Zu viele Fehlversuche": Nach 5 Fehlversuchen innerhalb von
+  15 Minuten sperrt das Gerät die Quelle für 5 Minuten. Die
+  Meldung nennt die Restzeit; danach einfach erneut anmelden.
 - Passwort vergessen → siehe [FAQ](FAQ.md).
+
+## Browser warnt vor dem Zertifikat
+
+Der Installer erzeugt ein selbstsigniertes TLS-Zertifikat. Beim
+ersten Aufruf von `https://<ip>:8080/` zeigt der Browser deshalb
+eine Warnung („Verbindung ist nicht privat"). Das ist erwartet:
+Die Verbindung ist verschlüsselt, nur der Aussteller ist dem
+Browser unbekannt. Warnung über „Erweitert" → „Trotzdem fortfahren"
+einmalig bestätigen – oder ein Firmenzertifikat verwenden: dazu
+`cert.pem` und `key.pem` unter `config/tls/` ersetzen und den
+Dienst neu starten (`sudo systemctl restart pikiosk`).
 
 ## Update schlägt fehl
 

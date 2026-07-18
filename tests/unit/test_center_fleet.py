@@ -203,6 +203,18 @@ class TestDeviceClient:
         client.status(device)
         assert fake_device.token_calls == 1
 
+    def test_http_schema_wird_ausgehandelt_und_gemerkt(
+        self,
+        device_service: DeviceService,
+        fake_device: ThreadingHTTPServer,
+        key: bytes,
+    ) -> None:
+        device = add_device(device_service, fake_device)
+        client = DeviceClient(key=key)
+        assert client.scheme(device) == "http"
+        client.status(device)
+        assert client.scheme(device) == "http"
+
     def test_abgelaufenes_token_wird_erneuert(
         self,
         device_service: DeviceService,

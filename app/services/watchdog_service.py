@@ -41,7 +41,7 @@ from app.exceptions import ConfigurationError, NetworkError
 from app.logger import KioskLogger
 from app.services.config_service import ConfigService
 from app.utils.filesystem import write_json_atomic
-from app.utils.helpers import cpu_temperature
+from app.utils.helpers import cpu_temperature, local_base_url, tls_files
 from app.utils.network import (
     check_url_status,
     connectivity_ok,
@@ -371,6 +371,19 @@ class WatchdogService:
             return None
         return payload if isinstance(payload, dict) else None
 
+    def _restart_url(self) -> str:
+        """Bestimmt die URL des Browser-Neustart-Endpunkts.
+
+        Mit aktivem TLS wird der lokale HTTP-Listener verwendet,
+        damit der Aufruf ohne Zertifikatspruefung auskommt.
+
+        Returns:
+            Die URL des Neustart-Endpunkts.
+        """
+        if tls_files() is None:
+            return BROWSER_RESTART_URL
+        return local_base_url().rstrip("/") + "/internal/browser/restart"
+
     def _request_restart(self) -> bool:
         """Loest den Browser-Neustart in der Hauptanwendung aus.
 
@@ -378,7 +391,7 @@ class WatchdogService:
             True, wenn der Neustart angenommen wurde.
         """
         request = urllib.request.Request(
-            BROWSER_RESTART_URL,
+            self._restart_url(),
             method="POST",
             headers={WATCHDOG_TOKEN_HEADER: self._token},
         )

@@ -149,6 +149,30 @@ class TestLogin:
         response = client.get("/login?expired=1")
         assert "abgelaufen" in response.get_data(as_text=True)
 
+    def test_zu_viele_fehlversuche_sperren_die_anmeldung(
+        self, client: FlaskClient
+    ) -> None:
+        token = csrf_token(client)
+        for _ in range(5):
+            client.post(
+                "/login",
+                data={
+                    "username": ADMIN_USERNAME,
+                    "password": "Falsch-2026-Kiosk",
+                    "csrf_token": token,
+                },
+            )
+        response = client.post(
+            "/login",
+            data={
+                "username": ADMIN_USERNAME,
+                "password": VALID_PASSWORD,
+                "csrf_token": token,
+            },
+        )
+        assert "Fehlversuche" in response.get_data(as_text=True)
+        assert client.get("/dashboard/").status_code == 302
+
     def test_offener_redirect_wird_verhindert(self, client: FlaskClient) -> None:
         token = csrf_token(client)
         response = client.post(

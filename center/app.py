@@ -10,6 +10,8 @@ Pi) und verwaltet von dort alle PiKiosk-Geraete.
 import argparse
 import sys
 
+from app.server import serve
+from app.utils.helpers import tls_files
 from center import create_center_app
 from center.constants import CENTER_HOST, CENTER_NAME, CENTER_PORT, CENTER_VERSION
 
@@ -48,12 +50,7 @@ def main(argv: list[str] | None = None) -> int:
     """
     arguments = parse_arguments(argv if argv is not None else sys.argv[1:])
     app = create_center_app()
-    app.run(
-        host=arguments.host,
-        port=arguments.port,
-        threaded=True,
-        use_reloader=False,
-    )
+    serve(app, host=arguments.host, port=arguments.port, tls=tls_files())
     return 0
 
 

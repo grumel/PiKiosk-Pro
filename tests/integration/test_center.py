@@ -224,6 +224,27 @@ class TestCenterAuth:
         )
         assert "alert-danger" in response.get_data(as_text=True)
 
+    def test_zu_viele_fehlversuche_sperren_die_anmeldung(
+        self, client: FlaskClient
+    ) -> None:
+        setup_and_login(client)
+        client.post("/logout", data={"csrf_token": csrf_token(client, "/login")})
+        token = csrf_token(client, "/login")
+        for _ in range(5):
+            client.post(
+                "/login",
+                data={"username": "admin", "password": "falsch", "csrf_token": token},
+            )
+        response = client.post(
+            "/login",
+            data={
+                "username": "admin",
+                "password": CENTER_PASSWORD,
+                "csrf_token": token,
+            },
+        )
+        assert "Fehlversuche" in response.get_data(as_text=True)
+
     def test_ohne_csrf_token_abgelehnt(self, client: FlaskClient) -> None:
         setup_and_login(client)
         response = client.post("/action", data={"action": "browser_restart"})

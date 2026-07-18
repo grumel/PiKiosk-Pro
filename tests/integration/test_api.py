@@ -96,6 +96,20 @@ class TestToken:
         response = client.post("/api/token")
         assert response.status_code == 401
 
+    def test_zu_viele_fehlversuche_liefern_429(self, client: FlaskClient) -> None:
+        for _ in range(5):
+            client.post(
+                "/api/token",
+                json={"username": ADMIN_USERNAME, "password": "falsch"},
+            )
+        response = client.post(
+            "/api/token",
+            json={"username": ADMIN_USERNAME, "password": VALID_PASSWORD},
+        )
+        assert response.status_code == 429
+        assert response.get_json()["error"] == "too_many_attempts"
+        assert int(response.headers["Retry-After"]) > 0
+
 
 class TestAuthentication:
     """Integrationstests fuer den Endpunktschutz."""

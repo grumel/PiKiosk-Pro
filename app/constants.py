@@ -11,7 +11,7 @@ zu, damit keine doppelten Definitionen entstehen.
 from pathlib import Path
 
 APP_NAME: str = "PiKiosk Pro"
-APP_VERSION: str = "1.3.2"
+APP_VERSION: str = "1.4.0"
 
 BASE_DIR: Path = Path(__file__).resolve().parent.parent
 CONFIG_DIR: Path = BASE_DIR / "config"
@@ -31,6 +31,17 @@ DEFAULT_HOST: str = "0.0.0.0"
 DEFAULT_PORT: int = 8080
 LOCAL_URL: str = f"http://127.0.0.1:{DEFAULT_PORT}/"
 SERVER_START_TIMEOUT_SECONDS: float = 30.0
+SERVER_THREADS: int = 8
+
+LOOPBACK_HOST: str = "127.0.0.1"
+LOOPBACK_PORT: int = 8081
+TLS_DIR: Path = CONFIG_DIR / "tls"
+TLS_CERT_FILE: Path = TLS_DIR / "cert.pem"
+TLS_KEY_FILE: Path = TLS_DIR / "key.pem"
+
+LOGIN_MAX_ATTEMPTS: int = 5
+LOGIN_ATTEMPT_WINDOW_SECONDS: int = 900
+LOGIN_LOCKOUT_SECONDS: int = 300
 
 CHROMIUM_BINARIES: tuple[str, ...] = ("chromium-browser", "chromium")
 BROWSER_USER_DATA_DIR: Path = Path.home() / ".pikiosk" / "chromium"

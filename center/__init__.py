@@ -15,6 +15,7 @@ from flask_login import LoginManager
 from werkzeug.exceptions import HTTPException
 from werkzeug.wrappers import Response
 
+from app import AdaptiveSessionInterface
 from app.constants import REMEMBER_COOKIE_DAYS, SESSION_TIMEOUT_MINUTES
 from app.logger import KioskLogger
 from app.models.user_model import UserModel
@@ -78,6 +79,7 @@ def _configure_session(app: Flask) -> None:
         app:
             Flask-Anwendung der Zentrale.
     """
+    app.session_interface = AdaptiveSessionInterface()
     app.config["SECRET_KEY"] = load_or_create_secret_key()
     app.config["SESSION_COOKIE_HTTPONLY"] = True
     app.config["SESSION_COOKIE_SAMESITE"] = "Lax"

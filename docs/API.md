@@ -12,7 +12,7 @@ den Anmeldedaten des Administrators ausgestellt und ist 24 Stunden
 gültig.
 
 ```bash
-curl -X POST http://<geraet>:8080/api/token \
+curl -k -X POST https://<geraet>:8080/api/token \
   -H "Content-Type: application/json" \
   -d '{"username": "admin", "password": "<passwort>"}'
 ```
@@ -22,6 +22,13 @@ Antwort:
 ```json
 {"token": "<jwt>", "token_type": "Bearer", "expires_in": 86400}
 ```
+
+Läuft das Gerät noch ohne TLS-Zertifikat, gilt `http://` statt
+`https://`; `-k` akzeptiert das selbstsignierte Zertifikat des
+Installers. Nach 5 fehlgeschlagenen Anmeldeversuchen innerhalb von
+15 Minuten antwortet die Token-Ausgabe mit `429 too_many_attempts`
+und einer `Retry-After`-Kopfzeile (Sekunden bis zum nächsten
+Versuch).
 
 Alle weiteren Anfragen tragen das Token im Header:
 

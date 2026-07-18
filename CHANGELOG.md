@@ -5,6 +5,37 @@ dokumentiert. Das Format orientiert sich an
 [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die
 Versionierung folgt [Semantic Versioning](https://semver.org/lang/de/).
 
+## [1.4.0] - 2026-07-18
+
+### Hinzugefügt
+
+- **TLS-Verschlüsselung (HTTPS) für Gerät und Zentrale.** Der
+  Installer erzeugt ein selbstsigniertes Zertifikat unter
+  `config/tls/`; sobald `cert.pem` und `key.pem` dort liegen, laufen
+  Weboberfläche und REST-API über HTTPS (gleiche Ports wie bisher).
+  Eigene Firmenzertifikate ersetzen einfach die beiden Dateien.
+  Passwörter, Sitzungscookies und API-Tokens sind damit im Netzwerk
+  nicht mehr mitlesbar. Der Kioskbrowser und der Watchdog nutzen
+  einen zusätzlichen HTTP-Listener auf 127.0.0.1:8081 und bleiben
+  frei von Zertifikatswarnungen; Sitzungscookies erhalten über
+  HTTPS automatisch das Secure-Attribut. Die Zentrale erkennt je
+  Gerät selbstständig, ob es HTTPS oder (ältere Installationen)
+  HTTP spricht – gemischte Flotten funktionieren ohne Umstellung.
+- **Schutz vor Passwort-Rateversuchen.** Nach 5 Fehlversuchen
+  innerhalb von 15 Minuten wird die Quelle für 5 Minuten gesperrt –
+  auf der Anmeldeseite von Gerät und Zentrale (verständliche
+  Meldung mit Restzeit) und an der Token-Ausgabe der API
+  (HTTP 429 mit Retry-After). Fehlversuche werden mit Quelle
+  protokolliert; eine erfolgreiche Anmeldung setzt den Zähler
+  zurück.
+
+### Geändert
+
+- **Produktionsreifer Webserver.** Gerät und Zentrale laufen jetzt
+  auf dem Cheroot-WSGI-Server (reines Python, feste Thread-Zahl)
+  statt auf dem Flask-Entwicklungsserver, der laut Flask nicht für
+  den Dauerbetrieb vorgesehen ist.
+
 ## [1.3.2] - 2026-07-18
 
 ### Behoben

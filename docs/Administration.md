@@ -20,6 +20,13 @@ angelegt wurde. Nach 30 Minuten ohne Aktivität wird die Sitzung
 automatisch beendet. Mit „Angemeldet bleiben" bleibt die Anmeldung
 7 Tage erhalten.
 
+Die Weboberfläche läuft über HTTPS (`https://<ip>:8080/`), sobald
+unter `config/tls/` ein Zertifikat liegt – der Installer erzeugt
+dort ein selbstsigniertes. Eigene Zertifikate: `cert.pem` und
+`key.pem` ersetzen, Dienst neu starten. Nach 5 fehlgeschlagenen
+Anmeldeversuchen innerhalb von 15 Minuten wird die Quelle für
+5 Minuten gesperrt.
+
 ## Dashboard
 
 Nach der Anmeldung zeigt das Dashboard:

@@ -18,9 +18,14 @@ import psutil
 
 from app.constants import (
     CONFIG_DIR,
+    LOCAL_URL,
+    LOOPBACK_HOST,
+    LOOPBACK_PORT,
     SECRET_KEY_FILE,
     SUPPORTED_LANGUAGES,
     THERMAL_ZONE_FILE,
+    TLS_CERT_FILE,
+    TLS_KEY_FILE,
 )
 from app.exceptions import ConfigurationError, ValidationError
 
@@ -196,3 +201,34 @@ def load_or_create_secret_key(key_file: Path = SECRET_KEY_FILE) -> str:
         raise ConfigurationError(
             f"Sitzungsschluessel konnte nicht erzeugt werden: {error}"
         ) from error
+
+
+def tls_files() -> tuple[Path, Path] | None:
+    """Liefert Zertifikat und Schluessel, wenn TLS eingerichtet ist.
+
+    TLS gilt als eingerichtet, sobald beide Dateien unter
+    config/tls vorhanden sind. Der Installer erzeugt dort ein
+    selbstsigniertes Zertifikat; eigene Zertifikate koennen die
+    Dateien einfach ersetzen.
+
+    Returns:
+        Pfadpaar (Zertifikat, Schluessel) oder None ohne TLS.
+    """
+    if TLS_CERT_FILE.is_file() and TLS_KEY_FILE.is_file():
+        return TLS_CERT_FILE, TLS_KEY_FILE
+    return None
+
+
+def local_base_url() -> str:
+    """Liefert die lokale Basis-URL fuer Kioskbrowser und Watchdog.
+
+    Mit aktivem TLS lauscht zusaetzlich ein reiner HTTP-Listener
+    auf der Loopback-Schnittstelle, damit lokale Aufrufe ohne
+    Zertifikatswarnung funktionieren.
+
+    Returns:
+        Die lokale Basis-URL mit abschliessendem Schraegstrich.
+    """
+    if tls_files() is None:
+        return LOCAL_URL
+    return f"http://{LOOPBACK_HOST}:{LOOPBACK_PORT}/"

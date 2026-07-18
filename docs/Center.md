@@ -30,6 +30,14 @@ http://<adresse-der-zentrale>:8090/
 Beim ersten Aufruf legen Sie das Administratorkonto der Zentrale an
 (gilt nur für die Zentrale, nicht für die Geräte).
 
+
+Die Zentrale erkennt je Gerät automatisch, ob es HTTPS (ab
+Version 1.4.0 mit Zertifikat) oder HTTP (ältere Installationen)
+spricht – Adresse und Port bleiben beim Anlegen unverändert, auch
+gemischte Flotten funktionieren ohne Umstellung. Selbstsignierte
+Gerätezertifikate werden akzeptiert; die Verbindung ist damit
+verschlüsselt.
+
 ## Geräte aufnehmen
 
 Reiter **Geräte** → Name, Adresse (Hostname oder IP), Port

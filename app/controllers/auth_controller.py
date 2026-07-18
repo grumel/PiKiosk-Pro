@@ -63,10 +63,15 @@ def login_submit() -> str | Response:
         Weiterleitung zum Dashboard oder Anmeldeseite mit Fehler.
     """
     texts = current_texts()
+    auth_service = current_services().auth_service
+    source = request.remote_addr or "unbekannt"
+    blocked = auth_service.blocked_seconds(source)
+    if blocked:
+        return _render_login(error=texts["login_blocked"].format(seconds=blocked))
     username = request.form.get("username", "")
     password = request.form.get("password", "")
     remember = request.form.get("remember", "") == "on"
-    user = current_services().auth_service.authenticate(username, password)
+    user = auth_service.authenticate(username, password, source=source)
     if user is None:
         return _render_login(error=texts["login_failed"])
     session.permanent = True

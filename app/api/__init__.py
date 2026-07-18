@@ -109,12 +109,21 @@ def issue_token() -> Response | tuple[Response, int]:
     """Stellt ein JWT fuer gueltige Anmeldedaten aus.
 
     Returns:
-        Token, Tokentyp und Gueltigkeitsdauer oder Fehler 401.
+        Token, Tokentyp und Gueltigkeitsdauer, Fehler 401 bei
+        ungueltigen Anmeldedaten oder Fehler 429 mit
+        Retry-After-Kopfzeile bei zu vielen Fehlversuchen.
     """
+    auth_service = current_services().auth_service
+    source = request.remote_addr or "unbekannt"
+    blocked = auth_service.blocked_seconds(source)
+    if blocked:
+        response, status = api_error(429, "too_many_attempts")
+        response.headers["Retry-After"] = str(blocked)
+        return response, status
     body = json_body()
     username = str(body.get("username", ""))
     password = str(body.get("password", ""))
-    user = current_services().auth_service.authenticate(username, password)
+    user = auth_service.authenticate(username, password, source=source)
     if user is None:
         return api_error(401, "invalid_credentials")
     token = create_jwt(

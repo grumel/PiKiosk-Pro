@@ -76,7 +76,8 @@ Punkte geprüft werden:
    Webseite; nach einem weiteren Neustart startet der Kiosk
    automatisch (Bootzeit bis zur Anzeige unter 30 Sekunden,
    Browserstart unter 5 Sekunden).
-4. **Dashboard**: `http://<ip>:8080/login` – Anmeldung, alle
+4. **Dashboard**: `https://<ip>:8080/login` (Warnung des
+   selbstsignierten Zertifikats einmalig bestätigen) – Anmeldung, alle
    Kacheln funktionieren, Dashboard lädt unter 1 Sekunde.
 5. **Watchdog**: Badge zeigt „Online";
    `sudo pkill chromium` → der Browser startet automatisch neu.
@@ -84,7 +85,7 @@ Punkte geprüft werden:
 7. **Sicherung**: Erstellen, Herunterladen und Wiederherstellen
    einer Sicherung; USB-Stick mit `PiKiosk_Backup*.zip` wird
    erkannt.
-8. **API**: `curl http://<ip>:8080/api/version` mit Token liefert
+8. **API**: `curl -k https://<ip>:8080/api/version` mit Token liefert
    die Version (siehe [API.md](API.md)).
 
 ## Fehlersuche

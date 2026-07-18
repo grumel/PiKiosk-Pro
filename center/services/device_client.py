@@ -5,11 +5,18 @@
 Spricht die REST API eines PiKiosk-Geraets an: Token holen, Status
 abfragen, Aktionen ausloesen. Tokens werden je Geraet bis kurz vor
 Ablauf zwischengespeichert, damit nicht bei jeder Abfrage eine neue
-Anmeldung noetig ist. Die Geraete bleiben unveraendert; es wird
-ausschliesslich die dokumentierte API verwendet.
+Anmeldung noetig ist. Verbindungen werden zuerst ueber HTTPS
+versucht; antwortet ein Geraet dort nicht (aeltere Installation
+ohne TLS), merkt sich der Client HTTP je Geraet. Selbstsignierte
+Zertifikate werden akzeptiert: Die Verbindung ist damit gegen
+Mitlesen geschuetzt; wer zusaetzlich Serverpruefung will, verteilt
+Firmenzertifikate ueber den Systemspeicher. Die Geraete bleiben
+unveraendert; es wird ausschliesslich die dokumentierte API
+verwendet.
 """
 
 import json
+import ssl
 import threading
 import time
 import urllib.error
@@ -23,6 +30,18 @@ from center.constants import (
     DEVICE_TOKEN_MARGIN_SECONDS,
 )
 from center.models.device_model import Device
+
+
+def _tolerant_ssl_context() -> ssl.SSLContext:
+    """Erzeugt einen TLS-Kontext, der selbstsignierte Zertifikate erlaubt.
+
+    Returns:
+        TLS-Kontext ohne Zertifikatspruefung.
+    """
+    context = ssl.create_default_context()
+    context.check_hostname = False
+    context.verify_mode = ssl.CERT_NONE
+    return context
 
 
 class DeviceClient:
@@ -43,6 +62,48 @@ class DeviceClient:
         self._timeout = timeout
         self._tokens: dict[int, tuple[str, float]] = {}
         self._lock = threading.Lock()
+        self._schemes: dict[str, str] = {}
+        self._ssl_context = _tolerant_ssl_context()
+
+    def scheme(self, device: Device) -> str:
+        """Liefert das zuletzt erfolgreiche Schema eines Geraets.
+
+        Args:
+            device:
+                Das Geraet.
+
+        Returns:
+            "https" oder "http"; ohne bisherigen Kontakt "http".
+        """
+        with self._lock:
+            return self._schemes.get(self._endpoint(device), "http")
+
+    def _endpoint(self, device: Device) -> str:
+        """Bildet den Schluessel fuer den Schema-Cache.
+
+        Args:
+            device:
+                Das Geraet.
+
+        Returns:
+            Adresse und Port als Schluessel.
+        """
+        return f"{device.address}:{device.port}"
+
+    def _base_url(self, device: Device, scheme: str) -> str:
+        """Baut die Basis-URL eines Geraets fuer ein Schema.
+
+        Args:
+            device:
+                Das Geraet.
+
+            scheme:
+                "https" oder "http".
+
+        Returns:
+            Die Basis-URL ohne abschliessenden Schraegstrich.
+        """
+        return f"{scheme}://{device.address}:{device.port}"
 
     def status(self, device: Device) -> dict[str, Any]:
         """Fragt den Status eines Geraets ab.
@@ -131,9 +192,10 @@ class DeviceClient:
         if cached is not None and cached[1] > time.time():
             return cached[0]
         password = decrypt_secret(device.secret, self._key)
-        payload = self._call(
-            device.base_url + "/api/token",
+        payload = self._call_device(
+            device,
             "POST",
+            "/api/token",
             {"username": device.username, "password": password},
             None,
         )
@@ -179,12 +241,69 @@ class DeviceClient:
         Raises:
             PiKioskError
         """
-        url = device.base_url + path
         try:
-            return self._call(url, method, body, self._token(device))
+            return self._call_device(device, method, path, body, self._token(device))
         except AuthenticationError:
             self.forget_token(device.id)
-            return self._call(url, method, body, self._token(device))
+            return self._call_device(device, method, path, body, self._token(device))
+
+    def _call_device(
+        self,
+        device: Device,
+        method: str,
+        path: str,
+        body: dict[str, Any] | None,
+        token: str | None,
+    ) -> dict[str, Any]:
+        """Fuehrt eine Anfrage mit Schema-Aufloesung aus.
+
+        Ist noch kein Schema bekannt, wird zuerst HTTPS und danach
+        HTTP versucht; das erfolgreiche Schema wird je Geraet
+        gemerkt. Schlaegt ein gemerktes Schema fehl, wird es
+        verworfen, damit der naechste Versuch neu aushandelt.
+
+        Args:
+            device:
+                Das Zielgeraet.
+
+            method:
+                HTTP-Methode.
+
+            path:
+                Pfad der API.
+
+            body:
+                Optionaler JSON-Koerper.
+
+            token:
+                Optionales Bearer-Token.
+
+        Returns:
+            Die JSON-Antwort des Geraets.
+
+        Raises:
+            PiKioskError
+        """
+        endpoint = self._endpoint(device)
+        with self._lock:
+            pinned = self._schemes.get(endpoint)
+        schemes = (pinned,) if pinned else ("https", "http")
+        last_error: NetworkError | None = None
+        for scheme in schemes:
+            url = self._base_url(device, scheme) + path
+            try:
+                payload = self._call(url, method, body, token)
+            except NetworkError as error:
+                last_error = error
+                continue
+            with self._lock:
+                self._schemes[endpoint] = scheme
+            return payload
+        with self._lock:
+            self._schemes.pop(endpoint, None)
+        if last_error is None:  # pragma: no cover - Schemaliste nie leer
+            raise NetworkError("Das Geraet ist nicht erreichbar.")
+        raise last_error
 
     def _call(
         self,
@@ -224,7 +343,9 @@ class DeviceClient:
             headers["Authorization"] = f"Bearer {token}"
         request = urllib.request.Request(url, data=data, method=method, headers=headers)
         try:
-            with urllib.request.urlopen(request, timeout=self._timeout) as response:
+            with urllib.request.urlopen(
+                request, timeout=self._timeout, context=self._ssl_context
+            ) as response:
                 return self._decode(response.read())
         except urllib.error.HTTPError as error:
             raise self._map_http_error(error) from error

@@ -10,7 +10,7 @@ import pytest
 from app.exceptions import AuthenticationError, ValidationError
 from app.logger import KioskLogger
 from app.models.user_model import UserModel
-from app.services.auth_service import AuthService
+from app.services.auth_service import AuthService, LoginThrottle
 
 VALID_PASSWORD = "Sicher-2026-Kiosk"
 
@@ -133,3 +133,89 @@ class TestAuthService:
         assert loaded.username == "admin"
         assert service.load_user("99999") is None
         assert service.load_user("keine-zahl") is None
+
+
+class TestLoginThrottle:
+    """Tests fuer die Anmeldebremse."""
+
+    @staticmethod
+    def _throttle(clock: list[float]) -> "LoginThrottle":
+        return LoginThrottle(
+            max_attempts=3,
+            window_seconds=60.0,
+            lockout_seconds=30.0,
+            clock=lambda: clock[0],
+        )
+
+    def test_ohne_fehlversuche_keine_sperre(self) -> None:
+        clock = [0.0]
+        throttle = self._throttle(clock)
+        assert throttle.blocked_seconds("10.0.0.1") == 0
+
+    def test_sperre_nach_maximalen_fehlversuchen(self) -> None:
+        clock = [0.0]
+        throttle = self._throttle(clock)
+        for _ in range(3):
+            throttle.register_failure("10.0.0.1")
+        assert throttle.blocked_seconds("10.0.0.1") > 0
+        assert throttle.blocked_seconds("10.0.0.2") == 0
+
+    def test_sperre_laeuft_ab(self) -> None:
+        clock = [0.0]
+        throttle = self._throttle(clock)
+        for _ in range(3):
+            throttle.register_failure("10.0.0.1")
+        clock[0] = 31.0
+        assert throttle.blocked_seconds("10.0.0.1") == 0
+
+    def test_alte_fehlversuche_fallen_aus_dem_fenster(self) -> None:
+        clock = [0.0]
+        throttle = self._throttle(clock)
+        throttle.register_failure("10.0.0.1")
+        throttle.register_failure("10.0.0.1")
+        clock[0] = 61.0
+        throttle.register_failure("10.0.0.1")
+        assert throttle.blocked_seconds("10.0.0.1") == 0
+
+    def test_erfolg_setzt_quelle_zurueck(self) -> None:
+        clock = [0.0]
+        throttle = self._throttle(clock)
+        for _ in range(3):
+            throttle.register_failure("10.0.0.1")
+        throttle.register_success("10.0.0.1")
+        assert throttle.blocked_seconds("10.0.0.1") == 0
+
+    def test_weitere_fehlversuche_verlaengern_die_sperre(self) -> None:
+        clock = [0.0]
+        throttle = self._throttle(clock)
+        for _ in range(3):
+            throttle.register_failure("10.0.0.1")
+        clock[0] = 20.0
+        throttle.register_failure("10.0.0.1")
+        clock[0] = 45.0
+        assert throttle.blocked_seconds("10.0.0.1") > 0
+
+
+class TestAuthServiceThrottle:
+    """Tests fuer das Zusammenspiel von AuthService und Bremse."""
+
+    def test_fehlversuche_werden_gezaehlt(self, service: AuthService) -> None:
+        service.create_administrator("admin", service.hash_password(VALID_PASSWORD))
+        for _ in range(5):
+            service.authenticate("admin", "falsch", source="10.0.0.9")
+        assert service.blocked_seconds("10.0.0.9") > 0
+
+    def test_erfolg_loescht_fehlversuche(self, service: AuthService) -> None:
+        service.create_administrator("admin", service.hash_password(VALID_PASSWORD))
+        for _ in range(4):
+            service.authenticate("admin", "falsch", source="10.0.0.9")
+        assert (
+            service.authenticate("admin", VALID_PASSWORD, source="10.0.0.9") is not None
+        )
+        assert service.blocked_seconds("10.0.0.9") == 0
+
+    def test_ohne_quelle_keine_zaehlung(self, service: AuthService) -> None:
+        service.create_administrator("admin", service.hash_password(VALID_PASSWORD))
+        for _ in range(6):
+            service.authenticate("admin", "falsch")
+        assert service.blocked_seconds("10.0.0.9") == 0

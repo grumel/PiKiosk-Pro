@@ -83,6 +83,7 @@ class FleetService:
             "state": DEVICE_STATE_DISABLED,
             "error": "",
             "status": None,
+            "scheme": self._client.scheme(device),
         }
         if not device.enabled:
             return entry
@@ -91,6 +92,7 @@ class FleetService:
         except AuthenticationError as error:
             entry["state"] = DEVICE_STATE_AUTH
             entry["error"] = str(error)
+            entry["scheme"] = self._client.scheme(device)
             return entry
         except (NetworkError, PiKioskError) as error:
             entry["state"] = DEVICE_STATE_OFFLINE
@@ -98,6 +100,7 @@ class FleetService:
             return entry
         entry["state"] = DEVICE_STATE_ONLINE
         entry["status"] = status
+        entry["scheme"] = self._client.scheme(device)
         return entry
 
     def summary(self, entries: list[dict[str, Any]]) -> dict[str, int]:

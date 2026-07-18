@@ -9,6 +9,7 @@ venv/
 config/config.json
 config/users.db
 config/secret_key
+config/tls/
 logs/*.log
 logs/*.log.*
 logs/watchdog_status.json

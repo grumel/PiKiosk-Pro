@@ -7,7 +7,7 @@ Nach dem Booten meldet sich das Gerät automatisch an, startet Chromium im
 Kioskmodus und zeigt die konfigurierte Webseite an. Die komplette
 Administration erfolgt über eine lokale Weboberfläche – ohne Linux-Kenntnisse.
 
-## Funktionen (Version 1.3.0)
+## Funktionen
 
 - **PiKiosk Center**: zentrale Verwaltung beliebig vieler Geräte –
   Zustand auf einen Blick, Massenaktionen für eine Auswahl
@@ -64,7 +64,11 @@ sudo ./install.sh
 ```
 
 Der Installer richtet alle Systempakete, die Python-Umgebung, den
-systemd-Dienst und den Autologin ein. Details stehen in
+systemd-Dienst, den Autologin und ein selbstsigniertes
+TLS-Zertifikat ein. Die Weboberfläche ist danach über
+`https://<adresse>:8080/` erreichbar (Browserwarnung beim
+selbstsignierten Zertifikat einmalig bestätigen; eigene Zertifikate:
+`config/tls/` ersetzen). Details stehen in
 [docs/Installation.md](docs/Installation.md).
 
 ## Aktualisierung
@@ -82,7 +86,7 @@ Rechner im Netzwerk die Zentrale installieren:
 sudo ./install_center.sh
 ```
 
-Danach erreichbar unter `http://<adresse>:8090/` – Details in
+Danach erreichbar unter `https://<adresse>:8090/` – Details in
 [docs/Center.md](docs/Center.md).
 
 ## Entwicklung

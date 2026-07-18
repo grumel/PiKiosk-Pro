@@ -88,11 +88,48 @@ install_service() {
     log "systemd-Dienst aktiviert."
 }
 
+install_tls_certificate() {
+    local tls_dir="${INSTALL_DIR}/config/tls"
+    if [[ -f "${tls_dir}/cert.pem" && -f "${tls_dir}/key.pem" ]]; then
+        log "TLS-Zertifikat vorhanden, wird beibehalten."
+        return
+    fi
+    if ! command -v openssl >/dev/null 2>&1; then
+        log "WARNUNG: openssl fehlt, Zentrale laeuft ohne TLS."
+        return
+    fi
+    log "Selbstsigniertes TLS-Zertifikat wird erzeugt."
+    local host_name
+    host_name="$(hostname)"
+    mkdir -p "${tls_dir}"
+    if openssl req -x509 -newkey ec \
+        -pkeyopt ec_paramgen_curve:prime256v1 \
+        -keyout "${tls_dir}/key.pem" \
+        -out "${tls_dir}/cert.pem" \
+        -days 3650 -nodes \
+        -subj "/CN=${host_name}" \
+        -addext "subjectAltName=DNS:${host_name},DNS:${host_name}.local,DNS:localhost,IP:127.0.0.1" \
+        >>"${LOG_FILE}" 2>&1; then
+        chmod 600 "${tls_dir}/key.pem"
+        chmod 644 "${tls_dir}/cert.pem"
+        chown -R "${CENTER_USER}:${CENTER_USER}" "${tls_dir}"
+        log "TLS-Zertifikat erzeugt: ${tls_dir}"
+        log "Eigenes Zertifikat: cert.pem und key.pem in ${tls_dir} ersetzen."
+    else
+        rm -f "${tls_dir}/key.pem" "${tls_dir}/cert.pem"
+        log "WARNUNG: Zertifikat konnte nicht erzeugt werden, Zentrale laeuft ohne TLS."
+    fi
+}
+
 start_service() {
     log "Dienst wird gestartet."
     systemctl restart "${SERVICE_NAME}"
     log "Installation abgeschlossen."
-    log "Die Zentrale ist erreichbar unter: http://$(hostname -I | awk '{print $1}'):8090/"
+    local scheme="http"
+    if [[ -f "${INSTALL_DIR}/config/tls/cert.pem" ]]; then
+        scheme="https"
+    fi
+    log "Die Zentrale ist erreichbar unter: ${scheme}://$(hostname -I | awk '{print $1}'):8090/"
     log "Beim ersten Aufruf wird das Administratorkonto der Zentrale angelegt."
 }
 
@@ -105,6 +142,7 @@ main() {
     copy_project
     create_virtualenv
     install_service
+    install_tls_certificate
     start_service
 }
 

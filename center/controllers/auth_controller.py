@@ -83,12 +83,23 @@ def login_submit() -> str | Response:
     """
     texts = center_texts()
     services = center_services()
+    source = request.remote_addr or "unbekannt"
+    blocked = services.auth_service.blocked_seconds(source)
+    if blocked:
+        return render_template(
+            "center_login.html",
+            texts=texts,
+            error=texts["login_blocked"].format(seconds=blocked),
+            notice=None,
+        )
     user = services.auth_service.authenticate(
-        request.form.get("username", ""), request.form.get("password", "")
+        request.form.get("username", ""),
+        request.form.get("password", ""),
+        source=source,
     )
     if user is None:
         return render_template(
-            "center_login.html", texts=texts, error=texts["login_failed"]
+            "center_login.html", texts=texts, error=texts["login_failed"], notice=None
         )
     session.permanent = True
     login_user(user, remember=request.form.get("remember", "") == "on")

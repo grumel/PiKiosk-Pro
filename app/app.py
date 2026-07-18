@@ -20,11 +20,13 @@ from app.constants import (
     APP_VERSION,
     DEFAULT_HOST,
     DEFAULT_PORT,
-    LOCAL_URL,
+    LOOPBACK_PORT,
     SERVER_START_TIMEOUT_SECONDS,
 )
 from app.exceptions import PiKioskError
 from app.extensions import ServiceRegistry, get_services
+from app.server import serve
+from app.utils.helpers import local_base_url, tls_files
 
 
 def parse_arguments(argv: list[str]) -> argparse.Namespace:
@@ -70,7 +72,7 @@ def determine_kiosk_url(config: dict[str, Any]) -> str:
         Konfigurierte Kiosk-URL oder die lokale Statusseite.
     """
     if config["first_start"] or not config["url"]:
-        return LOCAL_URL
+        return local_base_url()
     return str(config["url"])
 
 
@@ -137,8 +139,11 @@ def main(argv: list[str] | None = None) -> int:
     arguments = parse_arguments(argv if argv is not None else sys.argv[1:])
     app = create_app()
     registry = get_services(app)
+    tls = tls_files()
+    scheme = "https" if tls else "http"
     registry.logger.info(
-        f"{APP_NAME} {APP_VERSION} startet auf " f"{arguments.host}:{arguments.port}."
+        f"{APP_NAME} {APP_VERSION} startet auf "
+        f"{scheme}://{arguments.host}:{arguments.port}."
     )
     if not arguments.no_browser:
         browser_thread = threading.Thread(
@@ -148,11 +153,12 @@ def main(argv: list[str] | None = None) -> int:
         )
         browser_thread.start()
     try:
-        app.run(
+        serve(
+            app,
             host=arguments.host,
             port=arguments.port,
-            threaded=True,
-            use_reloader=False,
+            tls=tls,
+            loopback_port=LOOPBACK_PORT,
         )
     finally:
         registry.browser_service.stop()

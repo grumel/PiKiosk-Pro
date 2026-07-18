@@ -24,6 +24,7 @@ from flask import (
     session,
     url_for,
 )
+from flask.sessions import SecureCookieSessionInterface
 from flask_login import LoginManager
 from werkzeug.exceptions import HTTPException
 from werkzeug.wrappers import Response
@@ -102,6 +103,28 @@ def create_app(registry: ServiceRegistry | None = None) -> Flask:
     return app
 
 
+class AdaptiveSessionInterface(SecureCookieSessionInterface):
+    """Setzt das Secure-Attribut des Sitzungscookies je Verbindung.
+
+    Ueber HTTPS ausgegebene Sitzungscookies erhalten das
+    Secure-Attribut und verlassen den Browser nie unverschluesselt.
+    Der lokale HTTP-Listener (Kioskbrowser auf der
+    Loopback-Schnittstelle) bleibt gleichzeitig funktionsfaehig.
+    """
+
+    def get_cookie_secure(self, app: Flask) -> bool:
+        """Bestimmt das Secure-Attribut fuer die aktuelle Anfrage.
+
+        Args:
+            app:
+                Flask-Anwendung.
+
+        Returns:
+            True, wenn die Anfrage ueber TLS einging.
+        """
+        return bool(request.is_secure)
+
+
 def _configure_session(app: Flask) -> None:
     """Konfiguriert Sitzungsschluessel und Cookie-Sicherheit.
 
@@ -109,6 +132,7 @@ def _configure_session(app: Flask) -> None:
         app:
             Flask-Anwendung.
     """
+    app.session_interface = AdaptiveSessionInterface()
     app.config["SECRET_KEY"] = load_or_create_secret_key()
     app.config["SESSION_COOKIE_HTTPONLY"] = True
     app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
