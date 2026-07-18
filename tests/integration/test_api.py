@@ -508,3 +508,31 @@ class TestApiBranches:
             "/api/update", json={"action": "explode"}, headers=headers
         )
         assert response.status_code == 400
+
+
+class TestApiV1:
+    """Integrationstests fuer den versionierten API-Pfad."""
+
+    def test_token_und_status_unter_v1(self, client: FlaskClient) -> None:
+        response = client.post(
+            "/api/v1/token",
+            json={"username": ADMIN_USERNAME, "password": VALID_PASSWORD},
+        )
+        assert response.status_code == 200
+        headers = {"Authorization": f"Bearer {response.get_json()['token']}"}
+        status = client.get("/api/v1/status", headers=headers)
+        assert status.status_code == 200
+        assert "hostname" in status.get_json()
+
+    def test_alias_und_v1_liefern_dasselbe(self, client: FlaskClient) -> None:
+        alias = client.get("/api/version")
+        v1 = client.get("/api/v1/version")
+        assert alias.status_code == v1.status_code
+
+    def test_v1_token_gilt_auch_fuer_alias(self, client: FlaskClient) -> None:
+        response = client.post(
+            "/api/v1/token",
+            json={"username": ADMIN_USERNAME, "password": VALID_PASSWORD},
+        )
+        headers = {"Authorization": f"Bearer {response.get_json()['token']}"}
+        assert client.get("/api/status", headers=headers).status_code == 200

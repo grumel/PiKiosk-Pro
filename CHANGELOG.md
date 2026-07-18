@@ -5,6 +5,23 @@ dokumentiert. Das Format orientiert sich an
 [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die
 Versionierung folgt [Semantic Versioning](https://semver.org/lang/de/).
 
+## [1.6.0] - 2026-07-18
+
+### Hinzugefügt
+
+- **Versionierte REST-API:** Die API ist jetzt kanonisch unter
+  `/api/v1` erreichbar; `/api` bleibt dauerhaft als Alias für
+  Bestandsclients bestehen (identische v1-Endpunkte). Künftige
+  Vertragsänderungen erscheinen als `/api/v2`, ohne v1 zu brechen.
+
+### Behoben
+
+- **Hostname-Prüfung blockiert nicht mehr.** Die mDNS-Abfrage, ob
+  ein Hostname im Netz vergeben ist, lief bisher direkt im
+  Webrequest und konnte ihn ohne mDNS-Antwort mehrere Sekunden
+  anhalten. Sie läuft jetzt im HostnameService mit einem Zeitlimit
+  von 1 Sekunde; ohne rechtzeitige Antwort gilt der Name als frei.
+
 ## [1.5.0] - 2026-07-18
 
 ### Hinzugefügt

@@ -12,13 +12,16 @@ import os
 import socket
 import subprocess
 import sys
+import threading
 
 from app.constants import ETC_HOSTNAME_FILE, HOSTNAME_APPLY_SCRIPT
 from app.exceptions import NetworkError
 from app.logger import KioskLogger
+from app.utils.helpers import local_ip_address
 from app.utils.validators import HostnameValidator
 
 APPLY_TIMEOUT_SECONDS: float = 30.0
+LOOKUP_TIMEOUT_SECONDS: float = 1.0
 
 
 class HostnameService:
@@ -52,6 +55,38 @@ class HostnameService:
             ValidationError
         """
         self._validator.validate(hostname)
+
+    def is_taken(self, hostname: str) -> bool:
+        """Prueft per mDNS-Aufloesung, ob der Hostname vergeben ist.
+
+        Die Aufloesung laeuft in einem Hintergrund-Thread mit
+        kurzem Zeitlimit, damit die Oberflaeche nicht bis zum
+        DNS-Timeout blockiert. Antwortet niemand rechtzeitig, gilt
+        der Name als frei.
+
+        Args:
+            hostname:
+                Zu pruefender Hostname.
+
+        Returns:
+            True, wenn ein anderes Geraet den Namen bereits nutzt.
+        """
+        if hostname.lower() == socket.gethostname().lower():
+            return False
+        resolved: list[str] = []
+
+        def resolve() -> None:
+            try:
+                resolved.append(socket.gethostbyname(f"{hostname}.local"))
+            except OSError:
+                pass
+
+        worker = threading.Thread(target=resolve, daemon=True)
+        worker.start()
+        worker.join(LOOKUP_TIMEOUT_SECONDS)
+        if not resolved:
+            return False
+        return resolved[0] != local_ip_address()
 
     def set(self, hostname: str) -> None:
         """Validiert und setzt einen neuen Hostnamen.

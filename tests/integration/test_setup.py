@@ -336,12 +336,12 @@ class TestHostnameTaken:
     def test_vergebener_hostname_wird_abgelehnt(
         self, client: FlaskClient, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        from app.controllers import setup_controller as setup_module
+        from app.services import hostname_service as hostname_module
 
         monkeypatch.setattr(
-            setup_module.socket, "gethostbyname", lambda host: "203.0.113.5"
+            hostname_module.socket, "gethostbyname", lambda host: "203.0.113.5"
         )
-        monkeypatch.setattr(setup_module, "local_ip_address", lambda: "10.0.0.9")
+        monkeypatch.setattr(hostname_module, "local_ip_address", lambda: "10.0.0.9")
         token = csrf_token(client)
         response = client.post(
             "/setup/hostname",
@@ -352,12 +352,12 @@ class TestHostnameTaken:
     def test_eigene_aufloesung_ist_kein_konflikt(
         self, client: FlaskClient, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        from app.controllers import setup_controller as setup_module
+        from app.services import hostname_service as hostname_module
 
         monkeypatch.setattr(
-            setup_module.socket, "gethostbyname", lambda host: "10.0.0.9"
+            hostname_module.socket, "gethostbyname", lambda host: "10.0.0.9"
         )
-        monkeypatch.setattr(setup_module, "local_ip_address", lambda: "10.0.0.9")
+        monkeypatch.setattr(hostname_module, "local_ip_address", lambda: "10.0.0.9")
         token = csrf_token(client)
         response = client.post(
             "/setup/hostname",

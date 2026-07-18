@@ -70,7 +70,7 @@ from app.utils.helpers import load_language, load_or_create_secret_key
 
 SETUP_EXEMPT_ENDPOINTS: tuple[str, ...] = ("static", "main.health")
 CSRF_PROTECTED_METHODS: tuple[str, ...] = ("POST", "PUT", "PATCH", "DELETE")
-TOKEN_AUTHENTICATED_BLUEPRINTS: tuple[str, ...] = ("internal", "api")
+TOKEN_AUTHENTICATED_BLUEPRINTS: tuple[str, ...] = ("internal", "api", "api_v1")
 
 
 def create_app(registry: ServiceRegistry | None = None) -> Flask:
@@ -210,7 +210,10 @@ def _register_blueprints(app: Flask) -> None:
     app.register_blueprint(restore_blueprint)
     app.register_blueprint(update_blueprint)
     app.register_blueprint(internal_blueprint)
+    # Kanonischer, versionierter API-Pfad plus /api als Alias fuer
+    # Bestandsclients; beide bedienen dieselben Endpunkte (v1).
     app.register_blueprint(api_blueprint)
+    app.register_blueprint(api_blueprint, url_prefix="/api/v1", name="api_v1")
 
 
 def _configure_login(app: Flask, registry: ServiceRegistry) -> None:

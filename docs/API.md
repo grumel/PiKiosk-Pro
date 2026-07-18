@@ -1,9 +1,15 @@
 # REST API
 
-PiKiosk Pro stellt unter `/api` eine REST API bereit. Sie ist die
-Grundlage für die Remote-Verwaltung mehrerer Geräte; die lokale
-Weboberfläche bleibt davon unberührt. Alle Antworten sind JSON,
-alle Endpunkte (außer der Token-Ausgabe) sind authentifiziert.
+PiKiosk Pro stellt unter `/api/v1` eine versionierte REST API
+bereit. Sie ist die Grundlage für die Remote-Verwaltung mehrerer
+Geräte; die lokale Weboberfläche bleibt davon unberührt. Alle
+Antworten sind JSON, alle Endpunkte (außer der Token-Ausgabe) sind
+authentifiziert.
+
+Der unversionierte Pfad `/api` bleibt dauerhaft als Alias für
+Bestandsclients erhalten und bedient dieselben v1-Endpunkte; neue
+Integrationen verwenden `/api/v1`. Bei einer künftigen API-Version
+v2 bleibt `/api/v1` unverändert gültig.
 
 ## Authentifizierung
 
@@ -12,7 +18,7 @@ den Anmeldedaten des Administrators ausgestellt und ist 4 Stunden
 gültig.
 
 ```bash
-curl -k -X POST https://<geraet>:8080/api/token \
+curl -k -X POST https://<geraet>:8080/api/v1/token \
   -H "Content-Type: application/json" \
   -d '{"username": "admin", "password": "<passwort>"}'
 ```

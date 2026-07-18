@@ -29,7 +29,7 @@ from app.exceptions import (
     ValidationError,
     WifiError,
 )
-from app.utils.helpers import device_model, local_ip_address
+from app.utils.helpers import device_model
 from app.utils.network import check_url_status
 from app.utils.validators import URLValidator
 
@@ -114,25 +114,6 @@ def _connection_info() -> dict[str, Any] | None:
         return None
 
 
-def _hostname_taken(hostname: str) -> bool:
-    """Prueft per mDNS-Aufloesung, ob der Hostname vergeben ist.
-
-    Args:
-        hostname:
-            Zu pruefender Hostname.
-
-    Returns:
-        True, wenn ein anderes Geraet den Namen bereits nutzt.
-    """
-    if hostname.lower() == socket.gethostname().lower():
-        return False
-    try:
-        resolved = socket.gethostbyname(f"{hostname}.local")
-    except OSError:
-        return False
-    return resolved != local_ip_address()
-
-
 @setup_blueprint.get("/")
 def wizard() -> str:
     """Rendert die Wizard-Seite mit dem Willkommensschritt.
@@ -209,7 +190,7 @@ def save_hostname() -> str:
         return _render_step(
             "hostname", error=str(error), current_hostname=socket.gethostname()
         )
-    if _hostname_taken(hostname):
+    if _services().hostname_service.is_taken(hostname):
         return _render_step(
             "hostname",
             error=texts["hostname_taken"],

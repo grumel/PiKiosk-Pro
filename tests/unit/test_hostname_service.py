@@ -106,3 +106,37 @@ class TestHostnameService:
         assert service.reboot_required() is True
         hostname_file.write_text(f"{socket.gethostname()}\n", encoding="utf-8")
         assert service.reboot_required() is False
+
+
+class TestHostnameTaken:
+    """Tests fuer die mDNS-Vergabepruefung mit Zeitlimit."""
+
+    def test_eigener_name_ist_frei(self, service: HostnameService) -> None:
+        assert service.is_taken(socket.gethostname()) is False
+
+    def test_vergebener_name(
+        self, service: HostnameService, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from app.services import hostname_service as hostname_module
+
+        monkeypatch.setattr(
+            hostname_module.socket, "gethostbyname", lambda host: "203.0.113.5"
+        )
+        monkeypatch.setattr(hostname_module, "local_ip_address", lambda: "10.0.0.9")
+        assert service.is_taken("belegter-name") is True
+
+    def test_langsame_aufloesung_blockiert_nicht(
+        self, service: HostnameService, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        import time as time_module
+
+        from app.services import hostname_service as hostname_module
+
+        def slow_resolve(host: str) -> str:
+            time_module.sleep(3.0)
+            return "203.0.113.5"
+
+        monkeypatch.setattr(hostname_module.socket, "gethostbyname", slow_resolve)
+        started = time_module.monotonic()
+        assert service.is_taken("langsamer-name") is False
+        assert time_module.monotonic() - started < 2.0
