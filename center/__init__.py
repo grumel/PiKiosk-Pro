@@ -10,9 +10,10 @@ ueber deren REST API an; die Geraete selbst bleiben unveraendert.
 
 from datetime import timedelta
 
-from flask import Flask, abort, render_template, request, session
+from flask import Flask, abort, redirect, render_template, request, session, url_for
 from flask_login import LoginManager
 from werkzeug.exceptions import HTTPException
+from werkzeug.wrappers import Response
 
 from app.constants import REMEMBER_COOKIE_DAYS, SESSION_TIMEOUT_MINUTES
 from app.logger import KioskLogger
@@ -124,12 +125,45 @@ def _configure_login(app: Flask, registry: CenterRegistry) -> None:
     """
     login_manager = LoginManager()
     login_manager.login_view = "center_auth.login"
-    login_manager.session_protection = "strong"
+    login_manager.session_protection = "basic"
     login_manager.init_app(app)
 
     @login_manager.user_loader
     def load_user(user_id: str) -> LoginUser | None:
         return registry.auth_service.load_user(user_id)
+
+    @login_manager.unauthorized_handler
+    def handle_unauthorized() -> Response:
+        return _login_redirect(app, expired=False)
+
+
+def _login_redirect(app: Flask, expired: bool) -> Response:
+    """Erzeugt eine Weiterleitung zur Anmeldeseite der Zentrale.
+
+    HTMX-Anfragen erhalten eine Antwort mit HX-Redirect-Kopfzeile,
+    damit der Browser eine vollstaendige Seite laedt, statt die
+    Anmeldeseite in ein Seitenfragment einzusetzen.
+
+    Args:
+        app:
+            Flask-Anwendung der Zentrale.
+
+        expired:
+            True, wenn die Sitzung abgelaufen ist; auf der
+            Anmeldeseite erscheint dann ein Hinweis.
+
+    Returns:
+        Die Weiterleitungsantwort zur Anmeldeseite.
+    """
+    if expired:
+        login_url = url_for("center_auth.login", expired="1")
+    else:
+        login_url = url_for("center_auth.login")
+    if request.headers.get("HX-Request"):
+        response = app.response_class(status=204)
+        response.headers["HX-Redirect"] = login_url
+        return response
+    return redirect(login_url)
 
 
 def _register_csrf_protection(app: Flask) -> None:
@@ -141,15 +175,20 @@ def _register_csrf_protection(app: Flask) -> None:
     """
 
     @app.before_request
-    def verify_csrf_token() -> None:
+    def verify_csrf_token() -> Response | None:
         if request.method not in CSRF_PROTECTED_METHODS:
-            return
+            return None
         token = request.headers.get("X-CSRF-Token", "") or request.form.get(
             "csrf_token", ""
         )
         expected = session.get(SESSION_CSRF_KEY, "")
-        if not expected or token != expected:
-            abort(400)
+        if expected and token == expected:
+            return None
+        if not expected:
+            # Die Sitzung ist abgelaufen: sauber zur Anmeldung
+            # umleiten statt einen nackten 400-Fehler zu zeigen.
+            return _login_redirect(app, expired=True)
+        abort(400)
 
     @app.context_processor
     def inject_csrf_token() -> dict[str, str]:

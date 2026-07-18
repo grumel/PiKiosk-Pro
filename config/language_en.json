@@ -80,6 +80,7 @@
     "login_heading": "Sign in",
     "login_button": "Sign in",
     "login_failed": "Username or password is incorrect.",
+    "session_expired": "Your session has expired. Please sign in again.",
     "label_remember_me": "Stay signed in",
     "logout_button": "Sign out",
     "dashboard_title": "Dashboard",

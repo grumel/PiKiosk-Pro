@@ -229,6 +229,25 @@ class TestCenterAuth:
         response = client.post("/action", data={"action": "browser_restart"})
         assert response.status_code == 400
 
+    def test_abgelaufene_sitzung_leitet_zur_anmeldung(
+        self, client: FlaskClient
+    ) -> None:
+        response = client.post("/action", data={"action": "browser_restart"})
+        assert response.status_code == 302
+        assert "/login" in response.headers["Location"]
+        assert "expired=1" in response.headers["Location"]
+
+    def test_abgelaufene_sitzung_mit_htmx_liefert_hx_redirect(
+        self, client: FlaskClient
+    ) -> None:
+        response = client.post(
+            "/action",
+            data={"action": "browser_restart"},
+            headers={"HX-Request": "true"},
+        )
+        assert response.status_code == 204
+        assert "/login" in response.headers["HX-Redirect"]
+
 
 class TestCenterDevices:
     """Integrationstests fuer die Geraeteverwaltung."""

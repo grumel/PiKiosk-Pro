@@ -5,6 +5,31 @@ dokumentiert. Das Format orientiert sich an
 [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die
 Versionierung folgt [Semantic Versioning](https://semver.org/lang/de/).
 
+## [1.3.2] - 2026-07-18
+
+### Behoben
+
+- **Anmeldung stabilisiert.** Nach Ablauf der 30-Minuten-Sitzung
+  führte jede Aktion (auch die Anmeldung selbst, wenn die Seite
+  länger offen stand) zu einem nackten 400-Fehler. Jetzt leitet die
+  Anwendung sauber zur Anmeldeseite um und zeigt den Hinweis „Die
+  Sitzung ist abgelaufen"; HTMX-Anfragen lösen dabei einen
+  vollständigen Seitenwechsel aus (HX-Redirect), statt die
+  Anmeldeseite in eine Kachel einzusetzen. Gilt für Gerät und
+  Zentrale.
+- **„Angemeldet bleiben" wirkt jetzt tatsächlich.** Der bisherige
+  Sitzungsschutz „strong" von Flask-Login löschte bei jeder
+  Abweichung der Sitzungskennung (z. B. nach Sitzungsablauf oder
+  IP-Wechsel) auch das Anmelde-Cookie – der Administrator wurde
+  immer wieder abgemeldet. Der Schutz steht jetzt auf „basic",
+  damit das Anmelde-Cookie die Sitzung wie versprochen erneuert.
+
+### Hinzugefügt
+
+- Zentrale: Der Gerätename in der Flottenübersicht ist jetzt ein
+  Link, der das Dashboard des jeweiligen Kiosks in einem neuen Tab
+  öffnet.
+
 ## [1.3.1] - 2026-07-17
 
 ### Behoben

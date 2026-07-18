@@ -80,6 +80,7 @@
     "login_heading": "Anmeldung",
     "login_button": "Anmelden",
     "login_failed": "Anmeldename oder Passwort ist falsch.",
+    "session_expired": "Die Sitzung ist abgelaufen. Bitte melden Sie sich erneut an.",
     "label_remember_me": "Angemeldet bleiben",
     "logout_button": "Abmelden",
     "dashboard_title": "Dashboard",

@@ -13,6 +13,9 @@
                 {% if error %}
                 <div class="alert alert-danger" role="alert">{{ error }}</div>
                 {% endif %}
+                {% if notice %}
+                <div class="alert alert-info" role="alert">{{ notice }}</div>
+                {% endif %}
                 <form method="post" action="{{ url_for('auth.login_submit', next=request.args.get('next', '')) }}">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                     <div class="mb-3">

@@ -128,6 +128,27 @@ class TestLogin:
         response = client.post("/logout")
         assert response.status_code == 400
 
+    def test_abgelaufene_sitzung_leitet_zur_anmeldung(
+        self, client: FlaskClient
+    ) -> None:
+        response = client.post("/logout")
+        assert response.status_code == 302
+        assert "/login" in response.headers["Location"]
+        assert "expired=1" in response.headers["Location"]
+
+    def test_abgelaufene_sitzung_mit_htmx_liefert_hx_redirect(
+        self, client: FlaskClient
+    ) -> None:
+        response = client.post("/logout", headers={"HX-Request": "true"})
+        assert response.status_code == 204
+        assert "/login" in response.headers["HX-Redirect"]
+
+    def test_anmeldeseite_zeigt_hinweis_nach_sitzungsablauf(
+        self, client: FlaskClient
+    ) -> None:
+        response = client.get("/login?expired=1")
+        assert "abgelaufen" in response.get_data(as_text=True)
+
     def test_offener_redirect_wird_verhindert(self, client: FlaskClient) -> None:
         token = csrf_token(client)
         response = client.post(

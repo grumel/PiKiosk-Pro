@@ -16,12 +16,15 @@ from app.controllers import current_services, current_texts, ensure_csrf_token
 auth_blueprint = Blueprint("auth", __name__)
 
 
-def _render_login(error: str | None = None) -> str:
+def _render_login(error: str | None = None, notice: str | None = None) -> str:
     """Rendert die Anmeldeseite.
 
     Args:
         error:
             Optionale Fehlermeldung.
+
+        notice:
+            Optionaler Hinweis, etwa nach Ablauf der Sitzung.
 
     Returns:
         Die gerenderte Anmeldeseite.
@@ -29,7 +32,11 @@ def _render_login(error: str | None = None) -> str:
     config = current_services().config_service.load()
     ensure_csrf_token()
     return render_template(
-        "login.html", texts=current_texts(), theme=config["theme"], error=error
+        "login.html",
+        texts=current_texts(),
+        theme=config["theme"],
+        error=error,
+        notice=notice,
     )
 
 
@@ -42,7 +49,10 @@ def login() -> str | Response:
     """
     if current_user.is_authenticated:
         return redirect(url_for("dashboard.index"))
-    return _render_login()
+    notice = None
+    if request.args.get("expired"):
+        notice = current_texts()["session_expired"]
+    return _render_login(notice=notice)
 
 
 @auth_blueprint.post("/login")

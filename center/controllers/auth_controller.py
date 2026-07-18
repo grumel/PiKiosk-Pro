@@ -69,7 +69,9 @@ def login() -> str | Response:
     if current_user.is_authenticated:
         return redirect(url_for("fleet.index"))
     ensure_csrf_token()
-    return render_template("center_login.html", texts=center_texts(), error=None)
+    texts = center_texts()
+    notice = texts["session_expired"] if request.args.get("expired") else None
+    return render_template("center_login.html", texts=texts, error=None, notice=notice)
 
 
 @center_auth_blueprint.post("/login")
