@@ -68,7 +68,10 @@
                                aria-label="{{ device['name'] }}">
                     </td>
                     <td>
-                        <span class="fw-semibold">{{ device['name'] }}</span><br>
+                        <a class="fw-semibold text-decoration-none"
+                           href="http://{{ device['address'] }}:{{ device['port'] }}/"
+                           target="_blank" rel="noopener noreferrer"
+                           title="{{ texts['center_open_dashboard'] }}">{{ device['name'] }}</a><br>
                         <span class="text-body-secondary small">{{ device['address'] }}:{{ device['port'] }}</span>
                     </td>
                     <td>

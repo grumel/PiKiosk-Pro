@@ -219,6 +219,7 @@
     "center_state_auth_error": "Anmeldefehler",
     "center_state_disabled": "Deaktiviert",
     "center_col_device": "Gerät",
+    "center_open_dashboard": "Dashboard dieses Kiosks in neuem Tab öffnen",
     "center_col_state": "Zustand",
     "center_col_name": "Name",
     "center_col_address": "Adresse",
