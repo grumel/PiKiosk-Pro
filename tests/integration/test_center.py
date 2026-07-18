@@ -402,7 +402,7 @@ class TestCenterFleet:
         assert "Empfang" in body
         assert "Online" in body
         assert "1.1.0" in body
-        assert f'href="http://127.0.0.1:{fake_device.server_port}/"' in body
+        assert f'href="http://127.0.0.1:{fake_device.server_port}/dashboard/"' in body
         assert 'target="_blank"' in body
 
     def test_leere_uebersicht(self, client: FlaskClient) -> None:
