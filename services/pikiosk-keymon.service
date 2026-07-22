@@ -11,6 +11,8 @@
 Description=PiKiosk Pro Kiosk-Tastenueberwachung
 After=pikiosk.service
 Wants=pikiosk.service
+# Der Dienst gibt nie dauerhaft auf (StartLimit gehoert in [Unit]).
+StartLimitIntervalSec=0
 
 [Service]
 Type=simple
@@ -22,8 +24,6 @@ WorkingDirectory=__INSTALL_DIR__
 ExecStart=__INSTALL_DIR__/.venv/bin/python -m app.keymon
 Restart=always
 RestartSec=5
-# Der Dienst gibt nie dauerhaft auf.
-StartLimitIntervalSec=0
 
 # Haertung: braucht /dev/input (daher kein PrivateDevices) und den
 # CDP-Port des Browsers auf 127.0.0.1, sonst nichts Besonderes.
