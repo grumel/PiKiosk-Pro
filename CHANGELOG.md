@@ -16,11 +16,6 @@ Versionierung folgt [Semantic Versioning](https://semver.org/lang/de/).
   Statuswerten. Er führt zur Anmeldung und danach ins Dashboard
   (oder bei bestehender Anmeldung direkt hinein). Bisher gab es von
   der Statusseite keinen sichtbaren Weg in die Verwaltung.
-
-## [1.6.4] - 2026-07-18
-
-### Hinzugefügt
-
 - **Fast volle Festplatte ist jetzt ein Fehler statt einer Warnung.**
   Ab 95 % Belegung meldet der Watchdog „Fehler" (rotes Badge) mit
   der Festplatte als Auslöser – bisher blieb es bei einer gelben
@@ -31,11 +26,12 @@ Versionierung folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Geändert
 
-- **Watchdog gibt den Neustart nie dauerhaft auf** (`StartLimitIntervalSec=0`). Bisher stellte systemd nach mehreren schnellen Fehlversuchen
-  – etwa bei einer beim Booten vorübergehend vollen Platte – den
-  automatischen Neustart ein, und der Dienst blieb tot. Jetzt
-  versucht er es weiter, bis er wieder läuft. Neue Unit-Datei wird
-  von `sudo ./install.sh` installiert.
+- **Watchdog gibt den Neustart nie dauerhaft auf**
+  (`StartLimitIntervalSec=0`). Bisher stellte systemd nach mehreren
+  schnellen Fehlversuchen – etwa bei einer beim Booten vorübergehend
+  vollen Platte – den automatischen Neustart ein, und der Dienst
+  blieb tot. Jetzt versucht er es weiter, bis er wieder läuft. Neue
+  Unit-Datei wird von `sudo ./install.sh` installiert.
 
 ## [1.6.3] - 2026-07-18
 
