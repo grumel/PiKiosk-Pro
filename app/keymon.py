@@ -172,7 +172,7 @@ def _check_line(label: str, ok: bool, detail: str) -> None:
             Erklaerung des Ergebnisses.
     """
     mark = "OK  " if ok else "FEHL"
-    print(f"[{mark}] {label:<14} {detail}")
+    print(f"[{mark}] {label:<14} {detail}", flush=True)
 
 
 def check() -> int:
@@ -188,7 +188,7 @@ def check() -> int:
     """
     from app.exceptions import NetworkError
 
-    print("PiKiosk Kiosk-Tastenueberwachung - Selbsttest")
+    print("PiKiosk Kiosk-Tastenueberwachung - Selbsttest", flush=True)
     ready = True
 
     config_service = ConfigService(logger=KioskLogger("keymon-check", SYSTEM_LOG_FILE))

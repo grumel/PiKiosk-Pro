@@ -5,6 +5,21 @@ dokumentiert. Das Format orientiert sich an
 [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die
 Versionierung folgt [Semantic Versioning](https://semver.org/lang/de/).
 
+## [1.8.3] - 2026-07-22
+
+### Behoben
+
+- **Die Kiosk-Tastenkombination funktioniert jetzt (Ursache gefunden).**
+  Die Browser-Fernsteuerung wartete nach dem Senden eines Kommandos
+  auf eine Antwort des Browsers. Auf dem Gerät blieb diese Antwort
+  aus, sodass der Aufruf dauerhaft blockierte – beim Tastendruck
+  stand damit die gesamte Überwachungsschleife, und es passierte
+  nichts. Der Browser führt ein Kommando aber bereits beim Empfang
+  aus; auf die Antwort wird daher nicht mehr gewartet, und alle
+  Socket-Schritte haben ein hartes Zeitlimit (kein Blockieren mehr
+  möglich). Betrifft auch den Watchdog-Seitenreload. Gegen echten
+  Chromium 150 verifiziert: Umlenkung in unter 0,01 s.
+
 ## [1.8.2] - 2026-07-22
 
 ### Hinzugefügt

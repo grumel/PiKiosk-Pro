@@ -169,6 +169,9 @@ class TestDevToolsClientLive:
     ) -> None:
         client = DevToolsClient("127.0.0.1", devtools_server.port, timeout=5.0)
         client.reload_page()
+        # Der Client wartet nicht mehr auf eine Antwort; auf die
+        # Erfassung des Frames im Servertread wird kurz gewartet.
+        devtools_server.join(timeout=2.0)
         assert len(devtools_server.frames) == 1
         command = json.loads(devtools_server.frames[0])
         assert command["method"] == "Page.reload"
@@ -178,6 +181,7 @@ class TestDevToolsClientLive:
     ) -> None:
         client = DevToolsClient("127.0.0.1", devtools_server.port, timeout=5.0)
         client.navigate("http://127.0.0.1:8081/dashboard/")
+        devtools_server.join(timeout=2.0)
         assert len(devtools_server.frames) == 1
         command = json.loads(devtools_server.frames[0])
         assert command["method"] == "Page.navigate"

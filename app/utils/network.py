@@ -253,7 +253,7 @@ class DevToolsClient:
             Timeout in Sekunden fuer alle Netzwerkoperationen.
     """
 
-    def __init__(self, host: str, port: int, timeout: float = 5.0) -> None:
+    def __init__(self, host: str, port: int, timeout: float = 3.0) -> None:
         self._host = host
         self._port = port
         self._timeout = timeout
@@ -275,9 +275,9 @@ class DevToolsClient:
         """Prueft, ob der Browser fernsteuerbar ist.
 
         Baut die WebSocket-Verbindung zur ersten Seite auf und
-        sendet ein wirkungsloses Kommando. Scheitert der Handshake
-        (etwa weil der Browser ohne --remote-allow-origins laeuft),
-        wird ein NetworkError ausgeloest.
+        sendet ein wirkungsloses Kommando. Gelingt der Handshake
+        nicht, wird ein NetworkError ausgeloest. Auf eine Antwort
+        wird nicht gewartet.
 
         Raises:
             NetworkError
@@ -374,9 +374,15 @@ class DevToolsClient:
             with socket.create_connection(
                 (self._host, self._port), timeout=self._timeout
             ) as connection:
+                # Hartes Zeitlimit auch fuer Handshake und Senden, damit
+                # keine Socket-Operation dauerhaft blockieren kann.
+                connection.settimeout(self._timeout)
                 self._perform_handshake(connection, path)
                 connection.sendall(encode_text_frame(payload))
-                self._read_frame_payload(connection)
+                # Bewusst KEIN Warten auf die Antwort: Der Browser
+                # fuehrt das Kommando aus, sobald er den Frame empfaengt.
+                # Frueher blockierte das Lesen der Antwort auf manchen
+                # Geraeten dauerhaft (Kioskbrowser reagierte nie).
         except OSError as error:
             raise NetworkError(
                 f"WebSocket-Verbindung fehlgeschlagen: {error}"
@@ -415,48 +421,3 @@ class DevToolsClient:
         status_line = response.split(b"\r\n", 1)[0].decode("latin-1")
         if WEBSOCKET_ACCEPT_STATUS not in status_line:
             raise NetworkError(f"WebSocket-Handshake abgelehnt: {status_line}")
-
-    def _read_frame_payload(self, connection: socket.socket) -> bytes:
-        """Liest ein einzelnes WebSocket-Frame vom Server.
-
-        Args:
-            connection:
-                Offene WebSocket-Verbindung.
-
-        Returns:
-            Nutzdaten des Frames.
-
-        Raises:
-            NetworkError
-        """
-        header = self._read_exact(connection, 2)
-        length = header[1] & 0x7F
-        if length == 126:
-            length = int.from_bytes(self._read_exact(connection, 2), "big")
-        elif length == 127:
-            length = int.from_bytes(self._read_exact(connection, 8), "big")
-        return self._read_exact(connection, length)
-
-    def _read_exact(self, connection: socket.socket, count: int) -> bytes:
-        """Liest exakt die angeforderte Anzahl Bytes.
-
-        Args:
-            connection:
-                Offene Verbindung.
-
-            count:
-                Anzahl der zu lesenden Bytes.
-
-        Returns:
-            Die gelesenen Bytes.
-
-        Raises:
-            NetworkError
-        """
-        data = b""
-        while len(data) < count:
-            chunk = connection.recv(count - len(data))
-            if not chunk:
-                raise NetworkError("Verbindung unerwartet beendet.")
-            data += chunk
-        return data
