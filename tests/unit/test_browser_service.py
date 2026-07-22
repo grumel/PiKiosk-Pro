@@ -11,6 +11,7 @@ from typing import Any
 
 import pytest
 
+from app.constants import CDP_PORT
 from app.exceptions import BrowserError, ValidationError
 from app.logger import KioskLogger
 from app.services import browser_service as browser_module
@@ -89,6 +90,8 @@ class TestBrowserService:
         assert command[0] == FAKE_BINARY
         assert "--kiosk" in command
         assert "--incognito" in command
+        assert "--remote-allow-origins=*" in command
+        assert f"--remote-debugging-port={CDP_PORT}" in command
         assert command[-1] == TEST_URL
         assert (tmp_path / "chromium").exists()
 

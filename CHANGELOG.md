@@ -5,6 +5,19 @@ dokumentiert. Das Format orientiert sich an
 [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die
 Versionierung folgt [Semantic Versioning](https://semver.org/lang/de/).
 
+## [1.8.1] - 2026-07-22
+
+### Behoben
+
+- **Fernsteuerung des Kioskbrowsers reaktiviert (betrifft die
+  Ausstiegs-Tastenkombination und den Watchdog-Reload).** Chromium
+  weist seit Version 111 Fernsteuerungsverbindungen (DevTools/CDP)
+  ohne erlaubten Ursprung ab. Der Kioskbrowser wird jetzt mit
+  `--remote-allow-origins=*` gestartet (der Debug-Port ist nur an
+  127.0.0.1 gebunden, daher unbedenklich). Ohne diesen Schalter
+  konnte die Tastenkombination aus 1.8.0 den Browser nicht auf das
+  Dashboard umlenken.
+
 ## [1.8.0] - 2026-07-22
 
 ### Hinzugefügt

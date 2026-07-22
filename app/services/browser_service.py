@@ -230,5 +230,11 @@ class BrowserService:
             *BROWSER_ARGS,
             f"--user-data-dir={self._user_data_dir}",
             f"--remote-debugging-port={CDP_PORT}",
+            # Ab Chromium 111 werden Fernsteuerungsverbindungen (CDP)
+            # ohne erlaubten Ursprung abgewiesen. Der Debug-Port ist
+            # nur an 127.0.0.1 gebunden, daher ist "*" unbedenklich
+            # und noetig, damit der Watchdog-Reload und die
+            # Kiosk-Tastenkombination den Browser steuern koennen.
+            "--remote-allow-origins=*",
             url,
         ]
