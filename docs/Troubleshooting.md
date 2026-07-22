@@ -38,6 +38,27 @@ sudo systemctl restart pikiosk-watchdog.service
 Zeigt das Badge „Deaktiviert", ist der Watchdog in der
 Konfiguration abgeschaltet (`watchdog: false`).
 
+Häufigste Ursache in der Praxis ist eine **volle SD-Karte**: Ist
+kein Platz mehr frei, kann der Watchdog seine Statusdatei nicht
+schreiben, und das Dashboard zeigt „Inaktiv". Freien Platz prüfen
+und größte Verzeichnisse finden:
+
+```bash
+df -h /
+sudo du -xh /home/pi --max-depth=2 2>/dev/null | sort -rh | head -15
+```
+
+Ein häufiger, gefahrlos zu leerender Speicherfresser ist der
+Papierkorb der Desktop-Oberfläche:
+
+```bash
+rm -rf ~/.local/share/Trash/files ~/.local/share/Trash/info
+```
+
+Ist die Platte zu **95 % oder mehr** belegt, meldet die
+Überwachungs-Kachel dies ab Version 1.6.4 als roten **Fehler** mit
+der Festplatte als Auslöser.
+
 ## „Not authorized to control networking" / keine Berechtigung
 
 Der WLAN-Scan funktioniert, aber jede Verbindung scheitert mit

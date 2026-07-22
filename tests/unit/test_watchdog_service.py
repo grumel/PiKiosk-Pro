@@ -211,6 +211,9 @@ class TestOverallStatus:
     def test_kritische_temperatur_ergibt_error(self) -> None:
         assert self.make(warnings=["temperature_critical"]) == "error"
 
+    def test_kritische_platte_ergibt_error(self) -> None:
+        assert self.make(warnings=["disk_critical"]) == "error"
+
     def test_kein_internet_ergibt_offline(self) -> None:
         assert self.make(internet=False) == "offline"
 
@@ -272,7 +275,7 @@ class TestCheckOnce:
             percent = 90.0
 
         class FakeDisk:
-            percent = 95.0
+            percent = 92.0
 
         monkeypatch.setattr(
             watchdog_module.psutil, "virtual_memory", lambda: FakeMemory()
@@ -297,6 +300,20 @@ class TestCheckOnce:
         monkeypatch.setattr(watchdog_module, "cpu_temperature", lambda: 81.0)
         system = service._check_system()
         assert "temperature_critical" in system["warnings"]
+
+    def test_kritische_platte(
+        self, service: WatchdogService, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        class FakeDisk:
+            percent = 97.0
+
+        monkeypatch.setattr(
+            watchdog_module.psutil, "disk_usage", lambda path: FakeDisk()
+        )
+        monkeypatch.setattr(watchdog_module, "cpu_temperature", lambda: 40.0)
+        system = service._check_system()
+        assert "disk_critical" in system["warnings"]
+        assert "disk_warning" not in system["warnings"]
 
 
 class TestNetworkChecks:

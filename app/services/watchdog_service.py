@@ -26,6 +26,7 @@ from app.constants import (
     BROWSER_RESTART_LIMIT,
     BROWSER_RESTART_URL,
     BROWSER_RESTART_WINDOW_SECONDS,
+    DISK_CRITICAL_PERCENT,
     DISK_WARNING_PERCENT,
     HEALTH_CHECK_URL,
     RAM_WARNING_PERCENT,
@@ -247,7 +248,9 @@ class WatchdogService:
                 warnings.append("temperature_warning")
         if memory.percent >= RAM_WARNING_PERCENT:
             warnings.append("ram_warning")
-        if disk.percent >= DISK_WARNING_PERCENT:
+        if disk.percent >= DISK_CRITICAL_PERCENT:
+            warnings.append("disk_critical")
+        elif disk.percent >= DISK_WARNING_PERCENT:
             warnings.append("disk_warning")
         self._log_warning_changes(set(warnings))
         return {
@@ -266,7 +269,7 @@ class WatchdogService:
                 Aktuelle Warnungen dieses Pruefzyklus.
         """
         for warning in sorted(warnings - self._last_warnings):
-            if warning == "temperature_critical":
+            if warning in ("temperature_critical", "disk_critical"):
                 self._logger.critical(f"Systemwarnung: {warning}")
             else:
                 self._logger.warning(f"Systemwarnung: {warning}")
@@ -297,7 +300,10 @@ class WatchdogService:
         """
         if browser["failed"] or browser["status"] == APP_OFFLINE_STATUS:
             return "error"
-        if "temperature_critical" in system["warnings"]:
+        if (
+            "temperature_critical" in system["warnings"]
+            or "disk_critical" in system["warnings"]
+        ):
             return "error"
         if not network["internet"]:
             return "offline"

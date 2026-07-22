@@ -10,6 +10,10 @@
 Description=PiKiosk Pro Watchdog
 After=network-online.target pikiosk.service
 Wants=network-online.target
+# Der Watchdog muss immer laufen: kein Neustartlimit, damit
+# systemd ihn nach mehreren schnellen Fehlversuchen (etwa bei einer
+# beim Booten voruebergehend vollen Platte) nicht dauerhaft aufgibt.
+StartLimitIntervalSec=0
 
 [Service]
 Type=simple

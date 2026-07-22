@@ -64,7 +64,7 @@
             </li>
             <li class="list-group-item d-flex justify-content-between px-0 py-1">
                 <span>{{ texts['label_disk'] }}</span>
-                <span class="badge {% if 'disk_warning' in system['warnings'] %}text-bg-warning{% else %}text-bg-success{% endif %}">
+                <span class="badge {% if 'disk_critical' in system['warnings'] %}text-bg-danger{% elif 'disk_warning' in system['warnings'] %}text-bg-warning{% else %}text-bg-success{% endif %}">
                     {{ system['disk_percent'] }} %
                 </span>
             </li>

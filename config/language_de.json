@@ -79,6 +79,7 @@
     "install_redirect_notice": "Der Kiosk startet in wenigen Sekunden mit der konfigurierten Webseite.",
     "login_heading": "Anmeldung",
     "login_button": "Anmelden",
+    "nav_admin": "Zum Dashboard",
     "login_failed": "Anmeldename oder Passwort ist falsch.",
     "session_expired": "Die Sitzung ist abgelaufen. Bitte melden Sie sich erneut an.",
     "login_blocked": "Zu viele Fehlversuche. Nächster Versuch in {seconds} Sekunden möglich.",

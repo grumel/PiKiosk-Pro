@@ -54,6 +54,18 @@ class TestFlaskApp:
         assert "PiKiosk Pro" in body
         assert APP_VERSION in body
 
+    def test_statusseite_verlinkt_das_dashboard(self, client: FlaskClient) -> None:
+        body = client.get("/").get_data(as_text=True)
+        assert 'href="/dashboard/"' in body
+        assert "Zum Dashboard" in body
+
+    def test_dashboard_link_fuehrt_ohne_anmeldung_zur_anmeldung(
+        self, client: FlaskClient
+    ) -> None:
+        response = client.get("/dashboard/")
+        assert response.status_code == 302
+        assert "/login" in response.headers["Location"]
+
     def test_health_liefert_json(self, client: FlaskClient) -> None:
         response = client.get("/health")
         assert response.status_code == 200

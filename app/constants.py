@@ -11,7 +11,7 @@ zu, damit keine doppelten Definitionen entstehen.
 from pathlib import Path
 
 APP_NAME: str = "PiKiosk Pro"
-APP_VERSION: str = "1.6.3"
+APP_VERSION: str = "1.7.0"
 
 BASE_DIR: Path = Path(__file__).resolve().parent.parent
 CONFIG_DIR: Path = BASE_DIR / "config"
@@ -140,6 +140,7 @@ TEMPERATURE_WARNING_CELSIUS: float = 75.0
 TEMPERATURE_CRITICAL_CELSIUS: float = 80.0
 RAM_WARNING_PERCENT: float = 85.0
 DISK_WARNING_PERCENT: float = 90.0
+DISK_CRITICAL_PERCENT: float = 95.0
 
 PING_BINARY: str = "ping"
 PING_TIMEOUT_SECONDS: int = 2

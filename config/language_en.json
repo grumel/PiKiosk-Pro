@@ -79,6 +79,7 @@
     "install_redirect_notice": "The kiosk will start with the configured website in a few seconds.",
     "login_heading": "Sign in",
     "login_button": "Sign in",
+    "nav_admin": "Open dashboard",
     "login_failed": "Username or password is incorrect.",
     "session_expired": "Your session has expired. Please sign in again.",
     "login_blocked": "Too many failed attempts. Next attempt possible in {seconds} seconds.",
