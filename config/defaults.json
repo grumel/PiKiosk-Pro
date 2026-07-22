@@ -10,5 +10,6 @@
     "update_source": "github",
     "update_url": "",
     "connectivity_check": "internet",
-    "wifi_preferred_ssid": ""
+    "wifi_preferred_ssid": "",
+    "escape_hotkey": "ctrl+alt+k"
 }

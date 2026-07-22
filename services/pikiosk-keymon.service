@@ -1,0 +1,39 @@
+# Copyright (c) 2026 Holger John
+# Lizenz: MIT License (siehe LICENSE)
+#
+# PiKiosk Pro - Kiosk-Tastenueberwachung.
+# Liest die Tastatur ueber /dev/input und lenkt den Kioskbrowser bei
+# der konfigurierten Tastenkombination auf das Dashboard um.
+# Die Platzhalter __KIOSK_USER__ und __INSTALL_DIR__ werden von
+# install.sh beim Installieren ersetzt.
+
+[Unit]
+Description=PiKiosk Pro Kiosk-Tastenueberwachung
+After=pikiosk.service
+Wants=pikiosk.service
+
+[Service]
+Type=simple
+User=__KIOSK_USER__
+# Lesezugriff auf /dev/input, ohne den Benutzer dauerhaft der
+# Gruppe input hinzufuegen zu muessen.
+SupplementaryGroups=input
+WorkingDirectory=__INSTALL_DIR__
+ExecStart=__INSTALL_DIR__/.venv/bin/python -m app.keymon
+Restart=always
+RestartSec=5
+# Der Dienst gibt nie dauerhaft auf.
+StartLimitIntervalSec=0
+
+# Haertung: braucht /dev/input (daher kein PrivateDevices) und den
+# CDP-Port des Browsers auf 127.0.0.1, sonst nichts Besonderes.
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ReadWritePaths=__INSTALL_DIR__
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectControlGroups=yes
+
+[Install]
+WantedBy=multi-user.target

@@ -107,6 +107,22 @@ class TestConfigValidator:
         with pytest.raises(ValidationError):
             ConfigValidator().validate(config)
 
+    def test_leere_tastenkombination_ist_zulaessig(self) -> None:
+        config = valid_config()
+        config["escape_hotkey"] = ""
+        ConfigValidator().validate(config)
+
+    def test_gueltige_tastenkombination(self) -> None:
+        config = valid_config()
+        config["escape_hotkey"] = "ctrl+shift+d"
+        ConfigValidator().validate(config)
+
+    def test_ungueltige_tastenkombination_wird_abgelehnt(self) -> None:
+        config = valid_config()
+        config["escape_hotkey"] = "ctrl+alt+gibtsnicht"
+        with pytest.raises(ValidationError):
+            ConfigValidator().validate(config)
+
     def test_ungueltiges_theme(self) -> None:
         config = valid_config()
         config["theme"] = "neon"

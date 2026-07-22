@@ -273,5 +273,7 @@
     "check_ok": "OK",
     "check_fail": "Not OK",
     "browser_status_app_offline": "Application offline",
-    "browser_status_unknown": "Unknown"
+    "browser_status_unknown": "Unknown",
+    "label_escape_hotkey": "Escape keyboard shortcut",
+    "escape_hotkey_help": "Brings the kiosk browser to the dashboard on key press (e.g. ctrl+alt+k). Empty = off. Takes effect after the next device restart."
 }

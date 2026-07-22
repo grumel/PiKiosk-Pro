@@ -25,6 +25,7 @@ from app.constants import (
     WIFI_SSID_MAX_LENGTH,
 )
 from app.exceptions import ValidationError
+from app.utils.hotkeys import parse_combo
 
 HOSTNAME_PATTERN: re.Pattern[str] = re.compile(r"^[A-Za-z0-9-]+$")
 PASSWORD_UPPER_PATTERN: re.Pattern[str] = re.compile(r"[A-Z]")
@@ -219,6 +220,8 @@ class ConfigValidator:
                 f"Der WLAN-Name darf maximal {WIFI_SSID_MAX_LENGTH} Zeichen "
                 "lang sein."
             )
+        if config["escape_hotkey"]:
+            parse_combo(config["escape_hotkey"])
 
 
 class PasswordValidator:

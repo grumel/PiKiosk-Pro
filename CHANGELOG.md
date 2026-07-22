@@ -5,6 +5,21 @@ dokumentiert. Das Format orientiert sich an
 [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die
 Versionierung folgt [Semantic Versioning](https://semver.org/lang/de/).
 
+## [1.8.0] - 2026-07-22
+
+### Hinzugefügt
+
+- **Tastenkombination, um aus dem Kiosk-Vollbild zu kommen.** Ein
+  neuer Hintergrunddienst (`pikiosk-keymon`) liest die Tastatur
+  direkt über `/dev/input` – dadurch unabhängig von X11 oder
+  Wayland – und lenkt den Kioskbrowser bei der eingestellten
+  Kombination (Standard **Strg+Alt+K**) auf das lokale Dashboard um,
+  ohne den Browser neu zu starten. Von dort ist die gesamte
+  Verwaltung erreichbar. Die Kombination ist in der
+  Überwachungs-Kachel einstellbar (leer = aus); sie wirkt nach dem
+  nächsten Geräteneustart. Der neue Dienst wird von
+  `sudo ./install.sh` installiert.
+
 ## [1.7.0] - 2026-07-18
 
 ### Hinzugefügt

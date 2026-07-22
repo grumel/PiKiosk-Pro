@@ -548,6 +548,37 @@ class TestMonitoringTile:
         assert response.status_code == 200
         assert registry.config_service.load()["watchdog"] is False
 
+    def test_tastenkombination_speichern(
+        self, client: FlaskClient, registry: ServiceRegistry
+    ) -> None:
+        token = login(client)
+        response = client.post(
+            "/dashboard/monitoring",
+            data={
+                "watchdog": "on",
+                "connectivity_check": "internet",
+                "escape_hotkey": "Ctrl+Shift+D",
+                "csrf_token": token,
+            },
+        )
+        assert "alert-success" in response.get_data(as_text=True)
+        assert registry.config_service.load()["escape_hotkey"] == "ctrl+shift+d"
+
+    def test_ungueltige_tastenkombination_wird_abgelehnt(
+        self, client: FlaskClient, registry: ServiceRegistry
+    ) -> None:
+        token = login(client)
+        response = client.post(
+            "/dashboard/monitoring",
+            data={
+                "watchdog": "on",
+                "connectivity_check": "internet",
+                "escape_hotkey": "ctrl+alt+gibtsnicht",
+                "csrf_token": token,
+            },
+        )
+        assert "alert-danger" in response.get_data(as_text=True)
+
     def test_url_pruefung_ohne_kiosk_url_wird_abgelehnt(
         self, client: FlaskClient, registry: ServiceRegistry
     ) -> None:

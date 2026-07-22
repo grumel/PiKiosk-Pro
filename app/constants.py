@@ -11,7 +11,7 @@ zu, damit keine doppelten Definitionen entstehen.
 from pathlib import Path
 
 APP_NAME: str = "PiKiosk Pro"
-APP_VERSION: str = "1.7.0"
+APP_VERSION: str = "1.8.0"
 
 BASE_DIR: Path = Path(__file__).resolve().parent.parent
 CONFIG_DIR: Path = BASE_DIR / "config"
@@ -197,4 +197,5 @@ CONFIG_SCHEMA: dict[str, type] = {
     "update_url": str,
     "connectivity_check": str,
     "wifi_preferred_ssid": str,
+    "escape_hotkey": str,
 }

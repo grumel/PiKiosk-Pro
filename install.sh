@@ -14,7 +14,7 @@
 set -euo pipefail
 
 INSTALL_DIR="/opt/pikiosk-pro"
-SERVICE_NAMES=("pikiosk.service" "pikiosk-watchdog.service")
+SERVICE_NAMES=("pikiosk.service" "pikiosk-watchdog.service" "pikiosk-keymon.service")
 POLKIT_RULE_FILE="/etc/polkit-1/rules.d/50-pikiosk-networkmanager.rules"
 SOURCE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LOG_FILE="${SOURCE_DIR}/logs/install.log"

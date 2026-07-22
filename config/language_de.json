@@ -273,5 +273,7 @@
     "check_ok": "OK",
     "check_fail": "Nicht OK",
     "browser_status_app_offline": "Anwendung offline",
-    "browser_status_unknown": "Unbekannt"
+    "browser_status_unknown": "Unbekannt",
+    "label_escape_hotkey": "Ausstiegs-Tastenkombination",
+    "escape_hotkey_help": "Holt den Kioskbrowser per Tastendruck aufs Dashboard (z. B. ctrl+alt+k). Leer = aus. Änderung wirkt nach dem nächsten Neustart des Geräts."
 }

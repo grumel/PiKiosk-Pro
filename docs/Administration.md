@@ -46,6 +46,18 @@ läuft nicht).
 
 Die Werte aktualisieren sich automatisch alle 10 Sekunden.
 
+## Aus dem Kiosk-Vollbild zur Verwaltung
+
+Der Kioskbrowser läuft im Vollbild und zeigt die konfigurierte
+Webseite. Mit der **Ausstiegs-Tastenkombination** (Standard
+**Strg+Alt+K**) springt er auf das lokale Dashboard – dort meldet
+man sich an und erreicht die komplette Verwaltung. Die Kombination
+lässt sich in der Überwachungs-Kachel ändern (leeres Feld schaltet
+die Funktion ab); eine Änderung wirkt nach dem nächsten
+Geräteneustart. Der zuständige Dienst heißt `pikiosk-keymon` und
+liest die Tastatur direkt aus, funktioniert also unter X11 wie
+unter Wayland.
+
 ## Kacheln
 
 ### Browser

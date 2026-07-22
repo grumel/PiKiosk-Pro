@@ -99,6 +99,16 @@
                 </select>
                 <div class="form-text">{{ texts['connectivity_help'] }}</div>
             </div>
+            <div class="mb-3">
+                <label class="form-label" for="escape-hotkey-input">
+                    {{ texts['label_escape_hotkey'] }}
+                </label>
+                <input class="form-control" type="text" id="escape-hotkey-input"
+                       name="escape_hotkey" autocomplete="off"
+                       placeholder="ctrl+alt+k"
+                       value="{{ config['escape_hotkey'] }}">
+                <div class="form-text">{{ texts['escape_hotkey_help'] }}</div>
+            </div>
             <button type="button" class="btn btn-primary"
                     hx-post="{{ url_for('settings.monitoring_save') }}"
                     hx-include="closest form"

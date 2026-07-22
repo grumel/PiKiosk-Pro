@@ -271,6 +271,27 @@ class DevToolsClient:
         )
         self._send_command(websocket_url, command.encode("utf-8"))
 
+    def navigate(self, url: str) -> None:
+        """Lenkt die erste geoeffnete Browserseite auf eine URL um.
+
+        Wird genutzt, um den Kioskbrowser per Tastenkombination aus
+        der angezeigten Seite auf die lokale Verwaltung zu holen,
+        ohne den Browser neu zu starten.
+
+        Args:
+            url:
+                Zieladresse.
+
+        Raises:
+            NetworkError
+        """
+        targets = self._fetch_targets()
+        websocket_url = self._first_page_websocket_url(targets)
+        command = json.dumps(
+            {"id": 1, "method": "Page.navigate", "params": {"url": url}}
+        )
+        self._send_command(websocket_url, command.encode("utf-8"))
+
     def _fetch_targets(self) -> list[dict[str, Any]]:
         """Fragt alle DevTools-Ziele ueber HTTP ab.
 

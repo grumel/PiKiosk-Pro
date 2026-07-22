@@ -195,6 +195,7 @@ def monitoring_save() -> str:
     config["connectivity_check"] = request.form.get(
         "connectivity_check", config["connectivity_check"]
     )
+    config["escape_hotkey"] = request.form.get("escape_hotkey", "").strip().lower()
     try:
         services.config_service.save(config)
     except ValidationError as error:

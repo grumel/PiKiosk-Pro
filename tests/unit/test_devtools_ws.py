@@ -173,6 +173,16 @@ class TestDevToolsClientLive:
         command = json.loads(devtools_server.frames[0])
         assert command["method"] == "Page.reload"
 
+    def test_navigate_sendet_cdp_kommando(
+        self, devtools_server: MiniDevToolsServer
+    ) -> None:
+        client = DevToolsClient("127.0.0.1", devtools_server.port, timeout=5.0)
+        client.navigate("http://127.0.0.1:8081/dashboard/")
+        assert len(devtools_server.frames) == 1
+        command = json.loads(devtools_server.frames[0])
+        assert command["method"] == "Page.navigate"
+        assert command["params"]["url"] == "http://127.0.0.1:8081/dashboard/"
+
     def test_abgelehnter_handshake(self) -> None:
         server = MiniDevToolsServer(reject_handshake=True)
         server.start()
