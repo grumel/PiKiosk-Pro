@@ -18,9 +18,17 @@ import glob
 import selectors
 import struct
 import sys
+import urllib.error
+import urllib.request
 from typing import BinaryIO
 
-from app.constants import CDP_HOST, CDP_PORT, DEFAULT_HOST, DEFAULT_PORT
+from app.constants import (
+    CDP_HOST,
+    CDP_PORT,
+    DEFAULT_HOST,
+    DEFAULT_PORT,
+    SYSTEM_LOG_FILE,
+)
 from app.exceptions import ValidationError
 from app.logger import KioskLogger
 from app.services.config_service import ConfigService
@@ -150,13 +158,108 @@ def monitor(
                     _trigger(logger, client, url)
 
 
+def _check_line(label: str, ok: bool, detail: str) -> None:
+    """Gibt eine Zeile des Selbsttests aus.
+
+    Args:
+        label:
+            Kurzbezeichnung der Pruefung.
+
+        ok:
+            True, wenn die Pruefung bestanden ist.
+
+        detail:
+            Erklaerung des Ergebnisses.
+    """
+    mark = "OK  " if ok else "FEHL"
+    print(f"[{mark}] {label:<14} {detail}")
+
+
+def check() -> int:
+    """Fuehrt einen Selbsttest aus und gibt einen Bericht aus.
+
+    Prueft nacheinander die vier Voraussetzungen fuer die
+    Tastenkombination: gueltige Kombination, lesbare Tastatur,
+    fernsteuerbarer Browser und erreichbares Dashboard. Das Ergebnis
+    wird kompakt auf die Standardausgabe geschrieben.
+
+    Returns:
+        0, wenn alles bereit ist, sonst 1.
+    """
+    from app.exceptions import NetworkError
+
+    print("PiKiosk Kiosk-Tastenueberwachung - Selbsttest")
+    ready = True
+
+    config_service = ConfigService(logger=KioskLogger("keymon-check", SYSTEM_LOG_FILE))
+    try:
+        combo = str(config_service.load().get("escape_hotkey", "")).strip()
+    except Exception as error:  # noqa: BLE001 - Selbsttest darf nie abstuerzen.
+        _check_line("Kombination", False, f"Konfiguration nicht lesbar: {error}")
+        return 1
+    try:
+        parse_combo(combo) if combo else None
+        _check_line(
+            "Kombination",
+            bool(combo),
+            combo or "leer (Funktion ist ausgeschaltet)",
+        )
+        ready = ready and bool(combo)
+    except ValidationError as error:
+        _check_line("Kombination", False, f"'{combo}' ungueltig: {error}")
+        ready = False
+
+    devices = open_keyboards(KioskLogger("keymon-check", SYSTEM_LOG_FILE))
+    names = ", ".join(
+        getattr(device, "name", "?").rsplit("/", 1)[-1] for device in devices
+    )
+    _check_line(
+        "Tastatur",
+        bool(devices),
+        (
+            f"{len(devices)} Eingabegeraete lesbar ({names})"
+            if devices
+            else "keine lesbar - als root testen bzw. Gruppe 'input' pruefen"
+        ),
+    )
+    for device in devices:
+        device.close()
+    ready = ready and bool(devices)
+
+    client = DevToolsClient(CDP_HOST, CDP_PORT)
+    try:
+        client.probe()
+        _check_line("Browser-CDP", True, f"{CDP_HOST}:{CDP_PORT} steuerbar")
+    except NetworkError as error:
+        _check_line(
+            "Browser-CDP",
+            False,
+            f"{CDP_HOST}:{CDP_PORT} nicht steuerbar ({error}) - "
+            "laeuft der Kioskbrowser? Ggf. pikiosk.service neu starten.",
+        )
+        ready = False
+
+    url = dashboard_url()
+    try:
+        with urllib.request.urlopen(url, timeout=4.0) as response:
+            status = int(response.status)
+        _check_line("Dashboard", True, f"{url} erreichbar (HTTP {status})")
+    except (urllib.error.URLError, OSError) as error:
+        _check_line("Dashboard", False, f"{url} nicht erreichbar ({error})")
+        ready = False
+
+    print("Ergebnis:", "BEREIT" if ready else "NICHT BEREIT (siehe oben)")
+    return 0 if ready else 1
+
+
 def main() -> int:
     """Startet die Kiosk-Tastenueberwachung.
 
     Returns:
         Exit-Code des Programms.
     """
-    from app.constants import SYSTEM_LOG_FILE
+    if "--check" in sys.argv[1:]:
+        return check()
 
     logger = KioskLogger("keymon", SYSTEM_LOG_FILE)
     config_service = ConfigService(logger=logger)

@@ -271,6 +271,22 @@ class DevToolsClient:
         )
         self._send_command(websocket_url, command.encode("utf-8"))
 
+    def probe(self) -> None:
+        """Prueft, ob der Browser fernsteuerbar ist.
+
+        Baut die WebSocket-Verbindung zur ersten Seite auf und
+        sendet ein wirkungsloses Kommando. Scheitert der Handshake
+        (etwa weil der Browser ohne --remote-allow-origins laeuft),
+        wird ein NetworkError ausgeloest.
+
+        Raises:
+            NetworkError
+        """
+        targets = self._fetch_targets()
+        websocket_url = self._first_page_websocket_url(targets)
+        command = json.dumps({"id": 1, "method": "Page.getNavigationHistory"})
+        self._send_command(websocket_url, command.encode("utf-8"))
+
     def navigate(self, url: str) -> None:
         """Lenkt die erste geoeffnete Browserseite auf eine URL um.
 

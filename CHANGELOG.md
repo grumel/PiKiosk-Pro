@@ -5,6 +5,23 @@ dokumentiert. Das Format orientiert sich an
 [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die
 Versionierung folgt [Semantic Versioning](https://semver.org/lang/de/).
 
+## [1.8.2] - 2026-07-22
+
+### Hinzugefügt
+
+- **Selbsttest für die Kiosk-Tastenkombination.** Der Befehl
+  `python -m app.keymon --check` prüft in einem Durchgang alle
+  Voraussetzungen und gibt einen kompakten Bericht aus: gültige
+  Tastenkombination, lesbare Tastatur, fernsteuerbarer Browser
+  (echter CDP-Handshake) und erreichbares Dashboard. Damit lässt
+  sich sofort erkennen, an welcher Stelle die Umlenkung klemmt.
+
+### Behoben
+
+- Die Unit `pikiosk-keymon.service` hatte `StartLimitIntervalSec`
+  in der falschen Sektion (`[Service]` statt `[Unit]`), was systemd
+  mit einer Warnung ignorierte. Ohne funktionale Auswirkung.
+
 ## [1.8.1] - 2026-07-22
 
 ### Behoben

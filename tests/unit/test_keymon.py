@@ -108,3 +108,58 @@ class TestMain:
         )
         monkeypatch.setattr(keymon, "open_keyboards", lambda logger: [])
         assert keymon.main() == 1
+
+
+class _FakeResponse:
+    """Minimale HTTP-Antwort fuer den Selbsttest."""
+
+    status = 200
+
+    def __enter__(self) -> "_FakeResponse":
+        return self
+
+    def __exit__(self, *args: object) -> None:
+        return None
+
+
+class TestCheck:
+    """Tests fuer den Selbsttest (--check)."""
+
+    def _patch_common(
+        self, monkeypatch: pytest.MonkeyPatch, hotkey: str = "ctrl+alt+k"
+    ) -> None:
+        monkeypatch.setattr(
+            keymon, "ConfigService", lambda **kwargs: _FakeConfigService(hotkey)
+        )
+        monkeypatch.setattr(keymon, "open_keyboards", lambda logger: [_FakeDevice(b"")])
+        monkeypatch.setattr(
+            keymon.urllib.request, "urlopen", lambda url, timeout=0: _FakeResponse()
+        )
+
+    def test_alles_bereit(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        self._patch_common(monkeypatch)
+        monkeypatch.setattr(keymon.DevToolsClient, "probe", lambda self: None)
+        assert keymon.check() == 0
+
+    def test_cdp_nicht_steuerbar(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        from app.exceptions import NetworkError
+
+        self._patch_common(monkeypatch)
+
+        def fail(self: object) -> None:
+            raise NetworkError("kein Browser")
+
+        monkeypatch.setattr(keymon.DevToolsClient, "probe", fail)
+        assert keymon.check() == 1
+
+    def test_keine_tastatur(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        self._patch_common(monkeypatch)
+        monkeypatch.setattr(keymon, "open_keyboards", lambda logger: [])
+        monkeypatch.setattr(keymon.DevToolsClient, "probe", lambda self: None)
+        assert keymon.check() == 1
+
+    def test_check_ueber_main_argument(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        self._patch_common(monkeypatch)
+        monkeypatch.setattr(keymon.DevToolsClient, "probe", lambda self: None)
+        monkeypatch.setattr(keymon.sys, "argv", ["keymon", "--check"])
+        assert keymon.main() == 0
