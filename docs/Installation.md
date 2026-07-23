@@ -62,10 +62,58 @@ sudo systemctl stop pikiosk.service      # Stoppen
 sudo ./update.sh
 ```
 
+## Mehrere Geräte einrichten (empfohlen: frisch per Imager)
+
+Für weitere Kiosks ist ein **frisch geflashtes System** meist
+zuverlässiger als ein Klon: kein beschädigtes Dateisystem, und jedes
+Gerät bekommt automatisch eine **eindeutige** Maschinen-ID und eigene
+SSH-Host-Keys – Kollisionen wie beim Klonen entstehen gar nicht erst.
+
+Checkliste pro Gerät:
+
+1. **Raspberry Pi Imager** starten, dieselbe Raspberry-Pi-OS-Version
+   wie auf dem Master wählen.
+2. Vor dem Schreiben die **Voreinstellungen** öffnen (Zahnrad-Symbol
+   bzw. `Strg+Umschalt+X`) und setzen:
+   - **Hostname** – eindeutig je Gerät (z. B. `kiosk2`)
+   - **SSH aktivieren** (Passwort oder öffentlicher Schlüssel)
+   - **WLAN**: SSID, Passwort, WLAN-Land
+   - Zeitzone und Tastaturlayout
+3. Karte schreiben, in den neuen Pi stecken, booten.
+4. PiKiosk Pro installieren:
+   ```bash
+   git clone https://github.com/grumel/PiKiosk-Pro.git ~/PiKiosk-Pro
+   cd ~/PiKiosk-Pro && sudo ./install.sh && sudo reboot
+   ```
+5. Einrichten – eine der beiden Varianten:
+   - **Assistent**: im Browser `https://<hostname>.local:8080` öffnen
+     und Kiosk-URL, WLAN und Administrator durchklicken.
+   - **Sicherung übernehmen** (schneller bei vielen Geräten): auf dem
+     Master im Dashboard eine Sicherung erstellen und auf dem neuen
+     Gerät wiederherstellen (Kachel „Sicherung"). Das überträgt
+     Konfiguration und Admin-Konto, aber **keine** Maschinen-ID oder
+     Schlüssel – die bleiben eindeutig. Danach nur noch Hostname und
+     WLAN pro Gerät prüfen.
+6. **Standard-WLAN mit Passwort** im Dashboard speichern (WLAN-Kachel),
+   damit sich das Gerät nach jedem Neustart selbst verbindet. Kontrolle
+   ohne Passwortausgabe: `scripts/diagnose.sh`.
+
+Weil jedes Gerät frisch installiert wird, ist das Skript
+`reset-device-identity.sh` hier **nicht** nötig – es ist nur für Klone
+(nächster Abschnitt) gedacht.
+
 ## Geräte klonen (mehrere Kiosks aus einem Master)
 
-Ein Klon der SSD/SD-Karte übernimmt **alle** geräteweiten Kennungen
-des Masters. Im selben Netz führt vor allem die doppelte
+Klonen ist möglich, aber fehleranfälliger als der Imager-Weg oben:
+Ein Klon der SD-Karte/SSD übernimmt **alle** geräteweiten Kennungen
+des Masters.
+
+> **Wichtig:** Niemals mit `dd` von einem **laufenden** System kopieren.
+> Das Dateisystem ist dann „unsauber" und der Klon bleibt beim Booten
+> an einer `(initramfs)`-Eingabe hängen (Wurzel nicht mountbar).
+> Deshalb: Master vorher **herunterfahren** und offline kopieren, oder
+> auf dem Master `rpi-clone` verwenden (kopiert das laufende System
+> korrekt per rsync). Im selben Netz führt vor allem die doppelte
 Maschinen-ID zu IP-/DHCP-Kollisionen; außerdem teilen sich die
 Klone SSH-Host-Keys, TLS-Zertifikat und Sitzungs-/API-Schlüssel.
 **Nur den Hostnamen zu ändern reicht nicht.**
