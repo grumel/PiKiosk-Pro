@@ -8,7 +8,14 @@
 
 [Unit]
 Description=PiKiosk Pro Watchdog
-After=network-online.target pikiosk.service
+# BEWUSST OHNE pikiosk.service in After=: pikiosk.service haengt in
+# graphical.target, dieser Dienst in multi-user.target -> ein
+# After=pikiosk.service erzeugt einen Ordnungs-Zyklus, den systemd
+# durch LOESCHEN des Watchdog-Startauftrags aufloest (Dienst startet
+# beim Booten nie). Der Watchdog fragt die App per HTTP ab und
+# wiederholt das im 5-Sekunden-Takt; ein Start vor pikiosk.service
+# ist unkritisch.
+After=network-online.target
 Wants=network-online.target
 # Der Watchdog muss immer laufen: kein Neustartlimit, damit
 # systemd ihn nach mehreren schnellen Fehlversuchen (etwa bei einer

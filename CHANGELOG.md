@@ -5,6 +5,28 @@ dokumentiert. Das Format orientiert sich an
 [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die
 Versionierung folgt [Semantic Versioning](https://semver.org/lang/de/).
 
+## [1.9.2] - 2026-07-23
+
+### Behoben
+
+- **keymon- und Watchdog-Dienst starten jetzt zuverlässig beim
+  Booten.** Beide Units hatten `After=pikiosk.service`, während sie
+  in `multi-user.target` hängen und `pikiosk.service` in
+  `graphical.target` liegt. Daraus entstand ein Ordnungs-Zyklus
+  (`multi-user.target → keymon → pikiosk.service → graphical.target →
+  multi-user.target`), den systemd auflöste, indem es die
+  Startaufträge **löschte** – die Dienste wurden beim Booten nie
+  gestartet (Strg+Alt+K reagierte erst nach manuellem
+  `systemctl start`, der Watchdog blieb inaktiv). Die `After=`/`Wants=`-
+  Bindung an `pikiosk.service` wurde entfernt: keymon liest die
+  Tastatur und spricht den Browser erst beim Tastendruck an (früher
+  Start wird durch das Neu-Öffnen der Eingabegeräte abgefangen), der
+  Watchdog fragt die App per HTTP ab und wiederholt das ohnehin. Ein
+  neuer Test (`tests/unit/test_systemd_units.py`) verhindert das
+  erneute Einschleichen des Zyklus. **Wichtig:** Das Update muss über
+  `install.sh` eingespielt werden (nur der Installer erneuert die
+  systemd-Units), gefolgt von einem Neustart.
+
 ## [1.9.1] - 2026-07-23
 
 ### Hinzugefügt

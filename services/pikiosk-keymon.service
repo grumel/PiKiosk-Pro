@@ -9,8 +9,16 @@
 
 [Unit]
 Description=PiKiosk Pro Kiosk-Tastenueberwachung
-After=pikiosk.service
-Wants=pikiosk.service
+# BEWUSST KEIN After=/Wants=pikiosk.service: pikiosk.service haengt in
+# graphical.target, dieser Dienst in multi-user.target. Ein
+# After=pikiosk.service erzeugt einen Ordnungs-Zyklus
+# (multi-user.target -> keymon -> pikiosk.service -> graphical.target
+# -> multi-user.target), den systemd durch LOESCHEN des Startauftrags
+# aufloest -> der Dienst startet beim Booten nie. Er braucht
+# pikiosk.service zum Starten nicht: Er liest die Tastatur und spricht
+# den Browser erst beim Tastendruck (viel spaeter) an; ein frueher
+# Start wird durch das periodische Neu-Oeffnen der Eingabegeraete
+# (reopen im Leerlauf) abgefangen.
 # Der Dienst gibt nie dauerhaft auf (StartLimit gehoert in [Unit]).
 StartLimitIntervalSec=0
 
