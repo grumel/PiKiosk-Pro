@@ -5,6 +5,20 @@ dokumentiert. Das Format orientiert sich an
 [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die
 Versionierung folgt [Semantic Versioning](https://semver.org/lang/de/).
 
+## [1.9.1] - 2026-07-23
+
+### Hinzugefügt
+
+- **Klon-Werkzeug `scripts/reset-device-identity.sh`.** Setzt nach
+  dem Klonen einer SSD/SD-Karte die geräteweiten Kennungen zurück,
+  damit aus einem Master mehrere lauffähige Geräte werden: neuer
+  Hostname (System, `/etc/hosts`, `config.json`), neue Maschinen-ID
+  (behebt IP-/DHCP-Kollisionen), neue SSH-Host-Keys, neues
+  TLS-Zertifikat passend zum Hostnamen und Verwerfen der Sitzungs-
+  und API-Schlüssel. WLAN-Profile bleiben erhalten. Vor jeder
+  Änderung wird gesichert; das Skript ist idempotent. Anleitung zum
+  Klonen unter „Geräte klonen" in der Installationsdoku.
+
 ## [1.9.0] - 2026-07-23
 
 ### Hinzugefügt

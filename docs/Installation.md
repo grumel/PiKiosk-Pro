@@ -62,6 +62,41 @@ sudo systemctl stop pikiosk.service      # Stoppen
 sudo ./update.sh
 ```
 
+## Geräte klonen (mehrere Kiosks aus einem Master)
+
+Ein Klon der SSD/SD-Karte übernimmt **alle** geräteweiten Kennungen
+des Masters. Im selben Netz führt vor allem die doppelte
+Maschinen-ID zu IP-/DHCP-Kollisionen; außerdem teilen sich die
+Klone SSH-Host-Keys, TLS-Zertifikat und Sitzungs-/API-Schlüssel.
+**Nur den Hostnamen zu ändern reicht nicht.**
+
+Empfohlener Ablauf:
+
+1. Master fertig einrichten und **herunterfahren**.
+2. Offline klonen (Linux-Laptop):
+   ```bash
+   lsblk -o NAME,SIZE,MODEL,TRAN            # Quelle/Ziel sicher identifizieren
+   sudo dd if=/dev/sdX of=pikiosk-master.img bs=4M status=progress conv=fsync
+   # optional verkleinern + auto-expand: PiShrink (pishrink.sh -z)
+   sudo dd if=pikiosk-master.img of=/dev/sdY bs=4M status=progress conv=fsync
+   ```
+   Alternativ auf dem Pi: „SD Card Copier" oder `rpi-clone`.
+3. **Immer nur einen Klon ans Netz**, bis er zurückgesetzt ist.
+4. Auf jedem Klon einmal die Geräteidentität erneuern:
+   ```bash
+   sudo /opt/pikiosk-pro/scripts/reset-device-identity.sh kiosk2
+   sudo reboot
+   ```
+   Das Skript erneuert Hostname (System + `/etc/hosts` +
+   `config.json`), Maschinen-ID, SSH-Host-Keys, TLS-Zertifikat
+   (passend zum neuen Hostnamen) und verwirft Sitzungs-/API-Schlüssel
+   (werden beim Start neu erzeugt). Vorher wird alles unter
+   `backup/device-identity-<Zeitstempel>/` gesichert. WLAN-Profile
+   bleiben erhalten (gemeinsames WLAN funktioniert weiter).
+
+Optional pro Gerät: eigenes Admin-Konto (`config/users.db` löschen →
+Assistent startet neu) und feste DHCP-Reservierung pro MAC im Router.
+
 ## Abnahme auf dem Gerät (Release-Checkliste)
 
 Nach der Installation auf einem Raspberry Pi 4 sollten folgende
