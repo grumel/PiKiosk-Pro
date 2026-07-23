@@ -43,6 +43,7 @@ EVENT_SIZE: int = struct.calcsize("@llHHi")
 EVENT_TAIL: str = "HHi"
 INPUT_DEVICE_GLOB: str = "/dev/input/event*"
 DASHBOARD_PATH: str = "dashboard/"
+DEVICE_RESCAN_SECONDS: float = 3.0
 
 
 def dashboard_url() -> str:
@@ -121,14 +122,80 @@ def _trigger(logger: KioskLogger, client: DevToolsClient, url: str) -> None:
         logger.error(f"Umleitung fehlgeschlagen: {error}")
 
 
+def sync_devices(
+    selector: selectors.BaseSelector,
+    registered: dict[str, BinaryIO],
+    logger: KioskLogger,
+) -> None:
+    """Gleicht die geoeffneten Eingabegeraete mit /dev/input ab.
+
+    Neu aufgetauchte Geraete werden geoeffnet und ueberwacht,
+    verschwundene geschlossen. Dadurch wird die Tastatur auch dann
+    erfasst, wenn sie erst nach dem Dienststart bereitsteht (etwa
+    beim Booten) oder spaeter eingesteckt wird.
+
+    Args:
+        selector:
+            Der Selector, an dem die Geraete angemeldet werden.
+
+        registered:
+            Zuordnung Geraetepfad -> offene Datei; wird angepasst.
+
+        logger:
+            Logger fuer Hinweise.
+    """
+    current = set(glob.glob(INPUT_DEVICE_GLOB))
+    for path in sorted(current - set(registered)):
+        try:
+            device = open(path, "rb", buffering=0)
+        except OSError as error:
+            logger.warning(f"Eingabegeraet {path} nicht lesbar: {error}")
+            continue
+        selector.register(device, selectors.EVENT_READ, data=path)
+        registered[path] = device
+        logger.info(f"Eingabegeraet uebernommen: {path}")
+    for path in sorted(set(registered) - current):
+        _drop_device(selector, registered, path)
+
+
+def _drop_device(
+    selector: selectors.BaseSelector,
+    registered: dict[str, BinaryIO],
+    path: str,
+) -> None:
+    """Meldet ein Geraet ab und schliesst es.
+
+    Args:
+        selector:
+            Der Selector.
+
+        registered:
+            Zuordnung Geraetepfad -> offene Datei.
+
+        path:
+            Pfad des zu entfernenden Geraets.
+    """
+    device = registered.pop(path, None)
+    if device is None:
+        return
+    try:
+        selector.unregister(device)
+    except (KeyError, ValueError):
+        pass
+    device.close()
+
+
 def monitor(
     logger: KioskLogger,
     matcher: HotkeyMatcher,
     client: DevToolsClient,
-    devices: list[BinaryIO],
     url: str,
 ) -> None:
     """Ueberwacht die Tastatur dauerhaft und loest die Umleitung aus.
+
+    Die Eingabegeraete werden regelmaessig neu eingelesen, damit
+    eine erst spaeter bereitstehende Tastatur (Boot, Einstecken)
+    zuverlaessig erfasst wird.
 
     Args:
         logger:
@@ -140,18 +207,24 @@ def monitor(
         client:
             DevTools-Client des Kioskbrowsers.
 
-        devices:
-            Geoeffnete Eingabegeraete.
-
         url:
             Zieladresse der Umleitung.
     """
     selector = selectors.DefaultSelector()
-    for device in devices:
-        selector.register(device, selectors.EVENT_READ)
+    registered: dict[str, BinaryIO] = {}
+    sync_devices(selector, registered, logger)
     while True:
-        for key, _ in selector.select():
-            for event_type, code, value in read_events(key.fileobj):  # type: ignore[arg-type]
+        events = selector.select(timeout=DEVICE_RESCAN_SECONDS)
+        if not events:
+            sync_devices(selector, registered, logger)
+            continue
+        for key, _ in events:
+            parsed = read_events(key.fileobj)  # type: ignore[arg-type]
+            if not parsed:
+                # Bereit gemeldet, aber nichts lesbar: Geraet ist weg.
+                _drop_device(selector, registered, str(key.data))
+                continue
+            for event_type, code, value in parsed:
                 if event_type != EV_KEY:
                     continue
                 if matcher.feed(code, value):
@@ -276,23 +349,17 @@ def main() -> int:
     except ValidationError as error:
         logger.error(f"Ungueltige Tastenkombination '{combo}': {error}")
         return 1
-    devices = open_keyboards(logger)
-    if not devices:
-        logger.error("Keine lesbaren Eingabegeraete gefunden (Gruppe 'input'?).")
-        return 1
     url = dashboard_url()
     logger.info(
         f"Kiosk-Tastenueberwachung aktiv: '{combo}' leitet auf {url} um "
-        f"(Server {DEFAULT_HOST}:{DEFAULT_PORT})."
+        f"(Server {DEFAULT_HOST}:{DEFAULT_PORT}). Eingabegeraete werden "
+        f"alle {DEVICE_RESCAN_SECONDS:.0f}s neu eingelesen."
     )
     client = DevToolsClient(CDP_HOST, CDP_PORT)
     try:
-        monitor(logger, HotkeyMatcher(groups), client, devices, url)
+        monitor(logger, HotkeyMatcher(groups), client, url)
     except KeyboardInterrupt:
         return 0
-    finally:
-        for device in devices:
-            device.close()
     return 0
 
 

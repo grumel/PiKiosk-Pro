@@ -102,12 +102,73 @@ class TestMain:
         )
         assert keymon.main() == 1
 
-    def test_ohne_geraete_meldet_fehler(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_gueltige_kombination_startet_ueberwachung(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         monkeypatch.setattr(
             keymon, "ConfigService", lambda **kwargs: _FakeConfigService("ctrl+alt+k")
         )
-        monkeypatch.setattr(keymon, "open_keyboards", lambda logger: [])
-        assert keymon.main() == 1
+        aufgerufen: list[bool] = []
+
+        def fake_monitor(
+            logger: object, matcher: object, client: object, url: str
+        ) -> None:
+            aufgerufen.append(True)
+            raise KeyboardInterrupt
+
+        monkeypatch.setattr(keymon, "monitor", fake_monitor)
+        assert keymon.main() == 0
+        assert aufgerufen == [True]
+
+
+class _FakeSelector:
+    """Minimaler Selector fuer die Geraeteverwaltung im Test."""
+
+    def __init__(self) -> None:
+        self.registered: dict[Any, Any] = {}
+
+    def register(self, fileobj: Any, events: int, data: Any = None) -> None:
+        self.registered[fileobj] = data
+
+    def unregister(self, fileobj: Any) -> None:
+        self.registered.pop(fileobj, None)
+
+
+class TestSyncDevices:
+    """Tests fuer das periodische Neu-Einlesen der Eingabegeraete."""
+
+    def test_neue_geraete_werden_geoeffnet(
+        self, monkeypatch: pytest.MonkeyPatch, test_logger: Any
+    ) -> None:
+        opened: dict[str, _FakeDevice] = {}
+
+        def fake_open(path: str, *args: object, **kwargs: object) -> _FakeDevice:
+            device = _FakeDevice(b"")
+            opened[path] = device
+            return device
+
+        monkeypatch.setattr(
+            keymon.glob,
+            "glob",
+            lambda pattern: ["/dev/input/event0", "/dev/input/event1"],
+        )
+        monkeypatch.setattr(keymon, "open", fake_open, raising=False)
+        selector: Any = _FakeSelector()
+        registered: dict[str, Any] = {}
+        keymon.sync_devices(selector, registered, test_logger)
+        assert set(registered) == {"/dev/input/event0", "/dev/input/event1"}
+
+    def test_verschwundene_geraete_werden_geschlossen(
+        self, monkeypatch: pytest.MonkeyPatch, test_logger: Any
+    ) -> None:
+        device = _FakeDevice(b"")
+        selector: Any = _FakeSelector()
+        registered: dict[str, Any] = {"/dev/input/event9": device}
+        selector.registered[device] = "/dev/input/event9"
+        monkeypatch.setattr(keymon.glob, "glob", lambda pattern: [])
+        keymon.sync_devices(selector, registered, test_logger)
+        assert registered == {}
+        assert device.closed is True
 
 
 class _FakeResponse:

@@ -5,6 +5,22 @@ dokumentiert. Das Format orientiert sich an
 [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die
 Versionierung folgt [Semantic Versioning](https://semver.org/lang/de/).
 
+## [1.8.4] - 2026-07-23
+
+### Behoben
+
+- **Kiosk-Tastenkombination funktioniert jetzt auch nach einem
+  Neustart.** Der Tastatur-Dienst öffnete die Eingabegeräte nur
+  einmal beim Start. Beim Booten startete er, bevor die Tastatur
+  vollständig bereitstand (bzw. bevor die Desktop-Sitzung das Gerät
+  neu einrichtete), und bekam danach keine Tastendrücke mehr –
+  ein manueller Neustart des Dienstes half, ein Systemstart nicht.
+  Der Dienst liest die Tastaturen jetzt alle 3 Sekunden neu ein:
+  Ein erst später auftauchendes oder neu erzeugtes Gerät wird
+  automatisch übernommen, und ein stillgelegtes Gerät wird
+  geschlossen und neu geöffnet. Damit greift die Tastenkombination
+  zuverlässig nach jedem Neustart, ohne manuelles Zutun.
+
 ## [1.8.3] - 2026-07-22
 
 ### Behoben
