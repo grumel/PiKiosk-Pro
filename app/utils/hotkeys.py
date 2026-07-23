@@ -162,6 +162,16 @@ class HotkeyMatcher:
         self._pressed: set[int] = set()
         self._active = False
 
+    def reset(self) -> None:
+        """Verwirft den gemerkten Tastenzustand.
+
+        Wird nach einem Neu-Oeffnen der Eingabegeraete aufgerufen,
+        weil dabei keine Aussage mehr ueber gehaltene Tasten moeglich
+        ist.
+        """
+        self._pressed.clear()
+        self._active = False
+
     def feed(self, code: int, value: int) -> bool:
         """Verarbeitet ein Tastenereignis.
 

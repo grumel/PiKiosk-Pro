@@ -122,40 +122,36 @@ def _trigger(logger: KioskLogger, client: DevToolsClient, url: str) -> None:
         logger.error(f"Umleitung fehlgeschlagen: {error}")
 
 
-def sync_devices(
+def reopen_devices(
     selector: selectors.BaseSelector,
     registered: dict[str, BinaryIO],
-    logger: KioskLogger,
 ) -> None:
-    """Gleicht die geoeffneten Eingabegeraete mit /dev/input ab.
+    """Oeffnet alle vorhandenen Eingabegeraete frisch.
 
-    Neu aufgetauchte Geraete werden geoeffnet und ueberwacht,
-    verschwundene geschlossen. Dadurch wird die Tastatur auch dann
-    erfasst, wenn sie erst nach dem Dienststart bereitsteht (etwa
-    beim Booten) oder spaeter eingesteckt wird.
+    Alle bereits offenen Geraete werden geschlossen und danach alle
+    aktuell vorhandenen /dev/input-Geraete neu geoeffnet. Das ist
+    noetig, weil die Desktop-Sitzung beim Booten einem frueh
+    gestarteten Dienst den Geraetezugriff entziehen kann
+    (evdev-Revoke): Ein solches Geraet verschwindet nicht, liefert
+    aber keine Ereignisse mehr. Ein frisches Oeffnen - wie bei einem
+    manuellen Dienstneustart - stellt den Empfang wieder her.
 
     Args:
         selector:
             Der Selector, an dem die Geraete angemeldet werden.
 
         registered:
-            Zuordnung Geraetepfad -> offene Datei; wird angepasst.
-
-        logger:
-            Logger fuer Hinweise.
+            Zuordnung Geraetepfad -> offene Datei; wird ersetzt.
     """
-    current = set(glob.glob(INPUT_DEVICE_GLOB))
-    for path in sorted(current - set(registered)):
+    for path in list(registered):
+        _drop_device(selector, registered, path)
+    for path in sorted(glob.glob(INPUT_DEVICE_GLOB)):
         try:
             device = open(path, "rb", buffering=0)
-        except OSError as error:
-            logger.warning(f"Eingabegeraet {path} nicht lesbar: {error}")
+        except OSError:
             continue
         selector.register(device, selectors.EVENT_READ, data=path)
         registered[path] = device
-        logger.info(f"Eingabegeraet uebernommen: {path}")
-    for path in sorted(set(registered) - current):
-        _drop_device(selector, registered, path)
 
 
 def _drop_device(
@@ -193,9 +189,12 @@ def monitor(
 ) -> None:
     """Ueberwacht die Tastatur dauerhaft und loest die Umleitung aus.
 
-    Die Eingabegeraete werden regelmaessig neu eingelesen, damit
-    eine erst spaeter bereitstehende Tastatur (Boot, Einstecken)
-    zuverlaessig erfasst wird.
+    Solange keine Tasten anliegen, werden alle Eingabegeraete im
+    Leerlauf regelmaessig frisch geoeffnet. Dadurch wird ein beim
+    Booten von der Sitzung entzogenes Geraet (evdev-Revoke) wieder
+    empfangsbereit, ohne dass ein manueller Dienstneustart noetig
+    ist. Waehrend aktiver Tasteneingabe wird nicht neu geoeffnet,
+    damit keine Ereignisse verloren gehen.
 
     Args:
         logger:
@@ -212,11 +211,17 @@ def monitor(
     """
     selector = selectors.DefaultSelector()
     registered: dict[str, BinaryIO] = {}
-    sync_devices(selector, registered, logger)
+    reopen_devices(selector, registered)
+    known = set(registered)
+    logger.info(f"Ueberwache Eingabegeraete: {sorted(known)}")
     while True:
         events = selector.select(timeout=DEVICE_RESCAN_SECONDS)
         if not events:
-            sync_devices(selector, registered, logger)
+            reopen_devices(selector, registered)
+            matcher.reset()
+            if set(registered) != known:
+                known = set(registered)
+                logger.info(f"Eingabegeraete geaendert: {sorted(known)}")
             continue
         for key, _ in events:
             parsed = read_events(key.fileobj)  # type: ignore[arg-type]

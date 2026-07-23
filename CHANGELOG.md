@@ -5,6 +5,20 @@ dokumentiert. Das Format orientiert sich an
 [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die
 Versionierung folgt [Semantic Versioning](https://semver.org/lang/de/).
 
+## [1.8.5] - 2026-07-23
+
+### Behoben
+
+- **Kiosk-Tastenkombination greift jetzt zuverlässig nach dem
+  Booten.** Die Desktop-Sitzung entzieht einem beim Systemstart
+  früh gestarteten Dienst den Zugriff auf die Tastatur
+  (evdev-Revoke); das Gerät verschwindet dabei nicht, liefert aber
+  keine Tastendrücke mehr – nur ein manueller Neustart des Dienstes
+  half. Der Dienst öffnet die Eingabegeräte jetzt im Leerlauf (wenn
+  keine Taste anliegt) regelmäßig komplett neu und stellt den
+  Empfang so von selbst wieder her. Damit funktioniert die
+  Tastenkombination nach jedem Neustart ohne manuelles Zutun.
+
 ## [1.8.4] - 2026-07-23
 
 ### Behoben

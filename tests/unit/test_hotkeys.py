@@ -78,3 +78,11 @@ class TestHotkeyMatcher:
     def test_ohne_modifier_kein_ausloesen(self) -> None:
         matcher = HotkeyMatcher(parse_combo("ctrl+alt+k"))
         assert matcher.feed(KEY_K, 1) is False
+
+    def test_reset_verwirft_gehaltene_tasten(self) -> None:
+        matcher = HotkeyMatcher(parse_combo("ctrl+alt+k"))
+        matcher.feed(CTRL_LEFT, 1)
+        matcher.feed(ALT_LEFT, 1)
+        matcher.reset()
+        # Nach dem Zuruecksetzen zaehlen nur noch neue Tastendruecke.
+        assert matcher.feed(KEY_K, 1) is False
