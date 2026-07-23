@@ -177,7 +177,23 @@ class TestNetworkService:
         with pytest.raises(NetworkError):
             service.ip()
 
-    def test_connect_erfolgreich(
+    def test_connect_mit_passwort_speichert_profil_dauerhaft(
+        self, service: NetworkService, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        runner = scripted(
+            service,
+            monkeypatch,
+            ["", "", "", DEVICE_OUTPUT, DEVICE_SHOW_IP],
+        )
+        service.connect("Zuhause", "geheim-123")
+        assert runner.calls[0] == ["-t", "-f", "NAME,TYPE", "connection", "show"]
+        assert runner.calls[1][:4] == ["connection", "add", "type", "wifi"]
+        assert "wifi-sec.psk-flags" in runner.calls[1]
+        assert "0" in runner.calls[1]
+        assert "connection.autoconnect" in runner.calls[1]
+        assert runner.calls[2] == ["connection", "up", "id", "Zuhause"]
+
+    def test_connect_offenes_netz_ohne_profil(
         self, service: NetworkService, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         runner = scripted(
@@ -185,21 +201,26 @@ class TestNetworkService:
             monkeypatch,
             ["Device 'wlan0' successfully activated.\n", DEVICE_OUTPUT, DEVICE_SHOW_IP],
         )
-        service.connect("Zuhause", "geheim")
-        assert runner.calls[0][:4] == ["device", "wifi", "connect", "Zuhause"]
-        assert "password" in runner.calls[0]
+        service.connect("Offen")
+        assert runner.calls[0] == ["device", "wifi", "connect", "Offen"]
 
-    def test_connect_falsches_passwort(
+    def test_connect_falsches_passwort_entfernt_neues_profil(
         self, service: NetworkService, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        scripted(
+        runner = scripted(
             service,
             monkeypatch,
-            [NetworkError("Error: Secrets were required, but not provided.")],
+            [
+                "",
+                "",
+                NetworkError("Error: Secrets were required, but not provided."),
+                "",
+            ],
         )
         with pytest.raises(WifiError) as info:
-            service.connect("Zuhause", "falsch")
+            service.connect("Zuhause", "falsch-123")
         assert info.value.reason == "wrong_password"
+        assert runner.calls[-1] == ["connection", "delete", "Zuhause"]
 
     def test_connect_ohne_berechtigung(
         self, service: NetworkService, monkeypatch: pytest.MonkeyPatch
@@ -208,14 +229,15 @@ class TestNetworkService:
             service,
             monkeypatch,
             [
+                "",
                 NetworkError(
                     "Error: Failed to add/activate new connection: "
                     "Not authorized to control networking."
-                )
+                ),
             ],
         )
         with pytest.raises(WifiError) as info:
-            service.connect("Zuhause", "geheim")
+            service.connect("Zuhause", "geheim-123")
         assert info.value.reason == "not_authorized"
 
     def test_connect_ssid_nicht_gefunden(
@@ -224,10 +246,15 @@ class TestNetworkService:
         scripted(
             service,
             monkeypatch,
-            [NetworkError("Error: No network with SSID 'Fehlt' found.")],
+            [
+                "",
+                "",
+                NetworkError("Error: No network with SSID 'Fehlt' found."),
+                "",
+            ],
         )
         with pytest.raises(WifiError) as info:
-            service.connect("Fehlt", "egal")
+            service.connect("Fehlt", "egal-1234")
         assert info.value.reason == "not_found"
 
     def test_connect_ohne_ip(
@@ -236,15 +263,128 @@ class TestNetworkService:
         scripted(
             service,
             monkeypatch,
-            ["Device 'wlan0' successfully activated.\n", DEVICE_OUTPUT, ""],
+            ["", "", "", DEVICE_OUTPUT, ""],
         )
         with pytest.raises(WifiError) as info:
-            service.connect("Zuhause", "geheim")
+            service.connect("Zuhause", "geheim-123")
         assert info.value.reason == "no_ip"
 
     def test_connect_ohne_ssid(self, service: NetworkService) -> None:
         with pytest.raises(WifiError):
             service.connect("")
+
+    def test_connect_zu_kurzes_passwort(self, service: NetworkService) -> None:
+        with pytest.raises(WifiError) as info:
+            service.connect("Zuhause", "kurz")
+        assert info.value.reason == "invalid_password"
+
+    def test_connect_offenes_netz_fehler_wird_uebersetzt(
+        self, service: NetworkService, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        scripted(
+            service,
+            monkeypatch,
+            [NetworkError("Error: No network with SSID 'Offen' found.")],
+        )
+        with pytest.raises(WifiError) as info:
+            service.connect("Offen")
+        assert info.value.reason == "not_found"
+
+    def test_connect_aufraeumen_scheitert_wird_geloggt(
+        self, service: NetworkService, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        scripted(
+            service,
+            monkeypatch,
+            [
+                "",
+                "",
+                NetworkError("Error: Secrets were required, but not provided."),
+                NetworkError("Error: connection could not be deleted."),
+            ],
+        )
+        with pytest.raises(WifiError) as info:
+            service.connect("Zuhause", "geheim-123")
+        assert info.value.reason == "wrong_password"
+
+
+class TestSaveProfile:
+    """Tests fuer das dauerhafte Speichern von WLAN-Profilen."""
+
+    def test_neues_profil_wird_angelegt(
+        self, service: NetworkService, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        runner = scripted(service, monkeypatch, ["", ""])
+        created = service.save_profile("Zuhause", "geheim-123", priority=10)
+        assert created is True
+        add = runner.calls[1]
+        assert add[:4] == ["connection", "add", "type", "wifi"]
+        assert add[add.index("wifi-sec.psk") + 1] == "geheim-123"
+        assert add[add.index("wifi-sec.psk-flags") + 1] == "0"
+        assert add[add.index("connection.autoconnect") + 1] == "yes"
+        assert add[add.index("connection.autoconnect-priority") + 1] == "10"
+
+    def test_vorhandenes_profil_wird_aktualisiert(
+        self, service: NetworkService, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        runner = scripted(service, monkeypatch, ["Zuhause:802-11-wireless\n", ""])
+        created = service.save_profile("Zuhause", "Neu-Pass-2026!", priority=10)
+        assert created is False
+        assert runner.calls[1][:4] == ["connection", "modify", "id", "Zuhause"]
+
+    def test_sonderzeichen_bleiben_erhalten(
+        self, service: NetworkService, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        runner = scripted(service, monkeypatch, ["", ""])
+        service.save_profile("Café Netz", "Pa%s wört mit Leerzeichen!")
+        add = runner.calls[1]
+        assert add[add.index("ssid") + 1] == "Café Netz"
+        assert add[add.index("wifi-sec.psk") + 1] == "Pa%s wört mit Leerzeichen!"
+
+    def test_zu_kurzes_passwort_wird_abgelehnt(self, service: NetworkService) -> None:
+        with pytest.raises(WifiError) as info:
+            service.save_profile("Zuhause", "kurz")
+        assert info.value.reason == "invalid_password"
+
+    def test_leere_ssid_wird_abgelehnt(self, service: NetworkService) -> None:
+        with pytest.raises(WifiError):
+            service.save_profile("", "geheim-123")
+
+    def test_nmcli_fehler_wird_uebersetzt(
+        self, service: NetworkService, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        scripted(
+            service,
+            monkeypatch,
+            [
+                "Zuhause:802-11-wireless\n",
+                NetworkError("Error: Not authorized to control networking."),
+            ],
+        )
+        with pytest.raises(WifiError) as info:
+            service.save_profile("Zuhause", "geheim-123")
+        assert info.value.reason == "not_authorized"
+
+
+class TestSetAutoconnect:
+    """Tests fuer die automatische Verbindung gespeicherter Profile."""
+
+    def test_setzt_autoconnect_und_prioritaet(
+        self, service: NetworkService, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        runner = scripted(service, monkeypatch, ["Zuhause:802-11-wireless\n", ""])
+        service.set_autoconnect("Zuhause", 10)
+        modify = runner.calls[1]
+        assert modify[:4] == ["connection", "modify", "id", "Zuhause"]
+        assert modify[modify.index("connection.autoconnect-priority") + 1] == "10"
+
+    def test_unbekanntes_profil_wird_abgelehnt(
+        self, service: NetworkService, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        scripted(service, monkeypatch, [""])
+        with pytest.raises(WifiError) as info:
+            service.set_autoconnect("Fehlt", 10)
+        assert info.value.reason == "not_found"
 
     def test_delete_ruft_nmcli(
         self, service: NetworkService, monkeypatch: pytest.MonkeyPatch

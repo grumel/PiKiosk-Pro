@@ -86,23 +86,27 @@
         <hr>
         <form>
             <label class="form-label" for="preferred-select">{{ texts['label_preferred_wifi'] }}</label>
-            <div class="input-group">
-                <select class="form-select" id="preferred-select" name="preferred_ssid">
-                    <option value="">{{ texts['wifi_preferred_none'] }}</option>
-                    {% for profile in saved_profiles %}
-                    <option value="{{ profile }}" {% if profile == preferred_ssid %}selected{% endif %}>
-                        {{ profile }}
-                    </option>
-                    {% endfor %}
-                </select>
-                <button type="button" class="btn btn-outline-primary"
-                        hx-post="{{ url_for('network.save_preferred') }}"
-                        hx-include="closest form"
-                        hx-target="#wifi-tile">
-                    {{ texts['btn_save'] }}
-                </button>
-            </div>
-            <div class="form-text">{{ texts['wifi_preferred_help'] }}</div>
+            <select class="form-select mb-2" id="preferred-select" name="preferred_ssid">
+                <option value="">{{ texts['wifi_preferred_none'] }}</option>
+                {% for profile in saved_profiles %}
+                <option value="{{ profile }}" {% if profile == preferred_ssid %}selected{% endif %}>
+                    {{ profile }}
+                </option>
+                {% endfor %}
+            </select>
+            <label class="form-label" for="preferred-password">
+                {{ texts['label_wifi_preferred_password'] }}
+            </label>
+            <input class="form-control mb-2" type="password" id="preferred-password"
+                   name="preferred_password" autocomplete="off">
+            <button type="button" class="btn btn-outline-primary"
+                    hx-post="{{ url_for('network.save_preferred') }}"
+                    hx-include="closest form"
+                    hx-target="#wifi-tile">
+                {{ texts['btn_save'] }}
+            </button>
+            <div class="form-text">{{ texts['wifi_preferred_help'] }}
+                {{ texts['wifi_preferred_password_help'] }}</div>
         </form>
     </div>
 </div>

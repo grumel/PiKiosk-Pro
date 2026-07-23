@@ -12,6 +12,7 @@ from typing import Any
 from flask import Blueprint, render_template, request
 from flask_login import login_required
 
+from app.constants import PREFERRED_WIFI_PRIORITY
 from app.controllers import current_services, current_texts
 from app.exceptions import NetworkError, PiKioskError, WifiError
 
@@ -126,25 +127,42 @@ def connect() -> str:
 def save_preferred() -> str:
     """Legt das Standard-WLAN fest.
 
-    Gespeichert wird nur der Name des Profils; das Passwort bleibt
-    ausschliesslich bei NetworkManager.
+    Wird ein Passwort mitgegeben, speichert NetworkManager es
+    dauerhaft im Verbindungsprofil (systemweit, automatische
+    Verbindung mit hoher Prioritaet) - das Geraet verbindet sich
+    dann nach jedem Neustart von selbst. Ohne Passwort wird bei
+    einem vorhandenen Profil nur die automatische Verbindung
+    aktiviert. Der Kiosk selbst speichert keine Passwoerter.
 
     Returns:
         Die aktualisierte WLAN-Kachel.
     """
     texts = current_texts()
     services = current_services()
+    ssid = request.form.get("preferred_ssid", "").strip()
+    password = request.form.get("preferred_password", "")
+    if ssid:
+        try:
+            if password:
+                services.network_service.save_profile(
+                    ssid, password, priority=PREFERRED_WIFI_PRIORITY
+                )
+            else:
+                services.network_service.set_autoconnect(ssid, PREFERRED_WIFI_PRIORITY)
+        except WifiError as error:
+            message = texts.get(f"wifi_error_{error.reason}", str(error))
+            return _render_tile(error=message)
+        except PiKioskError as error:
+            return _render_tile(error=str(error))
     config = services.config_service.load()
-    config["wifi_preferred_ssid"] = request.form.get("preferred_ssid", "").strip()
+    config["wifi_preferred_ssid"] = ssid
     try:
         services.config_service.save(config)
     except PiKioskError as error:
         return _render_tile(error=str(error))
-    if not config["wifi_preferred_ssid"]:
+    if not ssid:
         return _render_tile(message=texts["wifi_preferred_cleared"])
-    return _render_tile(
-        message=texts["wifi_preferred_saved"].format(ssid=config["wifi_preferred_ssid"])
-    )
+    return _render_tile(message=texts["wifi_preferred_saved"].format(ssid=ssid))
 
 
 @network_blueprint.post("/preferred/connect")

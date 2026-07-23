@@ -275,5 +275,8 @@
     "browser_status_app_offline": "Anwendung offline",
     "browser_status_unknown": "Unbekannt",
     "label_escape_hotkey": "Ausstiegs-Tastenkombination",
-    "escape_hotkey_help": "Holt den Kioskbrowser per Tastendruck aufs Dashboard (z. B. ctrl+alt+k). Leer = aus. Änderung wirkt nach dem nächsten Neustart des Geräts."
+    "escape_hotkey_help": "Holt den Kioskbrowser per Tastendruck aufs Dashboard (z. B. ctrl+alt+k). Leer = aus. Änderung wirkt nach dem nächsten Neustart des Geräts.",
+    "wifi_error_invalid_password": "Das WLAN-Passwort muss 8 bis 63 Zeichen lang sein.",
+    "label_wifi_preferred_password": "WLAN-Passwort (optional)",
+    "wifi_preferred_password_help": "Mit Passwort wird das Netz dauerhaft im System gespeichert (NetworkManager) und nach jedem Neustart automatisch verbunden; das Passwort selbst verbleibt ausschließlich bei NetworkManager."
 }

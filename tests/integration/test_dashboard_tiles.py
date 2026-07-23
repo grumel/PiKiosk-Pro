@@ -182,7 +182,7 @@ class TestPreferredWifi:
         assert "Standard-WLAN" in body
         assert "Buero" in body
 
-    def test_standard_wlan_speichern(
+    def test_standard_wlan_ohne_passwort_setzt_autoconnect(
         self,
         client: FlaskClient,
         registry: ServiceRegistry,
@@ -190,13 +190,74 @@ class TestPreferredWifi:
     ) -> None:
         mock_wifi(registry, monkeypatch)
         monkeypatch.setattr(registry.network_service, "saved", lambda: ["Zuhause"])
+        calls: list[tuple[str, int]] = []
+        monkeypatch.setattr(
+            registry.network_service,
+            "set_autoconnect",
+            lambda ssid, priority: calls.append((ssid, priority)),
+        )
         token = login(client)
         response = client.post(
             "/dashboard/wifi/preferred",
             data={"preferred_ssid": "Zuhause", "csrf_token": token},
         )
         assert "alert-success" in response.get_data(as_text=True)
+        assert calls == [("Zuhause", 10)]
         assert registry.config_service.load()["wifi_preferred_ssid"] == "Zuhause"
+
+    def test_standard_wlan_mit_passwort_speichert_profil(
+        self,
+        client: FlaskClient,
+        registry: ServiceRegistry,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        mock_wifi(registry, monkeypatch)
+        saved_args: list[tuple[str, str, int]] = []
+        monkeypatch.setattr(
+            registry.network_service,
+            "save_profile",
+            lambda ssid, password, priority=0: saved_args.append(
+                (ssid, password, priority)
+            )
+            or True,
+        )
+        token = login(client)
+        response = client.post(
+            "/dashboard/wifi/preferred",
+            data={
+                "preferred_ssid": "Zuhause",
+                "preferred_password": "Geheim-2026!",
+                "csrf_token": token,
+            },
+        )
+        assert "alert-success" in response.get_data(as_text=True)
+        assert saved_args == [("Zuhause", "Geheim-2026!", 10)]
+        assert registry.config_service.load()["wifi_preferred_ssid"] == "Zuhause"
+
+    def test_standard_wlan_meldet_ungueltiges_passwort(
+        self,
+        client: FlaskClient,
+        registry: ServiceRegistry,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        mock_wifi(registry, monkeypatch)
+
+        def _raise(ssid: str, password: str, priority: int = 0) -> bool:
+            raise WifiError("zu kurz", reason="invalid_password")
+
+        monkeypatch.setattr(registry.network_service, "save_profile", _raise)
+        token = login(client)
+        response = client.post(
+            "/dashboard/wifi/preferred",
+            data={
+                "preferred_ssid": "Zuhause",
+                "preferred_password": "kurz",
+                "csrf_token": token,
+            },
+        )
+        body = response.get_data(as_text=True)
+        assert "alert-danger" in body
+        assert "8 bis 63" in body
 
     def test_standard_wlan_entfernen(
         self,

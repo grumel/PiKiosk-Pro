@@ -102,6 +102,39 @@ sudo journalctl -u polkit -n 20
 - 5-GHz-Netze erfordern das korrekte WLAN-Land:
   `sudo raspi-config` → Localisation → WLAN Country.
 
+## WLAN verbindet nach Neustart nicht automatisch
+
+Ab Version 1.9.0 speichert PiKiosk Pro das Standard-WLAN dauerhaft,
+sobald in der WLAN-Kachel neben der SSID auch das **Passwort**
+eingegeben und gespeichert wird. Ohne Passwort kennt der Raspberry
+Pi das Kennwort nach einem Neustart nicht.
+
+- In der WLAN-Kachel unter „Standard-WLAN" die SSID wählen, das
+  Passwort eingeben und speichern.
+- Prüfen, ob das Profil samt automatischer Verbindung angelegt
+  wurde:
+  `nmcli -f connection.autoconnect,connection.autoconnect-priority connection show "<SSID>"`
+  (autoconnect muss `yes` sein).
+- Kompaktüberblick ohne Passwortausgabe: `scripts/diagnose.sh`.
+- Passwort geändert? Einfach erneut mit neuem Passwort speichern –
+  das bestehende Profil wird aktualisiert, nicht dupliziert.
+
+## Kiosk mit Strg + Alt + K verlassen
+
+Die im Dashboard hinterlegte Tastenkombination (Standard
+`ctrl+alt+k`) lenkt den Kioskbrowser auf das Geräte-Dashboard um.
+Der zuständige Dienst ist `pikiosk-keymon.service`.
+
+- Selbsttest der Tastenkombination:
+  `cd /opt/pikiosk-pro && .venv/bin/python -m app.keymon --check`
+  (oder direkt `scripts/diagnose.sh`).
+- Reagiert die Kombination nicht, Dienst neu starten:
+  `sudo systemctl restart pikiosk-keymon`.
+- Dienststatus: `systemctl status pikiosk-keymon`.
+- Der Dienst öffnet die Eingabegeräte im Leerlauf regelmäßig neu
+  und übersteht damit den evdev-Entzug durch die Desktop-Sitzung
+  nach dem Booten (ab 1.8.5).
+
 ## Hostnameänderung schlägt fehl
 
 Die Änderung läuft über `sudo` und das Helferskript

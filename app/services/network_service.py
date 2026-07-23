@@ -12,7 +12,12 @@ import os
 import subprocess
 from typing import Any
 
-from app.constants import NMCLI_BINARY, NMCLI_TIMEOUT_SECONDS
+from app.constants import (
+    NMCLI_BINARY,
+    NMCLI_TIMEOUT_SECONDS,
+    WPA_PSK_MAX_LENGTH,
+    WPA_PSK_MIN_LENGTH,
+)
 from app.exceptions import NetworkError, WifiError
 from app.logger import KioskLogger
 
@@ -105,6 +110,13 @@ class NetworkService:
     def connect(self, ssid: str, password: str = "") -> None:
         """Verbindet den Raspberry Pi mit einem WLAN.
 
+        Mit Passwort wird zuerst ein dauerhaftes Verbindungsprofil
+        angelegt oder aktualisiert (Passwort systemweit im Profil,
+        automatische Verbindung aktiv) und dieses anschliessend
+        aktiviert. Damit kennt das Geraet das Passwort auch nach
+        einem Neustart. Schlaegt die Aktivierung eines dabei neu
+        angelegten Profils fehl, wird es wieder entfernt.
+
         Args:
             ssid:
                 Name des WLANs.
@@ -118,18 +130,152 @@ class NetworkService:
         """
         if not ssid:
             raise WifiError("Es wurde kein WLAN ausgewaehlt.", reason="not_found")
-        arguments = ["device", "wifi", "connect", ssid]
-        if password:
-            arguments += ["password", password]
+        if not password:
+            try:
+                self._run(["device", "wifi", "connect", ssid])
+            except NetworkError as error:
+                raise self._map_connect_error(ssid, str(error)) from error
+            self._require_ip(ssid)
+            self._logger.info(f"Mit WLAN verbunden: {ssid}")
+            return
+        created = self.save_profile(ssid, password)
         try:
-            self._run(arguments)
+            self._run(["connection", "up", "id", ssid])
+        except NetworkError as error:
+            if created:
+                try:
+                    self.delete(ssid)
+                except NetworkError:
+                    self._logger.warning(
+                        f"Fehlgeschlagenes Profil '{ssid}' konnte nicht "
+                        "entfernt werden."
+                    )
+            raise self._map_connect_error(ssid, str(error)) from error
+        self._require_ip(ssid)
+        self._logger.info(f"Mit WLAN verbunden: {ssid}")
+
+    def save_profile(self, ssid: str, password: str, priority: int = 0) -> bool:
+        """Speichert ein WLAN-Profil dauerhaft mit Passwort.
+
+        Das Passwort landet systemweit im NetworkManager-Profil
+        (psk-flags 0), die automatische Verbindung wird aktiviert
+        und die Prioritaet gesetzt. Ein vorhandenes Profil gleichen
+        Namens wird aktualisiert statt dupliziert.
+
+        Args:
+            ssid:
+                Name des WLANs.
+
+            password:
+                WLAN-Passwort (WPA-PSK, 8 bis 63 Zeichen).
+
+            priority:
+                Prioritaet der automatischen Verbindung.
+
+        Returns:
+            True, wenn das Profil neu angelegt wurde.
+
+        Raises:
+            WifiError
+            NetworkError
+        """
+        if not ssid:
+            raise WifiError("Es wurde kein WLAN ausgewaehlt.", reason="not_found")
+        if not WPA_PSK_MIN_LENGTH <= len(password) <= WPA_PSK_MAX_LENGTH:
+            raise WifiError(
+                "Das WLAN-Passwort muss 8 bis 63 Zeichen lang sein.",
+                reason="invalid_password",
+            )
+        settings = [
+            "wifi-sec.key-mgmt",
+            "wpa-psk",
+            "wifi-sec.psk",
+            password,
+            "wifi-sec.psk-flags",
+            "0",
+            "connection.autoconnect",
+            "yes",
+            "connection.autoconnect-priority",
+            str(priority),
+        ]
+        created = ssid not in self.saved()
+        try:
+            if created:
+                self._run(
+                    [
+                        "connection",
+                        "add",
+                        "type",
+                        "wifi",
+                        "ifname",
+                        "*",
+                        "con-name",
+                        ssid,
+                        "ssid",
+                        ssid,
+                        *settings,
+                    ]
+                )
+            else:
+                self._run(["connection", "modify", "id", ssid, *settings])
         except NetworkError as error:
             raise self._map_connect_error(ssid, str(error)) from error
+        self._logger.info(
+            f"WLAN-Profil dauerhaft gespeichert: {ssid} "
+            f"(automatische Verbindung, Prioritaet {priority})."
+        )
+        return created
+
+    def set_autoconnect(self, ssid: str, priority: int) -> None:
+        """Aktiviert die automatische Verbindung eines Profils.
+
+        Args:
+            ssid:
+                Name des gespeicherten Profils.
+
+            priority:
+                Prioritaet der automatischen Verbindung.
+
+        Raises:
+            WifiError
+            NetworkError
+        """
+        if ssid not in self.saved():
+            raise WifiError(
+                f"Fuer '{ssid}' ist kein gespeichertes Profil vorhanden.",
+                reason="not_found",
+            )
+        self._run(
+            [
+                "connection",
+                "modify",
+                "id",
+                ssid,
+                "connection.autoconnect",
+                "yes",
+                "connection.autoconnect-priority",
+                str(priority),
+            ]
+        )
+        self._logger.info(
+            f"Automatische Verbindung fuer '{ssid}' aktiviert "
+            f"(Prioritaet {priority})."
+        )
+
+    def _require_ip(self, ssid: str) -> None:
+        """Prueft, ob das WLAN eine IPv4-Adresse vergeben hat.
+
+        Args:
+            ssid:
+                Name des WLANs (fuer die Fehlermeldung).
+
+        Raises:
+            WifiError
+        """
         if not self.ip():
             raise WifiError(
                 f"Keine IP-Adresse im WLAN '{ssid}' erhalten.", reason="no_ip"
             )
-        self._logger.info(f"Mit WLAN verbunden: {ssid}")
 
     def connect_saved(self, ssid: str) -> None:
         """Verbindet mit einem bereits gespeicherten WLAN-Profil.

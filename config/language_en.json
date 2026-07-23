@@ -275,5 +275,8 @@
     "browser_status_app_offline": "Application offline",
     "browser_status_unknown": "Unknown",
     "label_escape_hotkey": "Escape keyboard shortcut",
-    "escape_hotkey_help": "Brings the kiosk browser to the dashboard on key press (e.g. ctrl+alt+k). Empty = off. Takes effect after the next device restart."
+    "escape_hotkey_help": "Brings the kiosk browser to the dashboard on key press (e.g. ctrl+alt+k). Empty = off. Takes effect after the next device restart.",
+    "wifi_error_invalid_password": "The Wi-Fi password must be 8 to 63 characters long.",
+    "label_wifi_preferred_password": "Wi-Fi password (optional)",
+    "wifi_preferred_password_help": "With a password, the network is stored permanently in the system (NetworkManager) and reconnected automatically after every restart; the password itself is kept by NetworkManager only."
 }

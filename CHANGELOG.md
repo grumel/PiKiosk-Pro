@@ -5,6 +5,38 @@ dokumentiert. Das Format orientiert sich an
 [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die
 Versionierung folgt [Semantic Versioning](https://semver.org/lang/de/).
 
+## [1.9.0] - 2026-07-23
+
+### Hinzugefügt
+
+- **Standard-WLAN inklusive Passwort dauerhaft speichern.** In der
+  WLAN-Kachel kann zum hinterlegten Standard-WLAN jetzt ein
+  Passwort eingegeben werden. PiKiosk Pro legt daraufhin über
+  NetworkManager (`nmcli connection add/modify`) ein dauerhaftes
+  Verbindungsprofil an: Das Passwort wird systemweit im Profil
+  gespeichert (`wifi-sec.psk-flags 0`), die automatische Verbindung
+  aktiviert und eine hohe Priorität gesetzt. Dadurch verbindet sich
+  der Raspberry Pi nach jedem Neustart selbstständig. Ein
+  bestehendes Profil gleichen Namens wird aktualisiert statt
+  dupliziert; andere Profile bleiben unangetastet. Ohne Passwort
+  wird bei einem vorhandenen Profil nur die automatische Verbindung
+  aktiviert. Das Passwort erscheint weder in Logs noch in
+  Fehlermeldungen und wird nicht im Repository oder in der
+  `config.json` gespeichert.
+- **Diagnoseskript `scripts/diagnose.sh`.** Gibt Kiosk-Dienststatus,
+  Desktop-/Display-Umgebung, NetworkManager-Status, das hinterlegte
+  Standard-WLAN-Profil samt Autoconnect/Priorität, die aktive
+  Verbindung und die Logpfade aus – ohne jemals ein WLAN-Passwort
+  anzuzeigen. Führt zusätzlich den Tastenkombinations-Selbsttest aus.
+
+### Geändert
+
+- Eine Verbindung mit Passwort erzeugt jetzt immer ein persistentes
+  Profil (statt eines nur flüchtig aktivierten). Schlägt die
+  Aktivierung eines neu angelegten Profils fehl, wird es wieder
+  entfernt. Zu kurze oder zu lange Passwörter (nicht 8–63 Zeichen)
+  werden mit einer klaren Meldung abgelehnt.
+
 ## [1.8.5] - 2026-07-23
 
 ### Behoben
